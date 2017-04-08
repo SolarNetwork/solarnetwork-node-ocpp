@@ -1,7 +1,7 @@
 /* ==================================================================
- * PostOfflineChargeSessionsJob.java - 16/06/2015 7:42:31 pm
+ * PostActiveChargeSessionsMeterValuesJob.java - 26/03/2017 9:02:48 AM
  * 
- * Copyright 2007-2015 SolarNetwork.net Dev Team
+ * Copyright 2007-2017 SolarNetwork.net Dev Team
  * 
  * This program is free software; you can redistribute it and/or 
  * modify it under the terms of the GNU General Public License as 
@@ -32,43 +32,38 @@ import net.solarnetwork.node.job.AbstractJob;
 import net.solarnetwork.node.ocpp.ChargeSessionManager;
 
 /**
- * Job to periodically look for offline charge sessions that need to be posted
- * to the central system.
+ * Job to periodically post charge session meter values.
  * 
  * @author matt
- * @version 2.0
+ * @version 1.0
  */
 @PersistJobDataAfterExecution
 @DisallowConcurrentExecution
-public class PostOfflineChargeSessionsJob extends AbstractJob {
+public class PostActiveChargeSessionsMeterValuesJob extends AbstractJob {
 
 	private ChargeSessionManager service;
 	private TransactionTemplate transactionTemplate;
-	private int maximum = 5;
 
 	@Override
 	protected void executeInternal(JobExecutionContext jobContext) throws Exception {
 		if ( service == null ) {
-			log.warn("No ChargeSessionManager available, cannot post offline charge sessions.");
+			log.warn(
+					"No ChargeSessionManager available, cannot post active charge sessions meter values.");
 			return;
 		}
 		if ( transactionTemplate != null ) {
 			transactionTemplate.execute(new TransactionCallback<Object>() {
 
 				@Override
-				public Object doInTransaction(TransactionStatus status) {
-					postCompletedOfflineSessions();
+				public Object doInTransaction(TransactionStatus arg0) {
+					service.postActiveChargeSessionsMeterValues();
 					return null;
 				}
 			});
 		} else {
-			postCompletedOfflineSessions();
+			service.postActiveChargeSessionsMeterValues();
 		}
-	}
-
-	private void postCompletedOfflineSessions() {
-		final int posted = service.postCompleteOfflineSessions(maximum);
-		log.info("{} completed offline charge sessions posted to OCPP central system", posted);
+		log.info("Completed posting active charge sessions meter values to OCPP central system");
 	}
 
 	/**
@@ -89,17 +84,6 @@ public class PostOfflineChargeSessionsJob extends AbstractJob {
 	 */
 	public void setTransactionTemplate(TransactionTemplate transactionTemplate) {
 		this.transactionTemplate = transactionTemplate;
-	}
-
-	/**
-	 * Set the maximum number of offline sessions to attempt to post during a
-	 * single execution of the job.
-	 * 
-	 * @param maximum
-	 *        The maximum number to attempt to post.
-	 */
-	public void setMaximum(int maximum) {
-		this.maximum = maximum;
 	}
 
 }
