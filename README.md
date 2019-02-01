@@ -1,2 +1,3 @@
-# solarnetwork-node-ocpp
-SolarNode OCPP support
+# SolarNode OCPP
+
+This repository contains SolarNode plugins to support the OCPP protocol on SolarNode.
