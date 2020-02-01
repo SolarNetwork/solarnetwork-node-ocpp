@@ -2,12 +2,12 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: OCPP 1.5 Charge Point XML Web Service
 Bundle-Description: OCPP Charge Point XML service for OCPP Central System push message support.
-Bundle-SymbolicName: net.solarnetwork.node.ocpp.cp.v15.xml.web
+Bundle-SymbolicName: net.solarnetwork.node.ocpp.v15.cp.xml.web
 Bundle-Version: 0.6.0
 Bundle-ClassPath: WEB-INF/classes/
 Bundle-Vendor: SolarNetwork
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
-Web-ContextPath: /ocpp
+Web-ContextPath: /ocpp/v15/xml
 Import-Package: 
  javax.annotation;version="[1.0,2.0)",
  javax.crypto,
@@ -23,7 +23,7 @@ Import-Package:
  javax.xml.ws,
  javax.xml.ws.handler.soap,
  net.solarnetwork.node;version="[1.16,2.0)",
- net.solarnetwork.node.ocpp;version="[0.4.0,1.0)",
+ net.solarnetwork.node.ocpp;version="[0.5,1.0)",
  net.solarnetwork.node.ocpp.support;version="[0.3,1.0)",
  net.solarnetwork.node.settings;version="[1.5,2.0)",
  net.solarnetwork.node.settings.support;version="[1.4,2.0)",
