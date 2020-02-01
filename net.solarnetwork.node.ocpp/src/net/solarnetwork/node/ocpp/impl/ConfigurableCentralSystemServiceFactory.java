@@ -67,15 +67,15 @@ import ocpp.v15.cs.BootNotificationResponse;
 import ocpp.v15.cs.CentralSystemService;
 import ocpp.v15.cs.CentralSystemService_Service;
 import ocpp.v15.cs.RegistrationStatus;
-import ocpp.v15.support.HMACHandler;
-import ocpp.v15.support.WSAddressingFromHandler;
+import ocpp.xml.support.HMACHandler;
+import ocpp.xml.support.WSAddressingFromHandler;
 
 /**
  * Implementation of {@link CentralSystemServiceFactory} that allows configuring
  * the service.
  * 
  * @author matt
- * @version 1.2
+ * @version 1.3
  */
 public class ConfigurableCentralSystemServiceFactory
 		implements CentralSystemServiceFactory, SettingSpecifierProvider, EventHandler {
@@ -466,10 +466,9 @@ public class ConfigurableCentralSystemServiceFactory
 		if ( bootResponse != null ) {
 			if ( bootResponse.getStatus() == RegistrationStatus.ACCEPTED ) {
 				buf.append(messageSource.getMessage("status.accepted",
-						new Object[] {
-								(bootResponse.getCurrentTime() != null
-										? bootResponse.getCurrentTime().toString() : "N/A"),
-								bootResponse.getHeartbeatInterval() / 60 },
+						new Object[] { (bootResponse.getCurrentTime() != null
+								? bootResponse.getCurrentTime().toString()
+								: "N/A"), bootResponse.getHeartbeatInterval() / 60 },
 						Locale.getDefault()));
 			} else {
 				buf.append(messageSource.getMessage("status.rejected",

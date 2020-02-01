@@ -39,13 +39,13 @@ import net.solarnetwork.node.ocpp.dao.SettingsChargeConfigurationDao;
 import net.solarnetwork.node.ocpp.support.SimpleChargeConfiguration;
 import net.solarnetwork.node.test.AbstractNodeTransactionalTest;
 import net.solarnetwork.util.StaticOptionalService;
-import ocpp.v15.support.ConfigurationKeys;
+import ocpp.v15.ConfigurationKey;
 
 /**
  * Unit tests for the {@link SettingsChargeConfigurationDao} class.
  * 
  * @author matt
- * @version 1.0
+ * @version 1.1
  */
 public class SettingsChargeConfigurationDaoTests extends AbstractNodeTransactionalTest {
 
@@ -101,9 +101,9 @@ public class SettingsChargeConfigurationDaoTests extends AbstractNodeTransaction
 		Event event = eventCapture.getValue();
 		Assert.assertNotNull("Updated event posted", event);
 		Assert.assertEquals(Integer.valueOf(TEST_HEART_BEAT_INTERVAL),
-				event.getProperty(ConfigurationKeys.HeartBeatInterval.getKey()));
+				event.getProperty(ConfigurationKey.HeartBeatInterval.getName()));
 		Assert.assertEquals(Integer.valueOf(TEST_METER_VALUE_SAMPLE_INTERVAL),
-				event.getProperty(ConfigurationKeys.MeterValueSampleInterval.getKey()));
+				event.getProperty(ConfigurationKey.MeterValueSampleInterval.getName()));
 
 		lastConfig = config;
 	}
@@ -141,9 +141,9 @@ public class SettingsChargeConfigurationDaoTests extends AbstractNodeTransaction
 		Event event = eventCapture.getValue();
 		Assert.assertNotNull("Updated event posted", event);
 		Assert.assertEquals(Integer.valueOf(1),
-				event.getProperty(ConfigurationKeys.HeartBeatInterval.getKey()));
+				event.getProperty(ConfigurationKey.HeartBeatInterval.getName()));
 		Assert.assertEquals(Integer.valueOf(2),
-				event.getProperty(ConfigurationKeys.MeterValueSampleInterval.getKey()));
+				event.getProperty(ConfigurationKey.MeterValueSampleInterval.getName()));
 
 	}
 

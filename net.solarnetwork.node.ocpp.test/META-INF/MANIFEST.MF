@@ -2,13 +2,13 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: OCPP Tests
 Bundle-SymbolicName: net.solarnetwork.node.ocpp.test
-Bundle-Version: 0.3.0
+Bundle-Version: 0.4.0
 Bundle-Vendor: SolarNetwork
-Fragment-Host: net.solarnetwork.node.ocpp;bundle-version="0.5.0"
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Fragment-Host: net.solarnetwork.node.ocpp;bundle-version="[0.10,1.0)"
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Import-Package: 
- net.solarnetwork.node.test;version="1.0",
- net.solarnetwork.pki.bc;version="1.0",
+ net.solarnetwork.node.test;version="[1.6,2.0)",
+ net.solarnetwork.pki.bc;version="[1.0,2.0)",
  org.junit;version="[4.5,5.0)",
  org.junit.runner;version="[4.5,5.0)",
  org.junit.runners;version="[4.5,5.0)",

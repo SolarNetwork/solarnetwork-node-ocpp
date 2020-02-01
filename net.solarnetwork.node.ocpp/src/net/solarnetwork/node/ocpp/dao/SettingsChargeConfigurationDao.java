@@ -29,13 +29,13 @@ import org.osgi.service.event.Event;
 import org.osgi.service.event.EventAdmin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import net.solarnetwork.domain.KeyValuePair;
 import net.solarnetwork.node.dao.SettingDao;
 import net.solarnetwork.node.ocpp.ChargeConfiguration;
 import net.solarnetwork.node.ocpp.ChargeConfigurationDao;
 import net.solarnetwork.node.ocpp.support.SimpleChargeConfiguration;
-import net.solarnetwork.node.support.KeyValuePair;
 import net.solarnetwork.util.OptionalService;
-import ocpp.v15.support.ConfigurationKeys;
+import ocpp.v15.ConfigurationKey;
 
 /**
  * Implementation of {@link ChargeConfigurationDao} that uses {@link SettingDao}
@@ -43,10 +43,10 @@ import ocpp.v15.support.ConfigurationKeys;
  * 
  * All configuration properties are stored using a single {@code key} value of
  * {@link #SETTING_KEY} and the {@code type} values are derived from the
- * {@link ConfigurationKeys#getKey()} values.
+ * {@link ConfigurationKey#getName()} values.
  * 
  * @author matt
- * @version 1.0
+ * @version 1.1
  * @since 0.6
  */
 public class SettingsChargeConfigurationDao implements ChargeConfigurationDao {
@@ -86,12 +86,12 @@ public class SettingsChargeConfigurationDao implements ChargeConfigurationDao {
 	@Override
 	public void storeChargeConfiguration(ChargeConfiguration config) {
 		Map<String, Object> props = new HashMap<String, Object>();
-		props.put(ConfigurationKeys.HeartBeatInterval.getKey(), config.getHeartBeatInterval());
-		dao.storeSetting(SETTING_KEY, ConfigurationKeys.HeartBeatInterval.getKey(),
+		props.put(ConfigurationKey.HeartBeatInterval.getName(), config.getHeartBeatInterval());
+		dao.storeSetting(SETTING_KEY, ConfigurationKey.HeartBeatInterval.getName(),
 				String.valueOf(config.getHeartBeatInterval()));
-		props.put(ConfigurationKeys.MeterValueSampleInterval.getKey(),
+		props.put(ConfigurationKey.MeterValueSampleInterval.getName(),
 				config.getMeterValueSampleInterval());
-		dao.storeSetting(SETTING_KEY, ConfigurationKeys.MeterValueSampleInterval.getKey(),
+		dao.storeSetting(SETTING_KEY, ConfigurationKey.MeterValueSampleInterval.getName(),
 				String.valueOf(config.getMeterValueSampleInterval()));
 		postEvent(EVENT_TOPIC_CHARGE_CONFIGURATION_UPDATED, props);
 	}
@@ -107,16 +107,16 @@ public class SettingsChargeConfigurationDao implements ChargeConfigurationDao {
 	@Override
 	public ChargeConfiguration getChargeConfiguration() {
 		SimpleChargeConfiguration config = new SimpleChargeConfiguration();
-		List<KeyValuePair> settings = dao.getSettings(SETTING_KEY);
+		List<KeyValuePair> settings = dao.getSettingValues(SETTING_KEY);
 		if ( settings != null ) {
 			for ( KeyValuePair kv : settings ) {
 				if ( kv.getValue() == null || kv.getValue().isEmpty() ) {
 					continue;
 				}
 				try {
-					if ( ConfigurationKeys.HeartBeatInterval.getKey().equals(kv.getKey()) ) {
+					if ( ConfigurationKey.HeartBeatInterval.getName().equals(kv.getKey()) ) {
 						config.setHeartBeatInterval(Integer.parseInt(kv.getValue()));
-					} else if ( ConfigurationKeys.MeterValueSampleInterval.getKey()
+					} else if ( ConfigurationKey.MeterValueSampleInterval.getName()
 							.equals(kv.getKey()) ) {
 						config.setMeterValueSampleInterval(Integer.parseInt(kv.getValue()));
 					}
