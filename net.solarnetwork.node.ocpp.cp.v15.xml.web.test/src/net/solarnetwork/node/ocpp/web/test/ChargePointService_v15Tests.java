@@ -44,6 +44,7 @@ import net.solarnetwork.node.ocpp.ChargeSessionManager;
 import net.solarnetwork.node.ocpp.support.SimpleChargeConfiguration;
 import net.solarnetwork.node.ocpp.web.ChargePointService_v15;
 import net.solarnetwork.util.StaticOptionalService;
+import ocpp.v15.ConfigurationKey;
 import ocpp.v15.cp.AvailabilityStatus;
 import ocpp.v15.cp.AvailabilityType;
 import ocpp.v15.cp.ChangeAvailabilityRequest;
@@ -66,13 +67,12 @@ import ocpp.v15.cp.ResetType;
 import ocpp.v15.cp.UnlockConnectorRequest;
 import ocpp.v15.cp.UnlockConnectorResponse;
 import ocpp.v15.cp.UnlockStatus;
-import ocpp.v15.support.ConfigurationKeys;
 
 /**
  * Unit tests for the {@link ChargePointService_v15} class.
  * 
  * @author matt
- * @version 1.0
+ * @version 1.1
  */
 public class ChargePointService_v15Tests {
 
@@ -127,9 +127,9 @@ public class ChargePointService_v15Tests {
 		assertEquals("All keys returned", 2, resp.getConfigurationKey().size());
 		assertEquals("No unknown keys returned", 0, resp.getUnknownKey().size());
 		Map<String, String> props = getConfigurationProperties(resp);
-		assertEquals("HeartBeatInterval", "1", props.get(ConfigurationKeys.HeartBeatInterval.getKey()));
+		assertEquals("HeartBeatInterval", "1", props.get(ConfigurationKey.HeartBeatInterval.getName()));
 		assertEquals("MeterValueSampleInterval", "2",
-				props.get(ConfigurationKeys.MeterValueSampleInterval.getKey()));
+				props.get(ConfigurationKey.MeterValueSampleInterval.getName()));
 	}
 
 	private Map<String, String> getConfigurationProperties(GetConfigurationResponse resp) {
@@ -149,14 +149,14 @@ public class ChargePointService_v15Tests {
 		replayAll();
 
 		GetConfigurationRequest req = new GetConfigurationRequest();
-		req.getKey().add(ConfigurationKeys.MeterValueSampleInterval.getKey());
+		req.getKey().add(ConfigurationKey.MeterValueSampleInterval.getName());
 		GetConfigurationResponse resp = service.getConfiguration(req, TEST_CHARGE_BOX_ID);
 		assertNotNull("Response available", resp);
 		assertEquals("All keys returned", 1, resp.getConfigurationKey().size());
 		assertEquals("No unknown keys returned", 0, resp.getUnknownKey().size());
 		Map<String, String> props = getConfigurationProperties(resp);
 		assertEquals("MeterValueSampleInterval", "2",
-				props.get(ConfigurationKeys.MeterValueSampleInterval.getKey()));
+				props.get(ConfigurationKey.MeterValueSampleInterval.getName()));
 	}
 
 	@Test
@@ -173,7 +173,7 @@ public class ChargePointService_v15Tests {
 		replayAll();
 
 		ChangeConfigurationRequest req = new ChangeConfigurationRequest();
-		req.setKey(ConfigurationKeys.MeterValueSampleInterval.getKey());
+		req.setKey(ConfigurationKey.MeterValueSampleInterval.getName());
 		req.setValue("100");
 		ChangeConfigurationResponse resp = service.changeConfiguration(req, TEST_CHARGE_BOX_ID);
 		assertNotNull("Response available", resp);
@@ -196,7 +196,7 @@ public class ChargePointService_v15Tests {
 		replayAll();
 
 		ChangeConfigurationRequest req = new ChangeConfigurationRequest();
-		req.setKey(ConfigurationKeys.MeterValueSampleInterval.getKey());
+		req.setKey(ConfigurationKey.MeterValueSampleInterval.getName());
 		req.setValue("ABC");
 		ChangeConfigurationResponse resp = service.changeConfiguration(req, TEST_CHARGE_BOX_ID);
 		assertNotNull("Response available", resp);
@@ -217,7 +217,7 @@ public class ChargePointService_v15Tests {
 		replayAll();
 
 		ChangeConfigurationRequest req = new ChangeConfigurationRequest();
-		req.setKey(ConfigurationKeys.HeartBeatInterval.getKey());
+		req.setKey(ConfigurationKey.HeartBeatInterval.getName());
 		req.setValue("100");
 		ChangeConfigurationResponse resp = service.changeConfiguration(req, TEST_CHARGE_BOX_ID);
 		assertNotNull("Response available", resp);
@@ -241,7 +241,7 @@ public class ChargePointService_v15Tests {
 		replayAll();
 
 		ChangeConfigurationRequest req = new ChangeConfigurationRequest();
-		req.setKey(ConfigurationKeys.HeartBeatInterval.getKey());
+		req.setKey(ConfigurationKey.HeartBeatInterval.getName());
 		req.setValue("ABC");
 		ChangeConfigurationResponse resp = service.changeConfiguration(req, TEST_CHARGE_BOX_ID);
 		assertNotNull("Response available", resp);

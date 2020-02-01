@@ -29,13 +29,13 @@ import net.solarnetwork.node.settings.SettingSpecifier;
 import net.solarnetwork.node.settings.SettingSpecifierProvider;
 import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
 import net.solarnetwork.node.settings.support.BasicToggleSettingSpecifier;
-import ocpp.v15.support.HMACHandler;
+import ocpp.xml.support.HMACHandler;
 
 /**
  * Extension of {@link HMACHandler} to support {@link SettingSpecifierProvider}.
  * 
  * @author matt
- * @version 1.0
+ * @version 1.1
  */
 public class ManagedHMACHandler extends HMACHandler implements SettingSpecifierProvider {
 

@@ -1,12 +1,12 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Name: OCPP ChargePoint Web Service
-Bundle-Description: OCPP server for OCPP server push message support.
+Bundle-Name: OCPP 1.5 Charge Point XML Web Service
+Bundle-Description: OCPP Charge Point XML service for OCPP Central System push message support.
 Bundle-SymbolicName: net.solarnetwork.node.ocpp.cp.v15.xml.web
-Bundle-Version: 0.5.0
+Bundle-Version: 0.6.0
 Bundle-ClassPath: WEB-INF/classes/
 Bundle-Vendor: SolarNetwork
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Web-ContextPath: /ocpp
 Import-Package: 
  javax.annotation;version="[1.0,2.0)",
@@ -22,19 +22,19 @@ Import-Package:
  javax.xml.soap,
  javax.xml.ws,
  javax.xml.ws.handler.soap,
- net.solarnetwork.node;version="1.16",
- net.solarnetwork.node.ocpp;version="0.4.0",
- net.solarnetwork.node.ocpp.support;version="0.3.0",
- net.solarnetwork.node.ocpp.web.config;resolution:="optional",
- net.solarnetwork.node.settings;version="1.5",
- net.solarnetwork.node.settings.support;version="1.4.0",
- net.solarnetwork.node.util;version="1.6.0",
- net.solarnetwork.util;version="1.20.0",
- net.solarnetwork.web.domain;version="1.0",
- net.solarnetwork.web.gemini;version="1.0.0",
- net.solarnetwork.web.support;version="1.7",
- ocpp.v15.cp;version="1.5.0",
- ocpp.v15.support;version="1.6.0",
+ net.solarnetwork.node;version="[1.16,2.0)",
+ net.solarnetwork.node.ocpp;version="[0.4.0,1.0)",
+ net.solarnetwork.node.ocpp.support;version="[0.3,1.0)",
+ net.solarnetwork.node.settings;version="[1.5,2.0)",
+ net.solarnetwork.node.settings.support;version="[1.4,2.0)",
+ net.solarnetwork.node.util;version="[1.6,2.0)",
+ net.solarnetwork.util;version="[1.20,2.0)",
+ net.solarnetwork.web.domain;version="[1.0,2.0)",
+ net.solarnetwork.web.gemini;version="[2.0,3.0)",
+ net.solarnetwork.web.support;version="[1.7,2.0)",
+ ocpp.v15;version="[2.0,3.0)",
+ ocpp.v15.cp;version="[2.0,3.0)",
+ ocpp.xml.support;version="[1.0,2.0)",
  org.aopalliance.aop;version="1.0",
  org.apache.cxf.bus.extension;version="[3.0,4.0)",
  org.apache.cxf.bus.spring;version="[3.0,4.0)",

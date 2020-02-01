@@ -46,6 +46,7 @@ import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
 import net.solarnetwork.node.settings.support.BasicTitleSettingSpecifier;
 import net.solarnetwork.util.FilterableService;
 import net.solarnetwork.util.OptionalService;
+import ocpp.v15.ConfigurationKey;
 import ocpp.v15.cp.AvailabilityStatus;
 import ocpp.v15.cp.AvailabilityType;
 import ocpp.v15.cp.CancelReservationRequest;
@@ -85,13 +86,12 @@ import ocpp.v15.cp.UnlockConnectorResponse;
 import ocpp.v15.cp.UnlockStatus;
 import ocpp.v15.cp.UpdateFirmwareRequest;
 import ocpp.v15.cp.UpdateFirmwareResponse;
-import ocpp.v15.support.ConfigurationKeys;
 
 /**
  * SolarNode implementation of {@link ChargePointService}
  * 
  * @author matt
- * @version 1.1
+ * @version 1.2
  */
 @WebService(serviceName = "ChargePointService", targetNamespace = "urn://Ocpp/Cp/2012/06/")
 public class ChargePointService_v15 implements ChargePointService, SettingSpecifierProvider {
@@ -203,7 +203,7 @@ public class ChargePointService_v15 implements ChargePointService, SettingSpecif
 		ChargeConfiguration config = chargeConfigurationDao.getChargeConfiguration();
 		SimpleChargeConfiguration newConfig = new SimpleChargeConfiguration(config);
 		try {
-			ConfigurationKeys key = ConfigurationKeys.forKey(parameters.getKey());
+			ConfigurationKey key = ConfigurationKey.valueOf(parameters.getKey());
 			switch (key) {
 				case HeartBeatInterval:
 					newConfig.setHeartBeatInterval(Integer.parseInt(parameters.getValue()));
@@ -302,12 +302,12 @@ public class ChargePointService_v15 implements ChargePointService, SettingSpecif
 		final GetConfigurationResponse resp = new GetConfigurationResponse();
 		List<String> keys = parameters.getKey();
 		if ( keys == null || keys.isEmpty() ) {
-			keys = Arrays.asList(ConfigurationKeys.HeartBeatInterval.getKey(),
-					ConfigurationKeys.MeterValueSampleInterval.getKey());
+			keys = Arrays.asList(ConfigurationKey.HeartBeatInterval.getName(),
+					ConfigurationKey.MeterValueSampleInterval.getName());
 		}
 		for ( String key : keys ) {
 			try {
-				ConfigurationKeys confKey = ConfigurationKeys.forKey(key);
+				ConfigurationKey confKey = ConfigurationKey.valueOf(key);
 				switch (confKey) {
 					case HeartBeatInterval:
 						addKeyValue(key, String.valueOf(config.getHeartBeatInterval()), false,
