@@ -20,7 +20,7 @@
  * ==================================================================
  */
 
-package net.solarnetwork.node.ocpp.controller.test;
+package net.solarnetwork.node.ocpp.v16.cs.json.web.test;
 
 import static org.easymock.EasyMock.expect;
 import static org.hamcrest.Matchers.equalTo;
@@ -42,8 +42,8 @@ import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.socket.SubProtocolCapable;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketHttpHeaders;
-import net.solarnetwork.node.ocpp.controller.OcppWebSocketSubProtocol;
-import net.solarnetwork.node.ocpp.controller.v16.OcppWebSocketHandshakeInterceptor;
+import net.solarnetwork.node.ocpp.json.OcppWebSocketSubProtocol;
+import net.solarnetwork.node.ocpp.v16.cs.json.web.OcppWebSocketHandshakeInterceptor;
 
 /**
  * Test cases for the {@link OcppWebSocketHandshakeInterceptor} class.

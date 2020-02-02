@@ -20,7 +20,7 @@
  * ==================================================================
  */
 
-package net.solarnetwork.node.ocpp.controller.v16;
+package net.solarnetwork.node.ocpp.v16.cs.json.web;
 
 import java.net.URI;
 import java.util.List;

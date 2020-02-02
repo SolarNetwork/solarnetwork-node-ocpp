@@ -17,10 +17,10 @@
 	<websocket:handlers>
 		<websocket:mapping path="/ocpp/v16/json/**" handler="ocppWebSocketHandler_v16"/>
 		<websocket:handshake-interceptors>
-			<bean class="net.solarnetwork.node.ocpp.controller.v16.OcppWebSocketHandshakeInterceptor"/>
+			<bean class="net.solarnetwork.node.ocpp.v16.cs.json.web.OcppWebSocketHandshakeInterceptor"/>
 		</websocket:handshake-interceptors>
 	</websocket:handlers>
 
-	<bean id="ocppWebSocketHandler_v16" class="net.solarnetwork.node.ocpp.controller.v16.OcppWebSocketHandler"/>
+	<bean id="ocppWebSocketHandler_v16" class="net.solarnetwork.node.ocpp.v16.cs.json.web.OcppWebSocketHandler"/>
 	
 </beans>

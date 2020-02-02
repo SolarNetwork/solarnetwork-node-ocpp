@@ -20,7 +20,7 @@
  * ==================================================================
  */
 
-package net.solarnetwork.node.ocpp.controller;
+package net.solarnetwork.node.ocpp.json;
 
 /**
  * OCPP WebSocket sub-protocol enumeration.

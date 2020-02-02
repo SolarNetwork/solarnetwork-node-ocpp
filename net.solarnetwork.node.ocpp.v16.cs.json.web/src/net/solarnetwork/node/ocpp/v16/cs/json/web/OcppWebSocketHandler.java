@@ -20,7 +20,7 @@
  * ==================================================================
  */
 
-package net.solarnetwork.node.ocpp.controller.v16;
+package net.solarnetwork.node.ocpp.v16.cs.json.web;
 
 import static java.util.Collections.singletonList;
 import java.io.IOException;
@@ -39,7 +39,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
-import net.solarnetwork.node.ocpp.controller.OcppWebSocketSubProtocol;
+import net.solarnetwork.node.ocpp.json.OcppWebSocketSubProtocol;
 import ocpp.domain.ErrorCode;
 import ocpp.json.MessageType;
 import ocpp.v16.ActionErrorCode;
