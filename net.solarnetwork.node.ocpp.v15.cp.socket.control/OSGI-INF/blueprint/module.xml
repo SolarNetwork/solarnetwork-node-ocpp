@@ -26,7 +26,7 @@
 
 
 	<bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
-		<property name="basenames" value="net.solarnetwork.node.ocpp.socket.control.SimpleSocketManager"/>
+		<property name="basenames" value="net.solarnetwork.node.ocpp.v15.cp.socket.control.SimpleSocketManager"/>
 	</bean>
 	
 	<bean id="jobMessageSource" class="net.solarnetwork.node.util.PrefixedMessageSource">
@@ -39,19 +39,19 @@
 	<service  interface="net.solarnetwork.node.settings.SettingSpecifierProviderFactory">
 		<bean class="net.solarnetwork.node.settings.support.BasicSettingSpecifierProviderFactory">
 			<property name="displayName" value="OCPP Socket Controller"/>
-			<property name="factoryUID" value="net.solarnetwork.node.ocpp.socket.control"/>
+			<property name="factoryUID" value="net.solarnetwork.node.ocpp.v15.cp.socket.control"/>
 			<property name="messageSource" ref="messageSource"/>
 		</bean>
 	</service>
 	
-	<osgix:managed-service-factory factory-pid="net.solarnetwork.node.ocpp.socket.control" autowire-on-update="true">
+	<osgix:managed-service-factory factory-pid="net.solarnetwork.node.ocpp.v15.cp.socket.control" autowire-on-update="true">
 		<osgix:interfaces>
 			<beans:value>net.solarnetwork.node.job.ManagedTriggerAndJobDetail</beans:value>
 			<beans:value>net.solarnetwork.node.job.ServiceProvider</beans:value>
 			<beans:value>net.solarnetwork.node.settings.SettingSpecifierProvider</beans:value>
 		</osgix:interfaces>
 		<osgix:service-properties>
-			<beans:entry key="settingPid" value="net.solarnetwork.node.ocpp.socket.control"/>
+			<beans:entry key="settingPid" value="net.solarnetwork.node.ocpp.v15.cp.socket.control"/>
 		</osgix:service-properties>
 		<bean class="net.solarnetwork.node.job.SimpleManagedTriggerAndJobDetail">
 			<property name="trigger">
@@ -68,7 +68,7 @@
 						<bean class="net.solarnetwork.node.job.SimpleServiceProviderConfiguration">
 							<property name="interfaces">
 								<list>
-									<value>net.solarnetwork.node.ocpp.SocketManager</value>
+									<value>net.solarnetwork.node.ocpp.v15.cp.SocketManager</value>
 								</list>
 							</property>
 						</bean>
@@ -78,18 +78,18 @@
 			<property name="jobDetail">
 				<bean class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
 					<property name="name" value="ocppSocketStateJob"/>
-					<property name="jobClass" value="net.solarnetwork.node.ocpp.socket.control.SocketStateJob"/>
+					<property name="jobClass" value="net.solarnetwork.node.ocpp.v15.cp.socket.control.SocketStateJob"/>
 					<property name="jobDataAsMap">
 						<map>
 							<entry key="socketManager">
-								<bean class="net.solarnetwork.node.ocpp.socket.control.SimpleSocketManager">
+								<bean class="net.solarnetwork.node.ocpp.v15.cp.socket.control.SimpleSocketManager">
 									<property name="eventAdmin" ref="eventAdmin"/>
 									<property name="instructionHandlers" ref="controls"/>
 									<property name="messageSource" ref="messageSource"/>
 									<property name="chargeSessionManager">
 										<bean class="net.solarnetwork.util.DynamicServiceProxy">
 											<property name="bundleContext" ref="bundleContext"/>
-											<property name="serviceClass" value="net.solarnetwork.node.ocpp.ChargeSessionManager"/>
+											<property name="serviceClass" value="net.solarnetwork.node.ocpp.v15.cp.ChargeSessionManager"/>
 											<property name="propertyFilters">
 												<map>
 													<entry key="UID" value="OCPP Central System"/>

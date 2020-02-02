@@ -1,10 +1,10 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Name: Tests
-Bundle-SymbolicName: net.solarnetwork.node.ocpp.charge.rfid.test
-Bundle-Version: 1.1.0
-Fragment-Host: net.solarnetwork.node.ocpp.charge.rfid;bundle-version="1.1.0"
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Bundle-Name: OCPP 1.5 Charge Point RFID Charge Session Manager Tests
+Bundle-SymbolicName: net.solarnetwork.node.ocpp.v15.cp.charge.rfid.test
+Bundle-Version: 1.0.0
+Fragment-Host: net.solarnetwork.node.ocpp.v15.cp.charge.rfid;bundle-version="[1.0,2.0)"
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Import-Package: 
  net.solarnetwork.node.test;version="[1.2,2.0)",
  org.easymock;version="[3.1,4.0)",

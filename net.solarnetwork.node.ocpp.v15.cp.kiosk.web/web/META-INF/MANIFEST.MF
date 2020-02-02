@@ -1,11 +1,11 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Name: OCPP Kiosk Web
-Bundle-SymbolicName: net.solarnetwork.node.ocpp.kiosk.web
-Bundle-Version: 0.1.0
+Bundle-Name: OCPP 1.5 Charge Point Kiosk Web
+Bundle-SymbolicName: net.solarnetwork.node.ocpp.v15.cp.kiosk.web
+Bundle-Version: 1.0.0
 Bundle-ClassPath: WEB-INF/classes/
 Bundle-Vendor: SolarNetwork
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Web-ContextPath: /ocpp-kiosk
 Import-Package: 
  com.fasterxml.jackson.core;version="[2.4,3.0)",
@@ -19,21 +19,21 @@ Import-Package:
  javax.servlet.http;version="3.0",
  javax.servlet.resources;version="3.0",
  javax.websocket,
- net.solarnetwork.domain;version="1.7",
- net.solarnetwork.node;version="1.16",
- net.solarnetwork.node.domain;version="1.7.0",
- net.solarnetwork.node.job;version="1.13.3",
- net.solarnetwork.node.ocpp;version="0.3.0",
- net.solarnetwork.node.settings;version="1.10.0",
- net.solarnetwork.node.settings.support;version="1.8.0",
- net.solarnetwork.node.setup;version="1.8",
- net.solarnetwork.node.support;version="1.13",
- net.solarnetwork.support;version="1.2",
- net.solarnetwork.util;version="1.22",
- net.solarnetwork.web.domain;version="1.0",
- net.solarnetwork.web.gemini;version="1.0.0",
- net.solarnetwork.web.support;version="1.8",
- ocpp.v15.cs;version="1.5.0",
+ net.solarnetwork.domain;version="[1.7,2.0)",
+ net.solarnetwork.node;version="[1.16,2.0)",
+ net.solarnetwork.node.domain;version="[1.7,2.0)",
+ net.solarnetwork.node.job;version="[1.13.3,2.0)",
+ net.solarnetwork.node.ocpp.v15.cp;version="[1.0,2.0)",
+ net.solarnetwork.node.settings;version="[1.10,2.0)",
+ net.solarnetwork.node.settings.support;version="[1.8,2.0)",
+ net.solarnetwork.node.setup;version="[1.8,2.0)",
+ net.solarnetwork.node.support;version="[1.13,2.0)",
+ net.solarnetwork.support;version="[1.2,2.0)",
+ net.solarnetwork.util;version="[1.40,2.0)",
+ net.solarnetwork.web.domain;version="[1.0,2.0)",
+ net.solarnetwork.web.gemini;version="[2.0,3.0)",
+ net.solarnetwork.web.support;version="[1.8,2.0)",
+ ocpp.v15.cs;version="[2.0,3.0)",
  org.aopalliance.aop;version="1.0",
  org.joda.time;version="[2.4,3.0)",
  org.joda.time.base;version="[2.4,3.0)",

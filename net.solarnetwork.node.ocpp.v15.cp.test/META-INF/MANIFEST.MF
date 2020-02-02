@@ -1,10 +1,10 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Name: OCPP Tests
-Bundle-SymbolicName: net.solarnetwork.node.ocpp.test
-Bundle-Version: 0.4.0
+Bundle-Name: OCPP 1.5 Charge Point Tests
+Bundle-SymbolicName: net.solarnetwork.node.ocpp.v15.cp.test
+Bundle-Version: 1.0.0
 Bundle-Vendor: SolarNetwork
-Fragment-Host: net.solarnetwork.node.ocpp;bundle-version="[0.10,1.0)"
+Fragment-Host: net.solarnetwork.node.ocpp.v15.cp;bundle-version="[1.0,2.0)"
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Import-Package: 
  net.solarnetwork.node.test;version="[1.6,2.0)",

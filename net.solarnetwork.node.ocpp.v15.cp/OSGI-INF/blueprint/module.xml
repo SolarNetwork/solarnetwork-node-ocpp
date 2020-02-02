@@ -16,7 +16,7 @@
 	
 	<!-- Configuration -->
 	
-	<osgix:cm-properties id="cfg" persistent-id="net.solarnetwork.node.ocpp">
+	<osgix:cm-properties id="cfg" persistent-id="net.solarnetwork.node.ocpp.v15.cp">
 		<beans:prop key="purgeExpiredJob.cronExpression">5 15 3 * * ?</beans:prop>
 		<beans:prop key="purgeExpiredJob.minPurgeExpiredAuthorizationDays">1</beans:prop>
 	</osgix:cm-properties>
@@ -43,63 +43,63 @@
 	<reference id="scheduler" interface="org.quartz.Scheduler" filter="(function=node)"/>
 
 	<bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
-		<property name="basenames" value="net.solarnetwork.node.ocpp.impl.ConfigurableCentralSystemServiceFactory"/>
+		<property name="basenames" value="net.solarnetwork.node.ocpp.v15.cp.impl.ConfigurableCentralSystemServiceFactory"/>
 	</bean>
 	
 	<bean id="settingsFactory" class="net.solarnetwork.node.settings.support.BasicSettingSpecifierProviderFactory">
 		<property name="displayName" value="OCPP Central System"/>
-		<property name="factoryUID" value="net.solarnetwork.node.ocpp.central"/>
+		<property name="factoryUID" value="net.solarnetwork.node.ocpp.v15.cp.central"/>
 		<property name="messageSource" ref="messageSource"/>
 	</bean>
 	
 	<reference id="dataSource" interface="javax.sql.DataSource" filter="(db=node)"/>
 	
-	<bean id="authDao" class="net.solarnetwork.node.ocpp.dao.JdbcAuthorizationDao" init-method="init">
+	<bean id="authDao" class="net.solarnetwork.node.ocpp.v15.cp.dao.JdbcAuthorizationDao" init-method="init">
 		<property name="dataSource" ref="dataSource"/>
 	</bean>
 	
 	<reference id="settingDao" interface="net.solarnetwork.node.dao.SettingDao"/>
 	
-	<bean id="chargeConfigurationDao" class="net.solarnetwork.node.ocpp.dao.SettingsChargeConfigurationDao">
+	<bean id="chargeConfigurationDao" class="net.solarnetwork.node.ocpp.v15.cp.dao.SettingsChargeConfigurationDao">
 		<argument ref="settingDao"/>
 		<argument ref="eventAdmin"/>
 	</bean>
 
-	<bean id="chargeSessionDao" class="net.solarnetwork.node.ocpp.dao.JdbcChargeSessionDao" init-method="init">
+	<bean id="chargeSessionDao" class="net.solarnetwork.node.ocpp.v15.cp.dao.JdbcChargeSessionDao" init-method="init">
 		<property name="dataSource" ref="dataSource"/>
 	</bean>
 
-	<bean id="socketDao" class="net.solarnetwork.node.ocpp.dao.JdbcSocketDao" init-method="init">
+	<bean id="socketDao" class="net.solarnetwork.node.ocpp.v15.cp.dao.JdbcSocketDao" init-method="init">
 		<property name="dataSource" ref="dataSource"/>
 	</bean>
 
 	<!-- Published Services -->
 	
-	<service ref="authDao" interface="net.solarnetwork.node.ocpp.AuthorizationDao"/>
+	<service ref="authDao" interface="net.solarnetwork.node.ocpp.v15.cp.AuthorizationDao"/>
 	
-	<service ref="chargeConfigurationDao" interface="net.solarnetwork.node.ocpp.ChargeConfigurationDao"/>
+	<service ref="chargeConfigurationDao" interface="net.solarnetwork.node.ocpp.v15.cp.ChargeConfigurationDao"/>
 
-	<service ref="chargeSessionDao" interface="net.solarnetwork.node.ocpp.ChargeSessionDao"/>
+	<service ref="chargeSessionDao" interface="net.solarnetwork.node.ocpp.v15.cp.ChargeSessionDao"/>
 
-	<service ref="socketDao" interface="net.solarnetwork.node.ocpp.SocketDao"/>
+	<service ref="socketDao" interface="net.solarnetwork.node.ocpp.v15.cp.SocketDao"/>
 
 	<service ref="settingsFactory" interface="net.solarnetwork.node.settings.SettingSpecifierProviderFactory"/>
 	
-	<osgix:managed-service-factory factory-pid="net.solarnetwork.node.ocpp.central" autowire-on-update="true">
+	<osgix:managed-service-factory factory-pid="net.solarnetwork.node.ocpp.v15.cp.central" autowire-on-update="true">
 		<osgix:interfaces>
-			<beans:value>net.solarnetwork.node.ocpp.CentralSystemServiceFactory</beans:value>
+			<beans:value>net.solarnetwork.node.ocpp.v15.cp.CentralSystemServiceFactory</beans:value>
 			<beans:value>net.solarnetwork.node.settings.SettingSpecifierProvider</beans:value>
 			<beans:value>org.osgi.service.event.EventHandler</beans:value>
 		</osgix:interfaces>
 		<osgix:service-properties>
-			<beans:entry key="settingPid" value="net.solarnetwork.node.ocpp.central"/>
+			<beans:entry key="settingPid" value="net.solarnetwork.node.ocpp.v15.cp.central"/>
 			<beans:entry key="#{T(org.osgi.service.event.EventConstants).EVENT_TOPIC}">
 				<beans:array value-type="java.lang.String">
-					<beans:value>#{T(net.solarnetwork.node.ocpp.ChargeConfigurationDao).EVENT_TOPIC_CHARGE_CONFIGURATION_UPDATED}</beans:value>
+					<beans:value>#{T(net.solarnetwork.node.ocpp.v15.cp.ChargeConfigurationDao).EVENT_TOPIC_CHARGE_CONFIGURATION_UPDATED}</beans:value>
 				</beans:array>
 			</beans:entry>
 		</osgix:service-properties>
-		<bean class="net.solarnetwork.node.ocpp.impl.ConfigurableCentralSystemServiceFactory" init-method="startup" destroy-method="shutdown">
+		<bean class="net.solarnetwork.node.ocpp.v15.cp.impl.ConfigurableCentralSystemServiceFactory" init-method="startup" destroy-method="shutdown">
 			<property name="chargeConfigurationDao" ref="chargeConfigurationDao"/>
 			<property name="messageSource" ref="messageSource"/>
 			<property name="identityService" ref="identityService"/>
@@ -111,7 +111,7 @@
 	<bean id="jobMessageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
 		<property name="basenames">
 			<list>
-				<value>net.solarnetwork.node.ocpp.dao.Job</value>
+				<value>net.solarnetwork.node.ocpp.v15.cp.dao.Job</value>
 			</list>
 		</property>
 	</bean>
@@ -128,7 +128,7 @@
 		<property name="jobDetail">
 			<bean class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
 				<property name="name" value="purgeExpiredAuthorizationsJob"/>
-				<property name="jobClass" value="net.solarnetwork.node.ocpp.dao.PurgeExpiredAuthorizationsJob"/>
+				<property name="jobClass" value="net.solarnetwork.node.ocpp.v15.cp.dao.PurgeExpiredAuthorizationsJob"/>
 				<property name="jobDataAsMap">
 					<map>
 						<entry key="authorizationDao" value-ref="authDao"/>

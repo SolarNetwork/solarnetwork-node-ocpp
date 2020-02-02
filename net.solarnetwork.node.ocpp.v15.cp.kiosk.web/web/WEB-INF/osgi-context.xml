@@ -28,7 +28,7 @@
 
 	<bean id="chargeSessionManager" class="net.solarnetwork.util.DynamicServiceProxy">
 		<property name="bundleContext" ref="bundleContext"/>
-		<property name="serviceClass" value="net.solarnetwork.node.ocpp.ChargeSessionManager"/>
+		<property name="serviceClass" value="net.solarnetwork.node.ocpp.v15.cp.ChargeSessionManager"/>
 		<property name="propertyFilters">
 			<map>
 				<entry key="UID" value="OCPP Central System"/>
