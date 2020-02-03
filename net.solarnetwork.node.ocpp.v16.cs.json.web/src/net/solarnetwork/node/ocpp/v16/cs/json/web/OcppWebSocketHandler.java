@@ -49,6 +49,7 @@ import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
 import net.solarnetwork.node.ocpp.json.CallMessageProcessor;
 import net.solarnetwork.node.ocpp.json.CallMessageResultHandler;
 import net.solarnetwork.node.ocpp.json.OcppWebSocketSubProtocol;
+import net.solarnetwork.util.OptionalService;
 import ocpp.domain.ErrorCode;
 import ocpp.json.ActionPayloadDecoder;
 import ocpp.json.BasicCallErrorMessage;
@@ -101,9 +102,9 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	private final ConcurrentMap<String, WebSocketSession> clientSessions;
 	private final Deque<PendingCallMessage> pendingMessages;
 	private final ObjectMapper mapper;
-	private CallMessageProcessor callMessageProcessor;
 	private ActionPayloadDecoder centralServiceActionPayloadDecoder;
 	private ActionPayloadDecoder chargePointActionPayloadDecoder;
+	private OptionalService<CallMessageProcessor> callMessageProcessor;
 
 	private static ObjectMapper defaultObjectMapper() {
 		ObjectMapper mapper = new ObjectMapper();
@@ -117,7 +118,7 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	 * Constructor.
 	 * 
 	 * <p>
-	 * Dfault {@link ObjectMapper} and
+	 * Default {@link ObjectMapper} and
 	 * {@link CentralServiceActionPayloadDecoder} and
 	 * {@link ChargePointActionPayloadDecoder} instances will be created. An
 	 * in-memory queue will be used for pending messages.
@@ -142,7 +143,7 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	 * @param centralServiceActionPayloadDecoder
 	 *        the action payload decoder to use
 	 * @param chargePointActionPayloadDecoder
-	 *        for Central Service message the action payload decoder to ues for
+	 *        for Central Service message the action payload decoder to use for
 	 *        Charge Point messages
 	 * @throws IllegalArgumentException
 	 *         if any parameter is {@literal null}
@@ -206,7 +207,7 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 						"Message type not provided.", null);
 				return;
 			}
-			ocpp.json.MessageType msgType;
+			MessageType msgType;
 			try {
 				msgType = MessageType.forNumber(msgTypeNode.intValue());
 			} catch ( IllegalArgumentException e ) {
@@ -259,7 +260,12 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	private boolean handleCallMessage(final WebSocketSession session, final String clientId,
 			final String messageId, final TextMessage message, final JsonNode tree) {
 		final JsonNode actionNode = tree.path(2);
-		final CallMessageProcessor proc = getCallMessageProcessor();
+		final CallMessageProcessor proc = callMessageProcessor();
+		if ( proc == null ) {
+			log.debug("OCPP {} <<< No CallMessageProcessor available, ignoring message: {}", clientId,
+					message.getPayload());
+			return false;
+		}
 		final CentralServiceAction action;
 		try {
 			action = actionNode.isTextual() ? CentralServiceAction.valueOf(actionNode.textValue())
@@ -601,12 +607,17 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 		return false;
 	}
 
+	private CallMessageProcessor callMessageProcessor() {
+		OptionalService<CallMessageProcessor> s = getCallMessageProcessor();
+		return (s != null ? s.service() : null);
+	}
+
 	/**
 	 * Get the configured call message processor.
 	 * 
 	 * @return the processor
 	 */
-	public CallMessageProcessor getCallMessageProcessor() {
+	public OptionalService<CallMessageProcessor> getCallMessageProcessor() {
 		return callMessageProcessor;
 	}
 
@@ -616,7 +627,7 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	 * @param callMessageProcessor
 	 *        the processor to use
 	 */
-	public void setCallMessageProcessor(CallMessageProcessor callMessageProcessor) {
+	public void setCallMessageProcessor(OptionalService<CallMessageProcessor> callMessageProcessor) {
 		this.callMessageProcessor = callMessageProcessor;
 	}
 
