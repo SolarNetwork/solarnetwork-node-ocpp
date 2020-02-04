@@ -56,7 +56,7 @@ public class OcppWebSocketHandshakeInterceptor implements HandshakeInterceptor {
 	public static final String REQUEST_URI_ATTR = "requestUri";
 
 	/** The default {@code clientIdUriPattern} property value. */
-	public static final String DEFAULT_CLIENT_ID_URI_PATTERN = "/ocpp/v16/(.*)";
+	public static final String DEFAULT_CLIENT_ID_URI_PATTERN = "/ocpp/v16/cs/json/(.*)";
 
 	/** The attribute key for the client ID. */
 	public static final String CLIENT_ID_ATTR = "clientId";

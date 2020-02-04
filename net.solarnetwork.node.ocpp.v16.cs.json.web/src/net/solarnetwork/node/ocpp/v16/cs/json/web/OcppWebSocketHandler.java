@@ -49,7 +49,6 @@ import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
 import net.solarnetwork.node.ocpp.json.CallMessageProcessor;
 import net.solarnetwork.node.ocpp.json.CallMessageResultHandler;
 import net.solarnetwork.node.ocpp.json.OcppWebSocketSubProtocol;
-import net.solarnetwork.util.OptionalService;
 import ocpp.domain.ErrorCode;
 import ocpp.json.ActionPayloadDecoder;
 import ocpp.json.BasicCallErrorMessage;
@@ -104,7 +103,7 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	private final ObjectMapper mapper;
 	private ActionPayloadDecoder centralServiceActionPayloadDecoder;
 	private ActionPayloadDecoder chargePointActionPayloadDecoder;
-	private OptionalService<CallMessageProcessor> callMessageProcessor;
+	private CallMessageProcessor callMessageProcessor;
 
 	private static ObjectMapper defaultObjectMapper() {
 		ObjectMapper mapper = new ObjectMapper();
@@ -267,7 +266,7 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	private boolean handleCallMessage(final WebSocketSession session, final String clientId,
 			final String messageId, final TextMessage message, final JsonNode tree) {
 		final JsonNode actionNode = tree.path(2);
-		final CallMessageProcessor proc = callMessageProcessor();
+		final CallMessageProcessor proc = getCallMessageProcessor();
 		if ( proc == null ) {
 			log.debug("OCPP {} <<< No CallMessageProcessor available, ignoring message: {}", clientId,
 					message.getPayload());
@@ -331,7 +330,7 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 			return false;
 		}
 		WebSocketSession session = clientSessions.get(message.getClientId());
-		if ( session != null ) {
+		if ( session == null ) {
 			log.error("Web socket not available for result of CallMessage {}; ignoring: {}", message,
 					result != null ? result : error);
 			return false;
@@ -615,17 +614,12 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 		return false;
 	}
 
-	private CallMessageProcessor callMessageProcessor() {
-		OptionalService<CallMessageProcessor> s = getCallMessageProcessor();
-		return (s != null ? s.service() : null);
-	}
-
 	/**
 	 * Get the configured call message processor.
 	 * 
 	 * @return the processor
 	 */
-	public OptionalService<CallMessageProcessor> getCallMessageProcessor() {
+	public CallMessageProcessor getCallMessageProcessor() {
 		return callMessageProcessor;
 	}
 
@@ -635,7 +629,7 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	 * @param callMessageProcessor
 	 *        the processor to use
 	 */
-	public void setCallMessageProcessor(OptionalService<CallMessageProcessor> callMessageProcessor) {
+	public void setCallMessageProcessor(CallMessageProcessor callMessageProcessor) {
 		this.callMessageProcessor = callMessageProcessor;
 	}
 

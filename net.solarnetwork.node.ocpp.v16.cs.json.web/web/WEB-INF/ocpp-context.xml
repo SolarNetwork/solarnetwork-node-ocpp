@@ -21,6 +21,17 @@
 		</websocket:handshake-interceptors>
 	</websocket:handlers>
 
-	<bean id="ocppWebSocketHandler_v16" class="net.solarnetwork.node.ocpp.v16.cs.json.web.OcppWebSocketHandler"/>
+	<bean id="ocppWebSocketHandler_v16" class="net.solarnetwork.node.ocpp.v16.cs.json.web.OcppWebSocketHandler">
+		<property name="callMessageProcessor" ref="callMessageActionRouter"/>
+	</bean>
+	
+	<osgi:list id="triggers" interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor" availability="optional">
+		<osgi:reference-listener  bind-method="addActionMessageProcessor" unbind-method="removeActionMessageProcessor" ref="callMessageActionRouter"/>
+	</osgi:list>
+	
+	<bean id="callMessageActionRouter" class="net.solarnetwork.node.ocpp.json.CallMessageActionRouter">
+		<constructor-arg value="#{T(ocpp.v16.ActionErrorCode).InternalError}"/>
+		<constructor-arg value="#{T(ocpp.v16.ActionErrorCode).NotImplemented}"/>
+	</bean>
 	
 </beans>
