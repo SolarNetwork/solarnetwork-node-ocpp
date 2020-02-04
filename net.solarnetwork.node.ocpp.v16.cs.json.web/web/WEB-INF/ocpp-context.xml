@@ -15,7 +15,7 @@
 		http://www.eclipse.org/gemini/blueprint/schema/blueprint-compendium/gemini-blueprint-compendium.xsd">
 
 	<websocket:handlers>
-		<websocket:mapping path="/ocpp/v16/json/**" handler="ocppWebSocketHandler_v16"/>
+		<websocket:mapping path="/ocpp/v16/cs/json/**" handler="ocppWebSocketHandler_v16"/>
 		<websocket:handshake-interceptors>
 			<bean class="net.solarnetwork.node.ocpp.v16.cs.json.web.OcppWebSocketHandshakeInterceptor"/>
 		</websocket:handshake-interceptors>
