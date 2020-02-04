@@ -197,7 +197,14 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
 		final String clientId = clientId(session);
 		log.trace("OCPP {} <<< {}", clientId, message.getPayload());
-		JsonNode tree = mapper.readTree(message.getPayload());
+		JsonNode tree;
+		try {
+			tree = mapper.readTree(message.getPayload());
+		} catch ( JsonProcessingException e ) {
+			sendCallError(session, clientId, null, ActionErrorCode.ProtocolError,
+					"Message malformed JSON.", null);
+			return;
+		}
 		if ( tree.isArray() ) {
 			JsonNode msgTypeNode = tree.path(0);
 			JsonNode messageIdNode = tree.path(1);
@@ -264,7 +271,8 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 		if ( proc == null ) {
 			log.debug("OCPP {} <<< No CallMessageProcessor available, ignoring message: {}", clientId,
 					message.getPayload());
-			return false;
+			return sendCallError(session, clientId, messageId, ActionErrorCode.InternalError,
+					"No CallMessageProcessor available.", null);
 		}
 		final CentralServiceAction action;
 		try {
