@@ -15,7 +15,7 @@
 	<!-- Use Java @Transactional annotations to declare transactions. -->
 	<tx:annotation-driven transaction-manager="txManager"/>
  
-	<jaxws:endpoint id="chargePointEndpoint" implementor="#chargePointService" address="/v15"
+	<jaxws:endpoint id="chargePointEndpoint" implementor="#chargePointService" address="/v15/xml"
 		endpointName="ocpp:ChargePointServiceSoap12"
 		serviceName="ocpp:ChargePointService"
 		wsdlLocation="classpath:/ocpp/v15/cp/ocpp_chargepointservice_1.5_final.wsdl">

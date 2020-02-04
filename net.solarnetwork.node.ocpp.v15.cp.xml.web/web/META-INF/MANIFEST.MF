@@ -7,7 +7,7 @@ Bundle-Version: 1.0.0
 Bundle-ClassPath: WEB-INF/classes/
 Bundle-Vendor: SolarNetwork
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
-Web-ContextPath: /ocpp/v15/xml
+Web-ContextPath: /ocpp/v15/cp/xml
 Import-Package: 
  javax.annotation;version="[1.0,2.0)",
  javax.crypto,
