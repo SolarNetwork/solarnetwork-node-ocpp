@@ -59,7 +59,7 @@ import ocpp.json.CallMessage;
 import ocpp.json.CallResultMessage;
 import ocpp.json.MessageType;
 import ocpp.v16.ActionErrorCode;
-import ocpp.v16.CentralServiceAction;
+import ocpp.v16.CentralSystemAction;
 import ocpp.v16.cp.json.ChargePointActionPayloadDecoder;
 import ocpp.v16.cs.json.CentralServiceActionPayloadDecoder;
 
@@ -273,9 +273,9 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 			return sendCallError(session, clientId, messageId, ActionErrorCode.InternalError,
 					"No CallMessageProcessor available.", null);
 		}
-		final CentralServiceAction action;
+		final CentralSystemAction action;
 		try {
-			action = actionNode.isTextual() ? CentralServiceAction.valueOf(actionNode.textValue())
+			action = actionNode.isTextual() ? CentralSystemAction.valueOf(actionNode.textValue())
 					: null;
 			if ( action == null ) {
 				return sendCallError(session, clientId, messageId, ActionErrorCode.FormationViolation,

@@ -50,7 +50,7 @@ import ocpp.json.CallResultMessage;
  */
 public class CallMessageActionRouter implements CallMessageProcessor {
 
-	private final ConcurrentMap<Action, CopyOnWriteArrayList<ActionMessageProcessor>> processors;
+	private final ConcurrentMap<Action, CopyOnWriteArrayList<ActionMessageProcessor<Object, Object>>> processors;
 	private final ErrorCode internalErrorCode;
 	private final ErrorCode notImplementedErrorCode;
 
@@ -74,15 +74,15 @@ public class CallMessageActionRouter implements CallMessageProcessor {
 	@Override
 	public void processCallMessage(CallMessage message, CallMessageResultHandler resultHandler) {
 		Action action = message.getAction();
-		List<ActionMessageProcessor> procs = processors.get(action);
+		List<ActionMessageProcessor<Object, Object>> procs = processors.get(action);
 		if ( procs == null ) {
 			BasicCallErrorMessage err = new BasicCallErrorMessage(message.getMessageId(),
 					notImplementedErrorCode, "Action not supported.", null);
 			resultHandler.handleCallMessageResult(message, null, err);
 			return;
 		}
-		ActionMessage<Object, Object> msg = createActionMessage(message);
-		for ( ActionMessageProcessor p : procs ) {
+		ActionMessage<Object> msg = createActionMessage(message);
+		for ( ActionMessageProcessor<Object, Object> p : procs ) {
 			try {
 				p.processActionMessage(msg,
 						(ActionMessageResultHandler<Object, Object>) (am, result, error) -> {
@@ -118,15 +118,8 @@ public class CallMessageActionRouter implements CallMessageProcessor {
 				errorDetails);
 	}
 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private ActionMessage<Object, Object> createActionMessage(CallMessage message) {
-		return new BasicActionMessage<Object, Object>(message.getAction(), message.getPayload(),
-				(Class) actionResultClass(message.getAction()));
-	}
-
-	private Class<?> actionResultClass(Action action) {
-		// TODO
-		return null;
+	private ActionMessage<Object> createActionMessage(CallMessage message) {
+		return new BasicActionMessage<Object>(message.getAction(), message.getPayload());
 	}
 
 	/**
@@ -139,17 +132,18 @@ public class CallMessageActionRouter implements CallMessageProcessor {
 	 * @param processor
 	 *        to processor to add; {@literal null} will be ignored
 	 */
-	public void addActionMessageProcessor(ActionMessageProcessor processor) {
+	@SuppressWarnings("unchecked")
+	public void addActionMessageProcessor(ActionMessageProcessor<?, ?> processor) {
 		if ( processor == null ) {
 			return;
 		}
 		for ( Action action : processor.getSupportedActions() ) {
 			processors.compute(action, (k, v) -> {
-				CopyOnWriteArrayList<ActionMessageProcessor> procs = v;
+				CopyOnWriteArrayList<ActionMessageProcessor<Object, Object>> procs = v;
 				if ( procs == null ) {
 					procs = new CopyOnWriteArrayList<>();
 				}
-				procs.addIfAbsent(processor);
+				procs.addIfAbsent((ActionMessageProcessor<Object, Object>) processor);
 				return procs;
 			});
 		}
@@ -165,11 +159,11 @@ public class CallMessageActionRouter implements CallMessageProcessor {
 	 * @param processor
 	 *        the processor to remove; {@literal null} will be ignored
 	 */
-	public void removeActionMessageProcessor(ActionMessageProcessor processor) {
+	public void removeActionMessageProcessor(ActionMessageProcessor<?, ?> processor) {
 		if ( processor == null ) {
 			return;
 		}
-		for ( List<ActionMessageProcessor> procs : processors.values() ) {
+		for ( List<ActionMessageProcessor<Object, Object>> procs : processors.values() ) {
 			procs.remove(processor);
 		}
 	}

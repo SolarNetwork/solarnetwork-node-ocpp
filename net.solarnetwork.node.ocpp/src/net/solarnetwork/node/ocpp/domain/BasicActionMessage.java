@@ -30,11 +30,10 @@ import ocpp.domain.Action;
  * @author matt
  * @version 1.0
  */
-public class BasicActionMessage<T, R> implements ActionMessage<T, R> {
+public class BasicActionMessage<T> implements ActionMessage<T> {
 
 	private final Action action;
 	private final T message;
-	private final Class<R> resultClass;
 
 	/**
 	 * Constructor.
@@ -43,14 +42,11 @@ public class BasicActionMessage<T, R> implements ActionMessage<T, R> {
 	 *        the action
 	 * @param message
 	 *        the message
-	 * @param resultClass
-	 *        the result class
 	 */
-	public BasicActionMessage(Action action, T message, Class<R> resultClass) {
+	public BasicActionMessage(Action action, T message) {
 		super();
 		this.action = action;
 		this.message = message;
-		this.resultClass = resultClass;
 	}
 
 	@Override
@@ -61,11 +57,6 @@ public class BasicActionMessage<T, R> implements ActionMessage<T, R> {
 	@Override
 	public T getMessage() {
 		return message;
-	}
-
-	@Override
-	public Class<R> getResultClass() {
-		return resultClass;
 	}
 
 }

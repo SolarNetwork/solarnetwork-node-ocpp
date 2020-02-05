@@ -29,10 +29,14 @@ import ocpp.domain.Action;
 /**
  * API for processing {@link ActionMessage} objects.
  * 
+ * @param <T>
+ *        the message type
+ * @param <R>
+ *        the result type
  * @author matt
  * @version 1.0
  */
-public interface ActionMessageProcessor {
+public interface ActionMessageProcessor<T, R> {
 
 	/**
 	 * Get the set of supported actions.
@@ -45,16 +49,11 @@ public interface ActionMessageProcessor {
 	 * Process an {@link ActionMessage} and provide the result to an
 	 * {@link ActionMessageResultHandler}.
 	 * 
-	 * @param <T>
-	 *        the message type
-	 * @param <R>
-	 *        the result type
 	 * @param message
 	 *        the message to process, never {@literal null}
 	 * @param resultHandler
 	 *        the handler to provider the results to
 	 */
-	<T, R> void processActionMessage(ActionMessage<T, R> message,
-			ActionMessageResultHandler<? extends T, ? extends R> resultHandler);
+	void processActionMessage(ActionMessage<T> message, ActionMessageResultHandler<T, R> resultHandler);
 
 }

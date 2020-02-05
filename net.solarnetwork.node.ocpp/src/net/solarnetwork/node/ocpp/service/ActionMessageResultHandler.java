@@ -39,6 +39,7 @@ import net.solarnetwork.node.ocpp.domain.ActionMessage;
  * @author matt
  * @version 1.0
  */
+@FunctionalInterface
 public interface ActionMessageResultHandler<T, R> {
 
 	/**
@@ -54,6 +55,6 @@ public interface ActionMessageResultHandler<T, R> {
 	 * @return {@literal true} if the result was handled, {@literal false}
 	 *         otherwise
 	 */
-	boolean handleActionMessageResult(ActionMessage<T, R> message, R result, Throwable error);
+	boolean handleActionMessageResult(ActionMessage<T> message, R result, Throwable error);
 
 }

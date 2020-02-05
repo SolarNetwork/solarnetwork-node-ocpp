@@ -39,7 +39,7 @@ import ocpp.domain.Action;
  * @author matt
  * @version 1.0
  */
-public interface ActionMessage<T, R> {
+public interface ActionMessage<T> {
 
 	/**
 	 * Get the action (verb) to perform.
@@ -54,12 +54,5 @@ public interface ActionMessage<T, R> {
 	 * @return the message, or {@literal null}
 	 */
 	T getMessage();
-
-	/**
-	 * Get the class of the result of this action.
-	 * 
-	 * @return the result class
-	 */
-	Class<R> getResultClass();
 
 }
