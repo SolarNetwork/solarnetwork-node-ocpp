@@ -103,6 +103,9 @@ public class CallMessageActionRouter implements CallMessageProcessor {
 	}
 
 	private CallErrorMessage createCallErrorMessage(CallMessage message, Throwable error) {
+		if ( error == null ) {
+			return null;
+		}
 		ErrorCode errorCode = null;
 		String errorDescription = null;
 		Map<String, ?> errorDetails = null;
