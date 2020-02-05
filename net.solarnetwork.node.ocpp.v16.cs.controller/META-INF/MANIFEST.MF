@@ -1,0 +1,17 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: OCPP 1.6 Local Controller
+Bundle-Description: Act as a OCPP Central System
+Bundle-SymbolicName: net.solarnetwork.node.ocpp.v16.cs.controller
+Bundle-Version: 0.1.0
+Bundle-Vendor: SolarNetwork
+Automatic-Module-Name: net.solarnetwork.node.ocpp.v16.cs.controller
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+Import-Package: 
+ net.solarnetwork.node.ocpp.domain;version="[1.0,2.0)",
+ net.solarnetwork.node.ocpp.service;version="[1.0,2.0)",
+ ocpp.domain;version="[1.0,2.0)",
+ ocpp.v16;version="[1.0,2.0)",
+ ocpp.v16.cp;version="[1.0,2.0)",
+ ocpp.v16.cs;version="[1.0,2.0)",
+ ocpp.xml.support;version="[1.0,2.0)"
