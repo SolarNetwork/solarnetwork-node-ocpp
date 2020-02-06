@@ -42,6 +42,13 @@ import ocpp.domain.Action;
 public interface ActionMessage<T> {
 
 	/**
+	 * Get the ID of the client that initiated the action.
+	 * 
+	 * @return the client ID
+	 */
+	String getClientId();
+
+	/**
 	 * Get the action (verb) to perform.
 	 * 
 	 * @return the action; never {@literal null}

@@ -32,21 +32,30 @@ import ocpp.domain.Action;
  */
 public class BasicActionMessage<T> implements ActionMessage<T> {
 
+	private final String clientId;
 	private final Action action;
 	private final T message;
 
 	/**
 	 * Constructor.
 	 * 
+	 * @param clientId
+	 *        the client ID
 	 * @param action
 	 *        the action
 	 * @param message
 	 *        the message
 	 */
-	public BasicActionMessage(Action action, T message) {
+	public BasicActionMessage(String clientId, Action action, T message) {
 		super();
+		this.clientId = clientId;
 		this.action = action;
 		this.message = message;
+	}
+
+	@Override
+	public String getClientId() {
+		return clientId;
 	}
 
 	@Override

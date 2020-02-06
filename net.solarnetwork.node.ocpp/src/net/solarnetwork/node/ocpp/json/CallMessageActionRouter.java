@@ -122,7 +122,8 @@ public class CallMessageActionRouter implements CallMessageProcessor {
 	}
 
 	private ActionMessage<Object> createActionMessage(CallMessage message) {
-		return new BasicActionMessage<Object>(message.getAction(), message.getPayload());
+		return new BasicActionMessage<Object>(message.getClientId(), message.getAction(),
+				message.getPayload());
 	}
 
 	/**

@@ -54,7 +54,7 @@ public class HeartbeatActionProcessorTests {
 
 		// when
 		HeartbeatRequest req = new HeartbeatRequest();
-		BasicActionMessage<HeartbeatRequest> act = new BasicActionMessage<>(
+		BasicActionMessage<HeartbeatRequest> act = new BasicActionMessage<>("foo",
 				CentralSystemAction.Heartbeat, req);
 		p.processActionMessage(act, (msg, res, err) -> {
 			assertThat("Message preserved", msg, sameInstance(act));
@@ -80,7 +80,7 @@ public class HeartbeatActionProcessorTests {
 
 		// when
 		HeartbeatRequest req = new HeartbeatRequest();
-		BasicActionMessage<HeartbeatRequest> act = new BasicActionMessage<>(
+		BasicActionMessage<HeartbeatRequest> act = new BasicActionMessage<>("foo",
 				CentralSystemAction.Heartbeat, req);
 		p.processActionMessage(act, (msg, res, err) -> {
 			assertThat("Message preserved", msg, sameInstance(act));
