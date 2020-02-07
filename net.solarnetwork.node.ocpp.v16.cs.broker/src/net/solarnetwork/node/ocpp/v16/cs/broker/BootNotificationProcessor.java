@@ -108,6 +108,7 @@ public class BootNotificationProcessor
 		ChargePointInfo info = new ChargePointInfo(message.getClientId());
 		info.setChargePointVendor(req.getChargePointVendor());
 		info.setChargePointModel(req.getChargePointModel());
+		info.setChargePointSerialNumber(req.getChargePointSerialNumber());
 		info.setChargeBoxSerialNumber(req.getChargeBoxSerialNumber());
 		info.setFirmwareVersion(req.getFirmwareVersion());
 		info.setIccid(req.getIccid());
