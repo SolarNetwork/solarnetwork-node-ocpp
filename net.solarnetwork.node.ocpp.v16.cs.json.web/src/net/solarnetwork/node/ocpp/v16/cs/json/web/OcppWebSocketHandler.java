@@ -50,6 +50,7 @@ import net.solarnetwork.node.ocpp.json.CallMessageProcessor;
 import net.solarnetwork.node.ocpp.json.CallMessageResultHandler;
 import net.solarnetwork.node.ocpp.json.OcppWebSocketSubProtocol;
 import ocpp.domain.ErrorCode;
+import ocpp.domain.SchemaValidationException;
 import ocpp.json.ActionPayloadDecoder;
 import ocpp.json.BasicCallErrorMessage;
 import ocpp.json.BasicCallMessage;
@@ -275,8 +276,7 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 		}
 		final CentralSystemAction action;
 		try {
-			action = actionNode.isTextual() ? CentralSystemAction.valueOf(actionNode.textValue())
-					: null;
+			action = actionNode.isTextual() ? CentralSystemAction.valueOf(actionNode.textValue()) : null;
 			if ( action == null ) {
 				return sendCallError(session, clientId, messageId, ActionErrorCode.FormationViolation,
 						actionNode.isMissingNode() ? "Missing action." : "Malformed action.", null);
@@ -285,6 +285,10 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 			try {
 				payload = centralServiceActionPayloadDecoder.decodeActionPayload(action, false,
 						tree.path(3));
+			} catch ( SchemaValidationException e ) {
+				return sendCallError(session, clientId, messageId,
+						ActionErrorCode.TypeConstraintViolation,
+						"Schema validation error: " + e.getMessage(), null);
 			} catch ( IOException e ) {
 				return sendCallError(session, clientId, messageId, ActionErrorCode.FormationViolation,
 						"Error parsing payload: " + e.getMessage(), null);
@@ -295,6 +299,9 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 		} catch ( IllegalArgumentException e ) {
 			return sendCallError(session, clientId, messageId, ActionErrorCode.NotImplemented,
 					"Unknown action.", null);
+		} catch ( RuntimeException e ) {
+			return sendCallError(session, clientId, messageId, ActionErrorCode.InternalError,
+					"Internal error: " + e.toString(), null);
 		}
 	}
 
