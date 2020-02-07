@@ -44,9 +44,9 @@ public interface ChargePointManager extends Identifiable {
 	 * administration tool to create a new Charge Point entity.
 	 * </p>
 	 * 
-	 * @param chargePoint
+	 * @param info
 	 *        the details to register
 	 * @return the registered charge point
 	 */
-	ChargePoint registerChargePoint(ChargePointInfo chargePoint);
+	ChargePoint registerChargePoint(ChargePointInfo info);
 }
