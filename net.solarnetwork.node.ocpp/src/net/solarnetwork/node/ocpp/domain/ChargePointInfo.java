@@ -22,6 +22,8 @@
 
 package net.solarnetwork.node.ocpp.domain;
 
+import java.util.Objects;
+
 /**
  * Information about a Charge Point.
  * 
@@ -57,6 +59,80 @@ public class ChargePointInfo {
 	public ChargePointInfo(String id) {
 		super();
 		setId(id);
+	}
+
+	public boolean isSameAs(ChargePointInfo other) {
+		if ( other == null ) {
+			return false;
+		}
+		// @formatter:off
+		return Objects.equals(chargePointVendor, other.chargePointVendor)
+				&& Objects.equals(chargePointModel, other.chargePointModel)
+				&& Objects.equals(chargePointSerialNumber, other.chargePointSerialNumber)
+				&& Objects.equals(chargeBoxSerialNumber, other.chargeBoxSerialNumber)
+				&& Objects.equals(firmwareVersion, other.firmwareVersion)
+				&& Objects.equals(iccid, other.iccid)
+				&& Objects.equals(imsi, other.imsi)
+				&& Objects.equals(meterType, other.meterType)
+				&& Objects.equals(meterSerialNumber, other.meterSerialNumber);
+		// @formatter:on
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("ChargePointInfo{");
+		if ( id != null ) {
+			builder.append("id=");
+			builder.append(id);
+			builder.append(", ");
+		}
+		if ( chargePointVendor != null ) {
+			builder.append("chargePointVendor=");
+			builder.append(chargePointVendor);
+			builder.append(", ");
+		}
+		if ( chargePointModel != null ) {
+			builder.append("chargePointModel=");
+			builder.append(chargePointModel);
+			builder.append(", ");
+		}
+		if ( chargePointSerialNumber != null ) {
+			builder.append("chargePointSerialNumber=");
+			builder.append(chargePointSerialNumber);
+			builder.append(", ");
+		}
+		if ( chargeBoxSerialNumber != null ) {
+			builder.append("chargeBoxSerialNumber=");
+			builder.append(chargeBoxSerialNumber);
+			builder.append(", ");
+		}
+		if ( firmwareVersion != null ) {
+			builder.append("firmwareVersion=");
+			builder.append(firmwareVersion);
+			builder.append(", ");
+		}
+		if ( iccid != null ) {
+			builder.append("iccid=");
+			builder.append(iccid);
+			builder.append(", ");
+		}
+		if ( imsi != null ) {
+			builder.append("imsi=");
+			builder.append(imsi);
+			builder.append(", ");
+		}
+		if ( meterType != null ) {
+			builder.append("meterType=");
+			builder.append(meterType);
+			builder.append(", ");
+		}
+		if ( meterSerialNumber != null ) {
+			builder.append("meterSerialNumber=");
+			builder.append(meterSerialNumber);
+		}
+		builder.append("}");
+		return builder.toString();
 	}
 
 	/**
