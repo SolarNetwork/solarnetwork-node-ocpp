@@ -102,7 +102,7 @@ public class JdbcChargePointDao extends BaseJdbcGenericDao<ChargePoint, String>
 			obj.setEnabled(rs.getBoolean(3));
 			obj.setRegistrationStatus(RegistrationStatus.forCode(rs.getInt(4)));
 
-			ChargePointInfo info = new ChargePointInfo();
+			ChargePointInfo info = new ChargePointInfo(id);
 			info.setChargePointVendor(rs.getString(5));
 			info.setChargePointModel(rs.getString(6));
 			info.setChargeBoxSerialNumber(rs.getString(7));
