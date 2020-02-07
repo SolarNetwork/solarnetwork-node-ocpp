@@ -51,7 +51,8 @@ public interface ActionMessageResultHandler<T, R> {
 	 *        the successful result, or {@literal null} if no result is
 	 *        available
 	 * @param error
-	 *        the error result, or {@literal null} if no error occurred
+	 *        the error result, or {@literal null} if no error occurred; can
+	 *        implement {@link ocpp.domain.ErrorHolder} to pass specific details
 	 * @return {@literal true} if the result was handled, {@literal false}
 	 *         otherwise
 	 */

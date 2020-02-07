@@ -1,0 +1,36 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: OCPP Central System Local Controller
+Bundle-Description: Act as a OCPP Local Controller.
+Bundle-SymbolicName: net.solarnetwork.node.ocpp.cs.controller
+Bundle-Version: 0.1.0
+Bundle-Vendor: SolarNetwork
+Automatic-Module-Name: net.solarnetwork.node.ocpp.cs.controller
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+Import-Package: 
+ net.solarnetwork.domain;version="[1.18,2.0)",
+ net.solarnetwork.node;version="[1.29,2.0)",
+ net.solarnetwork.node.ocpp.dao;version="[1.0,2.0)",
+ net.solarnetwork.node.ocpp.domain;version="[1.0,2.0)",
+ net.solarnetwork.node.ocpp.service;version="[1.0,2.0)",
+ net.solarnetwork.node.ocpp.service.cs;version="[1.0,2.0)",
+ net.solarnetwork.node.settings;version="[1.12,2.0)",
+ net.solarnetwork.node.settings.support;version="[1.10,2.0)",
+ net.solarnetwork.node.support;version="[1.20,2.0)",
+ net.solarnetwork.util;version="[1.40,2.0)",
+ ocpp.domain;version="[1.0,2.0)",
+ ocpp.v16;version="[1.0,2.0)",
+ ocpp.v16.cp;version="[1.0,2.0)",
+ ocpp.v16.cs;version="[1.0,2.0)",
+ ocpp.xml.support;version="[1.0,2.0)",
+ org.aopalliance.aop;version="[1.0,2.0)",
+ org.slf4j;version="[1.7,2.0)",
+ org.springframework.aop;version="[4.3,5.0)",
+ org.springframework.aop.framework;version="[4.3,5.0)",
+ org.springframework.beans;version="[4.3,5.0)",
+ org.springframework.context;version="[4.3,5.0)",
+ org.springframework.context.support;version="[4.3,5.0)",
+ org.springframework.core;version="[4.3,5.0)",
+ org.springframework.dao;version="[4.3,5.0)",
+ org.springframework.transaction;version="[4.3,5.0)",
+ org.springframework.transaction.annotation;version="[4.3,5.0)"

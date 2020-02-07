@@ -42,6 +42,24 @@ public class ChargePointInfo {
 	private String meterSerialNumber;
 
 	/**
+	 * Constructor.
+	 */
+	public ChargePointInfo() {
+		super();
+	}
+
+	/**
+	 * Constructor.
+	 * 
+	 * @param id
+	 *        the ID to use
+	 */
+	public ChargePointInfo(String id) {
+		super();
+		setId(id);
+	}
+
+	/**
 	 * Get the unique ID of the charge point.
 	 * 
 	 * @return the id
