@@ -28,12 +28,18 @@
 	
 	<reference id="dataSource" interface="javax.sql.DataSource" filter="(db=node)"/>
 	
+	<bean id="authorizationDao" class="net.solarnetwork.node.ocpp.dao.jdbc.JdbcAuthorizationDao" init-method="init">
+		<property name="dataSource" ref="dataSource"/>
+	</bean>
+
 	<bean id="chargePointDao" class="net.solarnetwork.node.ocpp.dao.jdbc.JdbcChargePointDao" init-method="init">
 		<property name="dataSource" ref="dataSource"/>
 	</bean>
 
 	<!-- Published Services -->
 	
+	<service interface="net.solarnetwork.node.ocpp.dao.AuthorizationDao" ref="authorizationDao"/>
+
 	<service interface="net.solarnetwork.node.ocpp.dao.ChargePointDao" ref="chargePointDao"/>
 	
 	<service interface="net.solarnetwork.node.backup.BackupResourceProvider">
