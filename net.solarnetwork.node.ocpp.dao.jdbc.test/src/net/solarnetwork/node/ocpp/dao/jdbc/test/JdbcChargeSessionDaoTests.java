@@ -1,5 +1,5 @@
 /* ==================================================================
- * JdbcAuthorizationDaoTests.java - 7/02/2020 12:22:50 pm
+ * JdbcChargeSessionDaoTests.java - 10/02/2020 11:40:37 am
  * 
  * Copyright 2020 SolarNetwork.net Dev Team
  * 
@@ -23,7 +23,7 @@
 package net.solarnetwork.node.ocpp.dao.jdbc.test;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertThat;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -33,23 +33,23 @@ import javax.sql.DataSource;
 import org.junit.Before;
 import org.junit.Test;
 import net.solarnetwork.node.dao.jdbc.DatabaseSetup;
-import net.solarnetwork.node.ocpp.dao.jdbc.JdbcAuthorizationDao;
-import net.solarnetwork.node.ocpp.domain.Authorization;
+import net.solarnetwork.node.ocpp.dao.jdbc.JdbcChargeSessionDao;
+import net.solarnetwork.node.ocpp.domain.ChargeSession;
 import net.solarnetwork.node.test.AbstractNodeTransactionalTest;
 
 /**
- * Test cases for the {@link JdbcAuthorizationDao} class.
+ * Test cases for the {@link JdbcChargeSessionDao}.
  * 
  * @author matt
  * @version 1.0
  */
-public class JdbcAuthorizationDaoTests extends AbstractNodeTransactionalTest {
+public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 
 	@Resource(name = "dataSource")
 	private DataSource dataSource;
 
-	private JdbcAuthorizationDao dao;
-	private Authorization last;
+	private JdbcChargeSessionDao dao;
+	private ChargeSession last;
 
 	@Before
 	public void setup() {
@@ -57,50 +57,49 @@ public class JdbcAuthorizationDaoTests extends AbstractNodeTransactionalTest {
 		setup.setDataSource(dataSource);
 		setup.init();
 
-		dao = new JdbcAuthorizationDao();
+		dao = new JdbcChargeSessionDao();
 		dao.setDataSource(dataSource);
 		dao.init();
 	}
 
-	private Authorization createTestAuthorization(String vendor, String model) {
-		Authorization auth = new Authorization(UUID.randomUUID().toString().substring(0, 20),
-				Instant.now());
-		auth.setEnabled(true);
-		auth.setExpiryDate(auth.getCreated().plus(1, ChronoUnit.HOURS));
-		auth.setParentId(UUID.randomUUID().toString().substring(0, 20));
-		return auth;
+	private ChargeSession createTestChargeSession() {
+		ChargeSession sess = new ChargeSession(UUID.randomUUID(), Instant.now(),
+				UUID.randomUUID().toString().substring(0, 20), 1);
+		return sess;
 	}
 
 	@Test
 	public void insert() {
-		Authorization auth = createTestAuthorization("foo", "bar");
-		String pk = dao.save(auth);
-		assertThat("PK preserved", pk, equalTo(auth.getId()));
-		last = auth;
+		ChargeSession sess = createTestChargeSession();
+		UUID pk = dao.save(sess);
+		assertThat("PK preserved", pk, equalTo(sess.getId()));
+		last = sess;
 	}
 
 	@Test
 	public void getByPK() {
 		insert();
-		Authorization entity = dao.get(last.getId());
+		ChargeSession entity = dao.get(last.getId());
 
 		assertThat("ID", entity.getId(), equalTo(last.getId()));
 		assertThat("Created", entity.getCreated(), equalTo(last.getCreated()));
-		// TODO
+		assertThat("Auth ID", entity.getAuthId(), equalTo(last.getAuthId()));
+		assertThat("Conn ID", entity.getConnectionId(), equalTo(last.getConnectionId()));
+		assertThat("Transaction ID generated", entity.getTransactionId(), greaterThan(0));
 	}
 
 	@Test
 	public void update() {
 		insert();
-		Authorization auth = dao.get(last.getId());
-		auth.setExpiryDate(auth.getExpiryDate().plus(1, ChronoUnit.HOURS));
-		auth.setParentId(null);
-		String pk = dao.save(auth);
-		assertThat("PK unchanged", pk, equalTo(auth.getId()));
+		ChargeSession sess = dao.get(last.getId());
+		sess.setEnded(last.getCreated().plus(1, ChronoUnit.HOURS));
+		sess.setPosted(last.getCreated().plus(2, ChronoUnit.HOURS));
+		UUID pk = dao.save(sess);
+		assertThat("PK unchanged", pk, equalTo(sess.getId()));
 
-		Authorization entity = dao.get(pk);
-		assertThat("Expiry updated", entity.getExpiryDate(), equalTo(auth.getExpiryDate()));
-		assertThat("Parent ID updated", entity.getParentId(), nullValue());
+		ChargeSession entity = dao.get(pk);
+		assertThat("Ended updated", entity.getEnded(), equalTo(sess.getEnded()));
+		assertThat("Posted updated", entity.getPosted(), equalTo(sess.getPosted()));
 	}
 
 }

@@ -1,5 +1,5 @@
 /* ==================================================================
- * AuthorizationStatus.java - 9/02/2020 5:15:55 pm
+ * Location.java - 10/02/2020 9:38:09 am
  * 
  * Copyright 2020 SolarNetwork.net Dev Team
  * 
@@ -23,28 +23,26 @@
 package net.solarnetwork.node.ocpp.domain;
 
 /**
- * Status of an authorization.
+ * Enumeration of OCPP location values.
  * 
  * @author matt
  * @version 1.0
  */
-public enum AuthorizationStatus {
+public enum Location {
 
-	None(0),
+	Body(1),
 
-	Accepted(1),
+	Cable(2),
 
-	Blocked(2),
+	EV(3),
 
-	Expired(3),
+	Inlet(4),
 
-	Invalid(4),
-
-	ConcurrentTx(5);
+	Outlet(0);
 
 	private final byte code;
 
-	private AuthorizationStatus(int code) {
+	private Location(int code) {
 		this.code = (byte) code;
 	}
 
@@ -62,28 +60,26 @@ public enum AuthorizationStatus {
 	 * 
 	 * @param code
 	 *        the code
-	 * @return the status, never {@literal null} and set to {@link #None} if
+	 * @return the status, never {@literal null} and set to {@link #Outlet} if
 	 *         not any other valid code
 	 */
-	public static AuthorizationStatus forCode(int code) {
+	public static Location forCode(int code) {
 		switch (code) {
 			case 1:
-				return Accepted;
+				return Body;
 
 			case 2:
-				return Blocked;
+				return Cable;
 
 			case 3:
-				return Expired;
+				return EV;
 
 			case 4:
-				return Invalid;
-
-			case 5:
-				return ConcurrentTx;
+				return Inlet;
 
 			default:
-				return None;
+				return Outlet;
 		}
 	}
+
 }

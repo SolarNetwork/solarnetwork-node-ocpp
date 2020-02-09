@@ -1,5 +1,5 @@
 /* ==================================================================
- * AuthorizationStatus.java - 9/02/2020 5:15:55 pm
+ * Measurand.java - 10/02/2020 11:08:23 am
  * 
  * Copyright 2020 SolarNetwork.net Dev Team
  * 
@@ -23,28 +23,40 @@
 package net.solarnetwork.node.ocpp.domain;
 
 /**
- * Status of an authorization.
+ * A type of sampled value.
  * 
  * @author matt
  * @version 1.0
  */
-public enum AuthorizationStatus {
+public enum Measurand {
 
-	None(0),
-
-	Accepted(1),
-
-	Blocked(2),
-
-	Expired(3),
-
-	Invalid(4),
-
-	ConcurrentTx(5);
+	Unknown(0),
+	CurrentExport(1),
+	CurrentImport(2),
+	CurrentOffered(17),
+	EnergyActiveExportInterval(3),
+	EnergyActiveExportRegister(4),
+	EnergyActiveImportInterval(5),
+	EnergyActiveImportRegister(6),
+	EnergyReactiveExportInterval(7),
+	EnergyReactiveExportRegister(8),
+	EnergyReactiveImportInterval(9),
+	EnergyReactiveImportRegister(10),
+	Frequency(18),
+	PowerActiveExport(11),
+	PowerActiveImport(12),
+	PowerFactor(19),
+	PowerOffered(20),
+	PowerReactiveExport(13),
+	PowerReactiveImport(14),
+	RPM(21),
+	SoC(22),
+	Temperature(15),
+	Voltage(16);
 
 	private final byte code;
 
-	private AuthorizationStatus(int code) {
+	private Measurand(int code) {
 		this.code = (byte) code;
 	}
 
@@ -62,28 +74,17 @@ public enum AuthorizationStatus {
 	 * 
 	 * @param code
 	 *        the code
-	 * @return the status, never {@literal null} and set to {@link #None} if
+	 * @return the status, never {@literal null} and set to {@link #Unknown} if
 	 *         not any other valid code
 	 */
-	public static AuthorizationStatus forCode(int code) {
-		switch (code) {
-			case 1:
-				return Accepted;
-
-			case 2:
-				return Blocked;
-
-			case 3:
-				return Expired;
-
-			case 4:
-				return Invalid;
-
-			case 5:
-				return ConcurrentTx;
-
-			default:
-				return None;
+	public static Measurand forCode(int code) {
+		final byte c = (byte) code;
+		for ( Measurand v : values() ) {
+			if ( v.code == c ) {
+				return v;
+			}
 		}
+		return Measurand.Unknown;
 	}
+
 }

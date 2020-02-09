@@ -31,8 +31,6 @@ import org.springframework.jdbc.core.RowMapper;
 import net.solarnetwork.node.dao.jdbc.BaseJdbcGenericDao;
 import net.solarnetwork.node.ocpp.dao.AuthorizationDao;
 import net.solarnetwork.node.ocpp.domain.Authorization;
-import net.solarnetwork.node.ocpp.domain.AuthorizationInfo;
-import net.solarnetwork.node.ocpp.domain.AuthorizationStatus;
 
 /**
  * JDBC based implementation of {@link AuthorizationDao}.
@@ -68,21 +66,14 @@ public class JdbcAuthorizationDao extends BaseJdbcGenericDao<Authorization, Stri
 	protected void setUpdateStatementValues(Authorization obj, PreparedStatement ps)
 			throws SQLException {
 		setUpdateStatementValues(obj, ps, 0);
-		ps.setObject(5, obj.getId());
+		ps.setObject(4, obj.getId());
 	}
 
 	protected void setUpdateStatementValues(Authorization obj, PreparedStatement ps, int offset)
 			throws SQLException {
 		ps.setBoolean(1 + offset, obj.isEnabled());
-
-		AuthorizationInfo info = obj.getInfo();
-		if ( info == null ) {
-			throw new IllegalArgumentException("The info property must not be null.");
-		}
-		ps.setInt(2 + offset, info.getStatus() != null ? info.getStatus().codeValue()
-				: AuthorizationStatus.Unknown.codeValue());
-		setInstantParameter(ps, 3 + offset, info.getExpiryDate());
-		ps.setString(4 + offset, info.getParentIdTag());
+		setInstantParameter(ps, 2 + offset, obj.getExpiryDate());
+		ps.setString(3 + offset, obj.getParentId());
 	}
 
 	/**
@@ -97,10 +88,8 @@ public class JdbcAuthorizationDao extends BaseJdbcGenericDao<Authorization, Stri
 
 			Authorization obj = new Authorization(id, created);
 			obj.setEnabled(rs.getBoolean(3));
-
-			AuthorizationInfo info = new AuthorizationInfo(id, AuthorizationStatus.forCode(rs.getInt(4)),
-					getInstantColumn(rs, 5), rs.getString(6));
-			obj.setInfo(info);
+			obj.setExpiryDate(getInstantColumn(rs, 4));
+			obj.setParentId(rs.getString(5));
 
 			return obj;
 		}

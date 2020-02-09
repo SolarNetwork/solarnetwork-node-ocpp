@@ -37,8 +37,9 @@ import net.solarnetwork.dao.BasicStringEntity;
  */
 public class Authorization extends BasicStringEntity {
 
-	private AuthorizationInfo info;
 	private boolean enabled;
+	private Instant expiryDate;
+	private String parentId;
 
 	/**
 	 * Constructor.
@@ -70,25 +71,6 @@ public class Authorization extends BasicStringEntity {
 	}
 
 	/**
-	 * Get the Authorization information.
-	 * 
-	 * @return the info
-	 */
-	public AuthorizationInfo getInfo() {
-		return info;
-	}
-
-	/**
-	 * Set the Authorization information.
-	 * 
-	 * @param info
-	 *        the info to set
-	 */
-	public void setInfo(AuthorizationInfo info) {
-		this.info = info;
-	}
-
-	/**
 	 * Get the enabled flag.
 	 * 
 	 * @return the enabled flag
@@ -105,6 +87,44 @@ public class Authorization extends BasicStringEntity {
 	 */
 	public void setEnabled(boolean enabled) {
 		this.enabled = enabled;
+	}
+
+	/**
+	 * Get the expiration date.
+	 * 
+	 * @return the expiration date, or {@literal null} for no expiration
+	 */
+	public Instant getExpiryDate() {
+		return expiryDate;
+	}
+
+	/**
+	 * Set the expiration date.
+	 * 
+	 * @param expiryDate
+	 *        the expiration date to set, or {@literal null} for no expiration
+	 */
+	public void setExpiryDate(Instant expiryDate) {
+		this.expiryDate = expiryDate;
+	}
+
+	/**
+	 * Get the ID of a parent authorization.
+	 * 
+	 * @return the parent ID, or {@literal null} if there is no parent
+	 */
+	public String getParentId() {
+		return parentId;
+	}
+
+	/**
+	 * Set the ID of a parent authorization.
+	 * 
+	 * @param parentId
+	 *        the parent ID to set, or {@literal null} if there is no parent
+	 */
+	public void setParentId(String parentId) {
+		this.parentId = parentId;
 	}
 
 }

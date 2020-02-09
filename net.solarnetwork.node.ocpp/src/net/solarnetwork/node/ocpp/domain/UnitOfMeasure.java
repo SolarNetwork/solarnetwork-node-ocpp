@@ -1,5 +1,5 @@
 /* ==================================================================
- * AuthorizationStatus.java - 9/02/2020 5:15:55 pm
+ * UnitOfMeasure.java - 10/02/2020 9:48:28 am
  * 
  * Copyright 2020 SolarNetwork.net Dev Team
  * 
@@ -23,28 +23,56 @@
 package net.solarnetwork.node.ocpp.domain;
 
 /**
- * Status of an authorization.
+ * Enumeration of units of measure.
  * 
  * @author matt
  * @version 1.0
  */
-public enum AuthorizationStatus {
+public enum UnitOfMeasure {
 
-	None(0),
+	Unknown(0),
 
-	Accepted(1),
+	Wh(1),
 
-	Blocked(2),
+	kWh(2),
 
-	Expired(3),
+	varh(3),
 
-	Invalid(4),
+	kvarh(4),
 
-	ConcurrentTx(5);
+	W(5),
+
+	kW(6),
+
+	var(7),
+
+	kvar(8),
+
+	// removed in 1.6, use A
+	Amp(9),
+
+	// removed in 1.6, use V
+	Volt(10),
+
+	Celsius(11),
+
+	A(12),
+
+	Fahrenheit(13),
+
+	VA(14),
+
+	kVA(15),
+
+	V(16),
+
+	K(17),
+
+	Percent(18);
 
 	private final byte code;
 
-	private AuthorizationStatus(int code) {
+	private UnitOfMeasure(int code) {
 		this.code = (byte) code;
 	}
 
@@ -62,28 +90,16 @@ public enum AuthorizationStatus {
 	 * 
 	 * @param code
 	 *        the code
-	 * @return the status, never {@literal null} and set to {@link #None} if
-	 *         not any other valid code
+	 * @return the status, never {@literal null} and set to {@link #Raw} if not
+	 *         any other valid code
 	 */
-	public static AuthorizationStatus forCode(int code) {
-		switch (code) {
-			case 1:
-				return Accepted;
-
-			case 2:
-				return Blocked;
-
-			case 3:
-				return Expired;
-
-			case 4:
-				return Invalid;
-
-			case 5:
-				return ConcurrentTx;
-
-			default:
-				return None;
+	public static UnitOfMeasure forCode(int code) {
+		final byte c = (byte) code;
+		for ( UnitOfMeasure v : values() ) {
+			if ( v.code == c ) {
+				return v;
+			}
 		}
+		return UnitOfMeasure.Unknown;
 	}
 }

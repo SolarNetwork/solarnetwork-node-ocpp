@@ -1,5 +1,5 @@
 /* ==================================================================
- * AuthorizationStatus.java - 9/02/2020 5:15:55 pm
+ * ValueFormat.java - 10/02/2020 9:32:43 am
  * 
  * Copyright 2020 SolarNetwork.net Dev Team
  * 
@@ -23,28 +23,20 @@
 package net.solarnetwork.node.ocpp.domain;
 
 /**
- * Status of an authorization.
+ * Enumeration of value formats for sampled data values.
  * 
  * @author matt
  * @version 1.0
  */
-public enum AuthorizationStatus {
+public enum ValueFormat {
 
-	None(0),
+	Raw(0),
 
-	Accepted(1),
-
-	Blocked(2),
-
-	Expired(3),
-
-	Invalid(4),
-
-	ConcurrentTx(5);
+	SignedData(1);
 
 	private final byte code;
 
-	private AuthorizationStatus(int code) {
+	private ValueFormat(int code) {
 		this.code = (byte) code;
 	}
 
@@ -62,28 +54,16 @@ public enum AuthorizationStatus {
 	 * 
 	 * @param code
 	 *        the code
-	 * @return the status, never {@literal null} and set to {@link #None} if
-	 *         not any other valid code
+	 * @return the status, never {@literal null} and set to {@link #Raw} if not
+	 *         any other valid code
 	 */
-	public static AuthorizationStatus forCode(int code) {
+	public static ValueFormat forCode(int code) {
 		switch (code) {
 			case 1:
-				return Accepted;
-
-			case 2:
-				return Blocked;
-
-			case 3:
-				return Expired;
-
-			case 4:
-				return Invalid;
-
-			case 5:
-				return ConcurrentTx;
+				return SignedData;
 
 			default:
-				return None;
+				return Raw;
 		}
 	}
 }

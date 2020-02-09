@@ -1,5 +1,5 @@
 /* ==================================================================
- * AuthorizationStatus.java - 9/02/2020 5:15:55 pm
+ * ChargeSessionDao.java - 10/02/2020 9:15:46 am
  * 
  * Copyright 2020 SolarNetwork.net Dev Team
  * 
@@ -20,70 +20,18 @@
  * ==================================================================
  */
 
-package net.solarnetwork.node.ocpp.domain;
+package net.solarnetwork.node.ocpp.dao;
+
+import java.util.UUID;
+import net.solarnetwork.dao.GenericDao;
+import net.solarnetwork.node.ocpp.domain.ChargeSession;
 
 /**
- * Status of an authorization.
+ * Data Access Object API for {@link ChargeSession} entities.
  * 
  * @author matt
  * @version 1.0
  */
-public enum AuthorizationStatus {
+public interface ChargeSessionDao extends GenericDao<ChargeSession, UUID> {
 
-	None(0),
-
-	Accepted(1),
-
-	Blocked(2),
-
-	Expired(3),
-
-	Invalid(4),
-
-	ConcurrentTx(5);
-
-	private final byte code;
-
-	private AuthorizationStatus(int code) {
-		this.code = (byte) code;
-	}
-
-	/**
-	 * Get the code value.
-	 * 
-	 * @return the code value
-	 */
-	public int codeValue() {
-		return code & 0xFF;
-	}
-
-	/**
-	 * Get an enumeration value for a code value.
-	 * 
-	 * @param code
-	 *        the code
-	 * @return the status, never {@literal null} and set to {@link #None} if
-	 *         not any other valid code
-	 */
-	public static AuthorizationStatus forCode(int code) {
-		switch (code) {
-			case 1:
-				return Accepted;
-
-			case 2:
-				return Blocked;
-
-			case 3:
-				return Expired;
-
-			case 4:
-				return Invalid;
-
-			case 5:
-				return ConcurrentTx;
-
-			default:
-				return None;
-		}
-	}
 }

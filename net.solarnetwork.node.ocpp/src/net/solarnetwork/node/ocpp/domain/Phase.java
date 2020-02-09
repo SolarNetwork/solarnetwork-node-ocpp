@@ -1,5 +1,5 @@
 /* ==================================================================
- * AuthorizationStatus.java - 9/02/2020 5:15:55 pm
+ * Phase.java - 10/02/2020 11:13:25 am
  * 
  * Copyright 2020 SolarNetwork.net Dev Team
  * 
@@ -23,28 +23,28 @@
 package net.solarnetwork.node.ocpp.domain;
 
 /**
- * Status of an authorization.
+ * An AC phase.
  * 
  * @author matt
  * @version 1.0
  */
-public enum AuthorizationStatus {
+public enum Phase {
 
-	None(0),
-
-	Accepted(1),
-
-	Blocked(2),
-
-	Expired(3),
-
-	Invalid(4),
-
-	ConcurrentTx(5);
+	Unknown(0),
+	L1(1),
+	L2(2),
+	L3(3),
+	N(4),
+	L1N(5),
+	L2N(6),
+	L3N(7),
+	L1L2(8),
+	L2L3(9),
+	L3L1(01);
 
 	private final byte code;
 
-	private AuthorizationStatus(int code) {
+	private Phase(int code) {
 		this.code = (byte) code;
 	}
 
@@ -62,28 +62,17 @@ public enum AuthorizationStatus {
 	 * 
 	 * @param code
 	 *        the code
-	 * @return the status, never {@literal null} and set to {@link #None} if
+	 * @return the status, never {@literal null} and set to {@link #Unknown} if
 	 *         not any other valid code
 	 */
-	public static AuthorizationStatus forCode(int code) {
-		switch (code) {
-			case 1:
-				return Accepted;
-
-			case 2:
-				return Blocked;
-
-			case 3:
-				return Expired;
-
-			case 4:
-				return Invalid;
-
-			case 5:
-				return ConcurrentTx;
-
-			default:
-				return None;
+	public static Phase forCode(int code) {
+		final byte c = (byte) code;
+		for ( Phase v : values() ) {
+			if ( v.code == c ) {
+				return v;
+			}
 		}
+		return Phase.Unknown;
 	}
+
 }

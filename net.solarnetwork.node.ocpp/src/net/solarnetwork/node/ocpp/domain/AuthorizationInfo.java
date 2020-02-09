@@ -30,12 +30,12 @@ import java.time.Instant;
  * @author matt
  * @version 1.0
  */
-public class AuthorizationInfo implements Cloneable {
+public class AuthorizationInfo {
 
 	private final String id;
 	private final AuthorizationStatus status;
 	private final Instant expiryDate;
-	private final String parentIdTag;
+	private final String parentId;
 
 	/**
 	 * Constructor.
@@ -46,20 +46,20 @@ public class AuthorizationInfo implements Cloneable {
 	 *        the associated OCCP status
 	 * @param expiryDate
 	 *        the expiration date
-	 * @param parentIdTag
-	 *        a parent ID tag
+	 * @param parentId
+	 *        a parent ID
 	 */
 	public AuthorizationInfo(String id, AuthorizationStatus status, Instant expiryDate,
-			String parentIdTag) {
+			String parentId) {
 		super();
 		this.id = id;
 		this.status = status;
 		this.expiryDate = expiryDate;
-		this.parentIdTag = parentIdTag;
+		this.parentId = parentId;
 	}
 
 	private AuthorizationInfo(Builder builder) {
-		this(builder.id, builder.status, builder.expiryDate, builder.parentIdTag);
+		this(builder.id, builder.status, builder.expiryDate, builder.parentId);
 	}
 
 	public String getId() {
@@ -74,8 +74,8 @@ public class AuthorizationInfo implements Cloneable {
 		return expiryDate;
 	}
 
-	public String getParentIdTag() {
-		return parentIdTag;
+	public String getParentId() {
+		return parentId;
 	}
 
 	/**
@@ -84,13 +84,7 @@ public class AuthorizationInfo implements Cloneable {
 	 * @return a pre-populated builder
 	 */
 	public Builder toBuilder() {
-		// @formatter:off
-		return new Builder()
-				.withId(id)
-				.withStatus(status)
-				.withExpiryDate(expiryDate)
-				.withParentIdTag(parentIdTag);
-		// @formatter:on
+		return new Builder(this);
 	}
 
 	/**
@@ -110,9 +104,18 @@ public class AuthorizationInfo implements Cloneable {
 		private String id;
 		private AuthorizationStatus status;
 		private Instant expiryDate;
-		private String parentIdTag;
+		private String parentId;
 
 		private Builder() {
+			super();
+		}
+
+		private Builder(AuthorizationInfo info) {
+			super();
+			this.id = info.id;
+			this.status = info.status;
+			this.expiryDate = info.expiryDate;
+			this.parentId = info.parentId;
 		}
 
 		public Builder withId(String id) {
@@ -130,8 +133,8 @@ public class AuthorizationInfo implements Cloneable {
 			return this;
 		}
 
-		public Builder withParentIdTag(String parentIdTag) {
-			this.parentIdTag = parentIdTag;
+		public Builder withParentId(String parentId) {
+			this.parentId = parentId;
 			return this;
 		}
 

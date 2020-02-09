@@ -1,5 +1,5 @@
 /* ==================================================================
- * AuthorizationStatus.java - 9/02/2020 5:15:55 pm
+ * ReadingContext.java - 10/02/2020 11:01:00 am
  * 
  * Copyright 2020 SolarNetwork.net Dev Team
  * 
@@ -23,28 +23,34 @@
 package net.solarnetwork.node.ocpp.domain;
 
 /**
- * Status of an authorization.
+ * The context for a sampled value.
  * 
  * @author matt
  * @version 1.0
  */
-public enum AuthorizationStatus {
+public enum ReadingContext {
 
-	None(0),
+	Unknown(0),
 
-	Accepted(1),
+	InterruptionBegin(1),
 
-	Blocked(2),
+	InterruptionEnd(2),
 
-	Expired(3),
+	SampleClock(3),
 
-	Invalid(4),
+	SamplePeriodic(4),
 
-	ConcurrentTx(5);
+	TransactionBegin(5),
+
+	TransactionEnd(6),
+
+	Other(7),
+
+	Trigger(8);
 
 	private final byte code;
 
-	private AuthorizationStatus(int code) {
+	private ReadingContext(int code) {
 		this.code = (byte) code;
 	}
 
@@ -62,28 +68,17 @@ public enum AuthorizationStatus {
 	 * 
 	 * @param code
 	 *        the code
-	 * @return the status, never {@literal null} and set to {@link #None} if
+	 * @return the status, never {@literal null} and set to {@link #Unknown} if
 	 *         not any other valid code
 	 */
-	public static AuthorizationStatus forCode(int code) {
-		switch (code) {
-			case 1:
-				return Accepted;
-
-			case 2:
-				return Blocked;
-
-			case 3:
-				return Expired;
-
-			case 4:
-				return Invalid;
-
-			case 5:
-				return ConcurrentTx;
-
-			default:
-				return None;
+	public static ReadingContext forCode(int code) {
+		final byte c = (byte) code;
+		for ( ReadingContext v : values() ) {
+			if ( v.code == c ) {
+				return v;
+			}
 		}
+		return ReadingContext.Unknown;
 	}
+
 }
