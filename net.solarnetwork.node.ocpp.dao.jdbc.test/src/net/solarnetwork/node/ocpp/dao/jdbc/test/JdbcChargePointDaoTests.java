@@ -71,6 +71,7 @@ public class JdbcChargePointDaoTests extends AbstractNodeTransactionalTest {
 		info.setChargePointVendor(vendor);
 		info.setChargePointModel(model);
 		cp.setInfo(info);
+		cp.setConnectorCount(2);
 		return cp;
 	}
 
@@ -89,6 +90,7 @@ public class JdbcChargePointDaoTests extends AbstractNodeTransactionalTest {
 
 		assertThat("ID", entity.getId(), equalTo(last.getId()));
 		assertThat("Created", entity.getCreated(), equalTo(last.getCreated()));
+		assertThat("Connector count", entity.getConnectorCount(), equalTo(last.getConnectorCount()));
 		// TODO
 	}
 
@@ -98,6 +100,7 @@ public class JdbcChargePointDaoTests extends AbstractNodeTransactionalTest {
 		ChargePoint cp = dao.get(last.getId());
 		cp.setRegistrationStatus(RegistrationStatus.Rejected);
 		cp.getInfo().setChargePointVendor("Updated Vendor");
+		cp.setConnectorCount(3);
 		String pk = dao.save(cp);
 		assertThat("PK unchanged", pk, equalTo(cp.getId()));
 
@@ -106,6 +109,8 @@ public class JdbcChargePointDaoTests extends AbstractNodeTransactionalTest {
 				equalTo(RegistrationStatus.Rejected));
 		assertThat("Vendor updated", entity.getInfo().getChargePointVendor(),
 				equalTo(cp.getInfo().getChargePointVendor()));
+		assertThat("Connector count updated", entity.getConnectorCount(),
+				equalTo(cp.getConnectorCount()));
 	}
 
 }

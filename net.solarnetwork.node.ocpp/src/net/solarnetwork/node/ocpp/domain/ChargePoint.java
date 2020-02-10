@@ -40,6 +40,7 @@ public class ChargePoint extends BasicStringEntity {
 	private ChargePointInfo info;
 	private RegistrationStatus registrationStatus;
 	private boolean enabled;
+	private int connectorCount;
 
 	/**
 	 * Constructor.
@@ -125,6 +126,25 @@ public class ChargePoint extends BasicStringEntity {
 	 */
 	public void setRegistrationStatus(RegistrationStatus registrationStatus) {
 		this.registrationStatus = registrationStatus;
+	}
+
+	/**
+	 * Get the total number of connectors available on this charge point.
+	 * 
+	 * @return the total number of connectors, or {@literal 0} if not known
+	 */
+	public int getConnectorCount() {
+		return connectorCount;
+	}
+
+	/**
+	 * Set the total number of connectors on this charge point.
+	 * 
+	 * @param connectorCount
+	 *        the count to set, or {@literal 0} if not known
+	 */
+	public void setConnectorCount(int connectorCount) {
+		this.connectorCount = connectorCount;
 	}
 
 }

@@ -10,4 +10,5 @@ SET
 	,imsi = ?
 	,meter_type = ?
 	,meter_serial_num = ?
+	,conn_count = ?
 WHERE id = ?

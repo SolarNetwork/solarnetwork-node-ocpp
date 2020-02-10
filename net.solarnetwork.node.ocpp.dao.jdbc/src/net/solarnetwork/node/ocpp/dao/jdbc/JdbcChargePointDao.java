@@ -67,7 +67,7 @@ public class JdbcChargePointDao extends BaseJdbcGenericDao<ChargePoint, String>
 	@Override
 	protected void setUpdateStatementValues(ChargePoint obj, PreparedStatement ps) throws SQLException {
 		setUpdateStatementValues(obj, ps, 0);
-		ps.setString(11, obj.getId());
+		ps.setString(12, obj.getId());
 	}
 
 	protected void setUpdateStatementValues(ChargePoint obj, PreparedStatement ps, int offset)
@@ -86,6 +86,7 @@ public class JdbcChargePointDao extends BaseJdbcGenericDao<ChargePoint, String>
 		ps.setString(8 + offset, info.getImsi());
 		ps.setString(9 + offset, info.getMeterType());
 		ps.setString(10 + offset, info.getMeterSerialNumber());
+		ps.setInt(11 + offset, obj.getConnectorCount());
 	}
 
 	/**
@@ -112,6 +113,7 @@ public class JdbcChargePointDao extends BaseJdbcGenericDao<ChargePoint, String>
 			info.setMeterType(rs.getString(11));
 			info.setMeterSerialNumber(rs.getString(12));
 			obj.setInfo(info);
+			obj.setConnectorCount(rs.getInt(13));
 
 			return obj;
 		}
