@@ -22,6 +22,7 @@
 
 package net.solarnetwork.node.ocpp.service.cs;
 
+import java.util.concurrent.CompletableFuture;
 import net.solarnetwork.domain.Identifiable;
 import net.solarnetwork.node.ocpp.domain.ChargePoint;
 import net.solarnetwork.node.ocpp.domain.ChargePointInfo;
@@ -49,4 +50,22 @@ public interface ChargePointManager extends Identifiable {
 	 * @return the registered charge point
 	 */
 	ChargePoint registerChargePoint(ChargePointInfo info);
+
+	/**
+	 * Set the connector enabled state for a given connector ID.
+	 * 
+	 * @param chargePointId
+	 *        the ID of the Charge Point with the connector to adjust
+	 * @param connectorId
+	 *        the ID of the connector to adjust; connector IDs start at
+	 *        {@literal 1} and increment by one for each additional connector on
+	 *        a Charge Point
+	 * @param enabled
+	 *        {@literal true} to make the connector available for use,
+	 *        {@literal false} to disable the connector
+	 * @return {@literal true} if the state was set
+	 */
+	CompletableFuture<Boolean> adjustConnectorEnabledState(String chargePointId, int connectorId,
+			boolean enabled);
+
 }

@@ -24,6 +24,7 @@ package net.solarnetwork.node.ocpp.cs.controller;
 
 import java.time.Instant;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +52,10 @@ import ocpp.domain.ErrorCodeException;
 import ocpp.v16.ActionErrorCode;
 import ocpp.v16.ChargePointAction;
 import ocpp.v16.ConfigurationKey;
+import ocpp.v16.cp.AvailabilityStatus;
+import ocpp.v16.cp.AvailabilityType;
+import ocpp.v16.cp.ChangeAvailabilityRequest;
+import ocpp.v16.cp.ChangeAvailabilityResponse;
 import ocpp.v16.cp.GetConfigurationRequest;
 import ocpp.v16.cp.GetConfigurationResponse;
 import ocpp.v16.cp.KeyValue;
@@ -184,6 +189,39 @@ public class OcppControllerService extends BaseIdentifiable
 	}
 
 	@Override
+	public CompletableFuture<Boolean> adjustConnectorEnabledState(String chargePointId, int connectorId,
+			boolean enabled) {
+		ChangeAvailabilityRequest req = new ChangeAvailabilityRequest();
+		req.setConnectorId(connectorId);
+		req.setType(enabled ? AvailabilityType.OPERATIVE : AvailabilityType.INOPERATIVE);
+		CompletableFuture<Boolean> result = new CompletableFuture<>();
+		sendToChargePoint(chargePointId, ChargePointAction.ChangeAvailability, req,
+				changeAvailability(chargePointId, req, result));
+		return result;
+	}
+
+	private ActionMessageResultHandler<ChangeAvailabilityRequest, ChangeAvailabilityResponse> changeAvailability(
+			String chargePointId, ChangeAvailabilityRequest req, CompletableFuture<Boolean> future) {
+		return (msg, res, err) -> {
+			if ( res != null ) {
+				AvailabilityStatus status = res.getStatus();
+				if ( status == AvailabilityStatus.REJECTED ) {
+					log.info("Charge Point {} connector {} availability set to {}", chargePointId,
+							req.getConnectorId(), req.getType());
+					future.complete(false);
+				} else {
+					log.warn("Charge Point {} connector {} availability rejected change to {}",
+							chargePointId, req.getConnectorId(), req.getType());
+					future.complete(true);
+				}
+			} else {
+				future.completeExceptionally(err);
+			}
+			return true;
+		};
+	}
+
+	@Override
 	public AuthorizationInfo authorize(final String clientId, final String idTag) {
 		// TODO Auto-generated method stub
 		return null;
@@ -198,18 +236,18 @@ public class OcppControllerService extends BaseIdentifiable
 		}
 	}
 
-	private <T, R> void sendToChargePoint(String clientId, Action action, T payload,
+	private <T, R> void sendToChargePoint(String chargePointId, Action action, T payload,
 			ActionMessageResultHandler<T, R> handler) {
 		executor.execute(() -> {
-			ActionMessage<T> msg = new BasicActionMessage<T>(clientId, UUID.randomUUID().toString(),
+			ActionMessage<T> msg = new BasicActionMessage<T>(chargePointId, UUID.randomUUID().toString(),
 					action, payload);
-			ChargePointBroker broker = chargePointRouter.brokerForChargePoint(clientId);
+			ChargePointBroker broker = chargePointRouter.brokerForChargePoint(chargePointId);
 			if ( broker != null ) {
 				if ( broker.sendMessageToChargePoint(msg, handler) ) {
 					return;
 				}
 			} else {
-				log.warn("No ChargePointBroker available for client {}", clientId);
+				log.warn("No ChargePointBroker available for client {}", chargePointId);
 			}
 			handler.handleActionMessageResult(msg, null,
 					new ErrorCodeException(ActionErrorCode.GenericError, "Client not available."));
