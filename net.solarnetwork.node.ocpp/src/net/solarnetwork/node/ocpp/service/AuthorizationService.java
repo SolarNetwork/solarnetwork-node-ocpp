@@ -1,5 +1,5 @@
 /* ==================================================================
- * AuthorizationManager.java - 6/02/2020 7:16:07 pm
+ * AuthorizationService.java - 6/02/2020 7:16:07 pm
  * 
  * Copyright 2020 SolarNetwork.net Dev Team
  * 
@@ -38,7 +38,7 @@ import net.solarnetwork.node.ocpp.domain.AuthorizationInfo;
  * @author matt
  * @version 1.0
  */
-public interface AuthorizationManager extends Identifiable {
+public interface AuthorizationService extends Identifiable {
 
 	/**
 	 * Request authorization of a specific charge point ID tag value.

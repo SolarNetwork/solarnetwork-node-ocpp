@@ -41,7 +41,7 @@ import net.solarnetwork.node.ocpp.domain.ChargePoint;
 import net.solarnetwork.node.ocpp.domain.ChargePointInfo;
 import net.solarnetwork.node.ocpp.domain.RegistrationStatus;
 import net.solarnetwork.node.ocpp.service.ActionMessageResultHandler;
-import net.solarnetwork.node.ocpp.service.AuthorizationManager;
+import net.solarnetwork.node.ocpp.service.AuthorizationService;
 import net.solarnetwork.node.ocpp.service.ChargePointBroker;
 import net.solarnetwork.node.ocpp.service.ChargePointRouter;
 import net.solarnetwork.node.ocpp.service.cs.ChargePointManager;
@@ -62,7 +62,7 @@ import ocpp.v16.cp.KeyValue;
  * @version 1.0
  */
 public class OcppControllerService extends BaseIdentifiable
-		implements ChargePointManager, AuthorizationManager {
+		implements ChargePointManager, AuthorizationService {
 
 	/** The default {@code initialRegistrationStatus} value. */
 	public static final RegistrationStatus DEFAULT_INITIAL_REGISTRATION_STATUS = RegistrationStatus.Pending;

@@ -31,6 +31,8 @@
 
 	<reference id="transactionManager" interface="org.springframework.transaction.PlatformTransactionManager"/>
 
+	<reference id="authorizationDao" interface="net.solarnetwork.node.ocpp.dao.AuthorizationDao"/>
+	
 	<reference id="chargePointDao" interface="net.solarnetwork.node.ocpp.dao.ChargePointDao"/>
 	
 	<reference id="chargePointRouter" interface="net.solarnetwork.node.ocpp.service.ChargePointRouter"/>
@@ -60,6 +62,19 @@
 	</service>
 
 	<service interface="net.solarnetwork.node.ocpp.service.cs.ChargePointManager" ref="controller"/>
+	
+	<service interface="net.solarnetwork.node.settings.SettingSpecifierProvider">
+		<bean class="net.solarnetwork.node.ocpp.cs.controller.OcppAuthorizationManager">
+			<osgix:managed-properties persistent-id="net.solarnetwork.node.ocpp.cs.controller.OcppAuthorizationManager" 
+					autowire-on-update="true" update-method="configurationChanged"/>
+			<argument ref="authorizationDao"/>
+			<property name="messageSource">
+				<bean class="org.springframework.context.support.ResourceBundleMessageSource">
+					<property name="basename" value="net.solarnetwork.node.ocpp.cs.controller.OcppAuthorizationManager"/>
+				</bean>
+			</property>
+		</bean>
+	</service>
 
 	<!-- Supporting services -->
 

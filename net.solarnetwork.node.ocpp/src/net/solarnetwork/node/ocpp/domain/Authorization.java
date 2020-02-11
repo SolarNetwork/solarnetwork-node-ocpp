@@ -23,6 +23,7 @@
 package net.solarnetwork.node.ocpp.domain;
 
 import java.time.Instant;
+import java.util.Objects;
 import net.solarnetwork.dao.BasicStringEntity;
 
 /**
@@ -68,6 +69,66 @@ public class Authorization extends BasicStringEntity {
 	 */
 	public Authorization(String id, Instant created) {
 		super(id, created);
+	}
+
+	/**
+	 * Copy constructor.
+	 * 
+	 * @param other
+	 *        the authorization to copy
+	 */
+	public Authorization(Authorization other) {
+		this(other.getId(), other.getCreated());
+		this.enabled = other.enabled;
+		this.expiryDate = other.expiryDate;
+		this.parentId = other.parentId;
+	}
+
+	/**
+	 * Test if the properties of another entity are the same as in this
+	 * instance.
+	 * 
+	 * <p>
+	 * The {@code id} and {@code created} properties are not compared by this
+	 * method.
+	 * </p>
+	 * 
+	 * @param other
+	 *        the other entity to compare to
+	 * @return {@literal true} if the properties of this instance are equal to
+	 *         the other
+	 */
+	public boolean isSameAs(Authorization other) {
+		if ( other == null ) {
+			return false;
+		}
+		// @formatter:off
+		return enabled == other.enabled
+				&& Objects.equals(expiryDate, other.expiryDate)
+				&& Objects.equals(parentId, other.parentId);
+		// @formatter:on
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("Authorization{id=");
+		builder.append(getId());
+		builder.append(", enabled=");
+		builder.append(enabled);
+		builder.append(", ");
+		if ( expiryDate != null ) {
+			builder.append("expiryDate=");
+			builder.append(expiryDate);
+			builder.append(", ");
+		}
+		if ( parentId != null ) {
+			builder.append("parentId=");
+			builder.append(parentId);
+			builder.append(", ");
+		}
+		builder.append("}");
+		return builder.toString();
 	}
 
 	/**
