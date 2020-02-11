@@ -27,10 +27,9 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Deque;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -57,10 +56,13 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
 import net.solarnetwork.node.ocpp.domain.ActionMessage;
 import net.solarnetwork.node.ocpp.domain.BasicActionMessage;
+import net.solarnetwork.node.ocpp.domain.PendingActionMessage;
 import net.solarnetwork.node.ocpp.json.OcppWebSocketSubProtocol;
 import net.solarnetwork.node.ocpp.service.ActionMessageProcessor;
+import net.solarnetwork.node.ocpp.service.ActionMessageQueue;
 import net.solarnetwork.node.ocpp.service.ActionMessageResultHandler;
 import net.solarnetwork.node.ocpp.service.ChargePointBroker;
+import net.solarnetwork.node.ocpp.service.SimpleActionMessageQueue;
 import net.solarnetwork.settings.SettingsChangeObserver;
 import ocpp.domain.Action;
 import ocpp.domain.ErrorCode;
@@ -116,7 +118,7 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	private final AsyncTaskExecutor executor;
 	private final ConcurrentMap<Action, Set<ActionMessageProcessor<Object, Object>>> processors;
 	private final ConcurrentMap<String, WebSocketSession> clientSessions;
-	private final Deque<PendingActionMessage> pendingMessages;
+	private final ActionMessageQueue pendingMessages;
 	private final ObjectMapper mapper;
 	private TaskScheduler taskScheduler;
 	private ActionPayloadDecoder centralServiceActionPayloadDecoder;
@@ -152,7 +154,7 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 		this.executor = executor;
 		this.processors = new ConcurrentHashMap<>(16, 0.9f, 1);
 		this.clientSessions = new ConcurrentHashMap<>(8, 0.7f, 2);
-		this.pendingMessages = new LinkedList<>();
+		this.pendingMessages = new SimpleActionMessageQueue();
 		this.mapper = defaultObjectMapper();
 		this.centralServiceActionPayloadDecoder = new CentralServiceActionPayloadDecoder(mapper);
 		this.chargePointActionPayloadDecoder = new ChargePointActionPayloadDecoder(mapper);
@@ -166,7 +168,7 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	 * @param mapper
 	 *        the object mapper to use
 	 * @param pendingMessageQueue
-	 *        a queue to hold pending messages
+	 *        a queue to hold pending messages, for individual client IDs
 	 * @param centralServiceActionPayloadDecoder
 	 *        the action payload decoder to use
 	 * @param chargePointActionPayloadDecoder
@@ -176,7 +178,7 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	 *         if any parameter is {@literal null}
 	 */
 	public OcppWebSocketHandler(AsyncTaskExecutor executor, ObjectMapper mapper,
-			Deque<PendingActionMessage> pendingMessageQueue, ActionPayloadDecoder actionPayloadDecoder,
+			ActionMessageQueue pendingMessageQueue, ActionPayloadDecoder actionPayloadDecoder,
 			ActionPayloadDecoder chargePointActionPayloadDecoder) {
 		super();
 		this.processors = new ConcurrentHashMap<>(16, 0.9f, 1);
@@ -265,17 +267,21 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 		public void run() {
 			log.debug("Looking for expired pending message to clean...");
 			final long expiration = System.currentTimeMillis() - pendingMessageTimeout;
-			boolean processNext = false;
-			PendingActionMessage msg = pendingMessages.peek();
-			if ( msg != null && msg.getDate() < expiration ) {
-				log.warn("Cleaning expired pending message {}", msg);
-				synchronized ( pendingMessages ) {
-					pendingMessages.removeFirstOccurrence(msg);
-					processNext = true;
+			for ( Entry<String, Deque<PendingActionMessage>> me : pendingMessages.allQueues() ) {
+				boolean processNext = false;
+				String clientId = me.getKey();
+				Deque<PendingActionMessage> q = me.getValue();
+				PendingActionMessage msg = q.peek();
+				if ( msg != null && msg.getDate() < expiration ) {
+					log.warn("Cleaning client {} expired pending message {}", clientId, msg);
+					synchronized ( q ) {
+						q.removeFirstOccurrence(msg);
+						processNext = true;
+					}
 				}
-			}
-			if ( processNext ) {
-				processNextPendingMessage();
+				if ( processNext ) {
+					processNextPendingMessage(q);
+				}
 			}
 		}
 
@@ -402,8 +408,10 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 						"Error parsing payload: " + e.getMessage(), null);
 			}
 
-			addPendingMessage(new PendingActionMessage(
-					new BasicActionMessage<Object>(clientId, messageId, action, payload)));
+			pendingMessages.addPendingMessage(
+					new PendingActionMessage(
+							new BasicActionMessage<Object>(clientId, messageId, action, payload)),
+					this::processNextPendingMessage);
 			return true;
 		} catch ( IllegalArgumentException e ) {
 			return sendCallError(session, clientId, messageId, ActionErrorCode.NotImplemented,
@@ -431,7 +439,8 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 		// drop generics now for internal processing
 		ActionMessage<Object> a = (ActionMessage<Object>) message;
 		ActionMessageResultHandler<Object, Object> h = (ActionMessageResultHandler<Object, Object>) resultHandler;
-		addPendingMessage(new PendingActionMessage(a, h));
+		pendingMessages.addPendingMessage(new PendingActionMessage(a, h),
+				this::processNextPendingMessage);
 		return true;
 	}
 
@@ -455,9 +464,7 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 		if ( !sent ) {
 			// if there was an error, then we can immediately remove this message from
 			// the pending queue and try the next message, as there won't be any response
-			synchronized ( pendingMessages ) {
-				pendingMessages.removeFirstOccurrence(msg);
-			}
+			removePendingMessage(msg);
 			ErrorCodeException err = new ErrorCodeException(ActionErrorCode.SecurityError,
 					"Client ID missing.");
 			try {
@@ -465,23 +472,7 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 			} catch ( Exception e ) {
 				log.warn("Error handling OCPP CallError {}: {}", err, e.toString(), e);
 			} finally {
-				processNextPendingMessage();
-			}
-		}
-	}
-
-	/**
-	 * Add a message to the pending message queue.
-	 * 
-	 * @param msg
-	 *        the message to add
-	 */
-	private void addPendingMessage(PendingActionMessage msg) {
-		synchronized ( pendingMessages ) {
-			// enqueue the call
-			pendingMessages.add(msg);
-			if ( pendingMessages.peek() == msg ) {
-				processNextPendingMessage();
+				processNextPendingMessage(message.getClientId());
 			}
 		}
 	}
@@ -489,13 +480,26 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	/**
 	 * Process the next pending message, if available.
 	 * 
+	 * @param clientId
+	 *        the ID of the client to process the next pending message
+	 * @see #processNextPendingMessage(Deque)
+	 */
+	private void processNextPendingMessage(String clientId) {
+		processNextPendingMessage(pendingMessages.pendingMessageQueue(clientId));
+	}
+
+	/**
+	 * Process the next pending message, if available.
+	 * 
+	 * @param q
+	 *        the queue to process the next pending message
 	 * @see #sendCall(PendingActionMessage)
 	 * @see #processRequest(PendingActionMessage)
 	 */
-	private void processNextPendingMessage() {
+	private void processNextPendingMessage(Deque<PendingActionMessage> q) {
 		PendingActionMessage next = null;
-		synchronized ( pendingMessages ) {
-			PendingActionMessage msg = pendingMessages.peek();
+		synchronized ( q ) {
+			PendingActionMessage msg = q.peek();
 			if ( msg != null && msg.doProcess() ) {
 				next = msg;
 			}
@@ -510,36 +514,6 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 				}
 			});
 		}
-	}
-
-	/**
-	 * Find and remove a message from the pending message queue, based on its
-	 * message ID.
-	 * 
-	 * <p>
-	 * This method will search the pending messages queue and return the first
-	 * message found with the matching message ID, after first removing that
-	 * message from the queue.
-	 * </p>
-	 * 
-	 * @param messageId
-	 *        the ID to find
-	 * @return the found message, or {@literal null} if not found
-	 */
-	private PendingActionMessage pollPendingMessage(final String messageId) {
-		PendingActionMessage msg = null;
-		synchronized ( pendingMessages ) {
-			for ( Iterator<PendingActionMessage> itr = pendingMessages.descendingIterator(); itr
-					.hasNext(); ) {
-				PendingActionMessage oneMsg = itr.next();
-				if ( oneMsg.getMessage().getMessageId().equals(messageId) ) {
-					msg = oneMsg;
-					itr.remove();
-					break;
-				}
-			}
-		}
-		return msg;
 	}
 
 	/**
@@ -566,7 +540,7 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	private void handleCallErrorMessage(final WebSocketSession session, final String clientId,
 			final String messageId, final TextMessage message, final JsonNode tree) {
 		try {
-			PendingActionMessage msg = pollPendingMessage(messageId);
+			PendingActionMessage msg = pendingMessages.pollPendingMessage(clientId, messageId);
 			if ( msg == null ) {
 				log.warn(
 						"OCPP {} <<< Original Call message {} not found; ignoring CallError message: {}",
@@ -592,7 +566,7 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 					null);
 			msg.getHandler().handleActionMessageResult(msg.getMessage(), null, err);
 		} finally {
-			processNextPendingMessage();
+			processNextPendingMessage(clientId);
 		}
 	}
 
@@ -620,7 +594,7 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	private void handleCallResultMessage(final WebSocketSession session, final String clientId,
 			final String messageId, final TextMessage message, final JsonNode tree) {
 		try {
-			PendingActionMessage msg = pollPendingMessage(messageId);
+			PendingActionMessage msg = pendingMessages.pollPendingMessage(clientId, messageId);
 			if ( msg == null ) {
 				log.warn(
 						"OCPP {} <<< Original Call message {} not found; ignoring CallError message: {}",
@@ -640,7 +614,7 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 
 			msg.getHandler().handleActionMessageResult(msg.getMessage(), payload, err);
 		} finally {
-			processNextPendingMessage();
+			processNextPendingMessage(clientId);
 		}
 	}
 
@@ -771,9 +745,11 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	}
 
 	private void removePendingMessage(PendingActionMessage msg) {
-		synchronized ( pendingMessages ) {
-			pendingMessages.removeFirstOccurrence(msg);
-			processNextPendingMessage();
+		String clientId = msg.getMessage().getClientId();
+		Deque<PendingActionMessage> q = pendingMessages.pendingMessageQueue(clientId);
+		synchronized ( q ) {
+			q.removeFirstOccurrence(msg);
+			processNextPendingMessage(q);
 		}
 	}
 
