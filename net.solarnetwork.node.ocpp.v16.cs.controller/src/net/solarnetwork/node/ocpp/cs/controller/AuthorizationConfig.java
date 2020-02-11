@@ -22,16 +22,16 @@
 
 package net.solarnetwork.node.ocpp.cs.controller;
 
-import static java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.time.format.DateTimeParseException;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import net.solarnetwork.node.ocpp.domain.Authorization;
 import net.solarnetwork.node.settings.SettingSpecifier;
 import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
 import net.solarnetwork.node.settings.support.BasicToggleSettingSpecifier;
+import net.solarnetwork.util.DateUtils;
 
 /**
  * Configuration for an {@link Authorization}.
@@ -142,7 +142,7 @@ public class AuthorizationConfig {
 	 */
 	public String getExpiryDateValue() {
 		Instant ts = getExpiryDate();
-		return (ts != null ? ISO_OFFSET_DATE_TIME.withZone(ZoneId.systemDefault()).format(ts) : null);
+		return (ts != null ? DateUtils.ISO_DATE_OPT_TIME_ALT_LOCAL.format(ts) : null);
 	}
 
 	/**
@@ -154,10 +154,9 @@ public class AuthorizationConfig {
 	public void setExpiryDateValue(String value) {
 		Instant ts = null;
 		if ( value != null ) {
-			try {
-				ts = ISO_OFFSET_DATE_TIME.withZone(ZoneId.systemDefault()).parse(value, Instant::from);
-			} catch ( DateTimeParseException e ) {
-				// ignore and move on
+			ZonedDateTime date = DateUtils.parseIsoAltTimestamp(value, ZoneId.systemDefault());
+			if ( date != null ) {
+				ts = date.toInstant();
 			}
 		}
 		setExpiryDate(ts);
