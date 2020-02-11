@@ -25,15 +25,24 @@ package net.solarnetwork.node.ocpp.v16.cs.json.web;
 import static java.util.Collections.singletonList;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.task.AsyncTaskExecutor;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.SubProtocolCapable;
 import org.springframework.web.socket.TextMessage;
@@ -46,15 +55,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
-import net.solarnetwork.node.ocpp.json.CallMessageProcessor;
-import net.solarnetwork.node.ocpp.json.CallMessageResultHandler;
+import net.solarnetwork.node.ocpp.domain.ActionMessage;
+import net.solarnetwork.node.ocpp.domain.BasicActionMessage;
 import net.solarnetwork.node.ocpp.json.OcppWebSocketSubProtocol;
+import net.solarnetwork.node.ocpp.service.ActionMessageProcessor;
+import net.solarnetwork.node.ocpp.service.ActionMessageResultHandler;
+import net.solarnetwork.node.ocpp.service.ChargePointBroker;
+import net.solarnetwork.settings.SettingsChangeObserver;
+import ocpp.domain.Action;
 import ocpp.domain.ErrorCode;
+import ocpp.domain.ErrorCodeException;
+import ocpp.domain.ErrorHolder;
 import ocpp.domain.SchemaValidationException;
 import ocpp.json.ActionPayloadDecoder;
-import ocpp.json.BasicCallErrorMessage;
-import ocpp.json.BasicCallMessage;
-import ocpp.json.BasicCallResultMessage;
 import ocpp.json.CallErrorMessage;
 import ocpp.json.CallMessage;
 import ocpp.json.CallResultMessage;
@@ -71,40 +84,47 @@ import ocpp.v16.cs.json.CentralServiceActionPayloadDecoder;
  * This class is responsible for encoding/decoding the OCPP 1.6 JSON web socket
  * message protocol. When a Charge Point sends a message to this service, the
  * JSON will be decoded using {@link #getCentralServiceActionPayloadDecoder()},
- * and the resulting {@link CallMessage} will be passed to the configured
- * {@link #getCallMessageProcessor()} instance via
- * {@link CallMessageProcessor#processCallMessage(CallMessage, CallMessageResultHandler)}
- * where this instance will be passed as the {@link CallMessageResultHandler}.
- * The call processor must eventually call
- * {@link #handleCallMessageResult(CallMessage, CallResultMessage, CallErrorMessage)}
+ * and the resulting payload will be passed to any configured
+ * {@link ActionMessageProcessor} instances associated with the message action.
+ * The action message processor must eventually call
+ * {@link ActionMessageResultHandler#handleActionMessageResult(ActionMessage, Object, Throwable)}
  * with the final result (or error), and that will be encoded into a JSON
  * message and sent back to the originating Charge Point client.
  * </p>
  * 
  * <p>
- * This class also implements {@link CallMessageProcessor} itself, so that other
- * classes can push messages to any connected Charge Point client. The
- * {@link #processCallMessage(CallMessage, CallMessageResultHandler)} will
- * encode a {@link CallMessage} into JSON and sent that as a request to a
+ * This class also implements {@link ChargePointBroker}, so that other classes
+ * can push messages to any connected Charge Point client. The
+ * {@link #sendMessageToChargePoint(ActionMessage, ActionMessageResultHandler)}
+ * will encode a {@link CallMessage} into JSON and sent that as a request to a
  * connected Charge Point matching the message's client ID. When the Charge
  * Point client sends a result (or error) response to the message, it will be
- * passed to the {@link CallMessageResultHandler} originally provided.
+ * passed to the {@link ActionMessageResultHandler} originally provided.
  * </p>
  * 
  * @author matt
  * @version 1.0
  */
 public class OcppWebSocketHandler extends AbstractWebSocketHandler
-		implements WebSocketHandler, SubProtocolCapable, CallMessageResultHandler, CallMessageProcessor {
+		implements WebSocketHandler, SubProtocolCapable, SettingsChangeObserver, ChargePointBroker {
+
+	/** The default {@code pendingMessageTimeout} property. */
+	public static final long DEFAULT_PENDING_MESSAGE_TIMEOUT = TimeUnit.SECONDS.toMillis(120);
 
 	private final Logger log = LoggerFactory.getLogger(getClass());
 
+	private final AsyncTaskExecutor executor;
+	private final ConcurrentMap<Action, Set<ActionMessageProcessor<Object, Object>>> processors;
 	private final ConcurrentMap<String, WebSocketSession> clientSessions;
-	private final Deque<PendingCallMessage> pendingMessages;
+	private final Deque<PendingActionMessage> pendingMessages;
 	private final ObjectMapper mapper;
+	private TaskScheduler taskScheduler;
 	private ActionPayloadDecoder centralServiceActionPayloadDecoder;
 	private ActionPayloadDecoder chargePointActionPayloadDecoder;
-	private CallMessageProcessor callMessageProcessor;
+	private long pendingMessageTimeout = DEFAULT_PENDING_MESSAGE_TIMEOUT;
+
+	private Future<?> startupTask;
+	private ScheduledFuture<?> pendingTimeoutChore;
 
 	private static ObjectMapper defaultObjectMapper() {
 		ObjectMapper mapper = new ObjectMapper();
@@ -123,9 +143,14 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	 * {@link ChargePointActionPayloadDecoder} instances will be created. An
 	 * in-memory queue will be used for pending messages.
 	 * </p>
+	 * 
+	 * @param executor
+	 *        an executor for tasks
 	 */
-	public OcppWebSocketHandler() {
+	public OcppWebSocketHandler(AsyncTaskExecutor executor) {
 		super();
+		this.executor = executor;
+		this.processors = new ConcurrentHashMap<>(16, 0.9f, 1);
 		this.clientSessions = new ConcurrentHashMap<>(8, 0.7f, 2);
 		this.pendingMessages = new LinkedList<>();
 		this.mapper = defaultObjectMapper();
@@ -136,6 +161,8 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	/**
 	 * Constructor.
 	 * 
+	 * @param executor
+	 *        an executor for tasks
 	 * @param mapper
 	 *        the object mapper to use
 	 * @param pendingMessageQueue
@@ -148,11 +175,16 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	 * @throws IllegalArgumentException
 	 *         if any parameter is {@literal null}
 	 */
-	public OcppWebSocketHandler(ObjectMapper mapper, Deque<PendingCallMessage> pendingMessageQueue,
-			ActionPayloadDecoder actionPayloadDecoder,
+	public OcppWebSocketHandler(AsyncTaskExecutor executor, ObjectMapper mapper,
+			Deque<PendingActionMessage> pendingMessageQueue, ActionPayloadDecoder actionPayloadDecoder,
 			ActionPayloadDecoder chargePointActionPayloadDecoder) {
 		super();
+		this.processors = new ConcurrentHashMap<>(16, 0.9f, 1);
 		this.clientSessions = new ConcurrentHashMap<>(8, 0.7f, 2);
+		if ( executor == null ) {
+			throw new IllegalArgumentException("The executor parameter must not be null.");
+		}
+		this.executor = executor;
 		if ( mapper == null ) {
 			throw new IllegalArgumentException("The mapper parameter must not be null.");
 		}
@@ -163,6 +195,90 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 		this.pendingMessages = pendingMessageQueue;
 		setCentralServiceActionPayloadDecoder(actionPayloadDecoder);
 		setChargePointActionPayloadDecoder(chargePointActionPayloadDecoder);
+	}
+
+	/**
+	 * Call once this service is configured.
+	 */
+	public synchronized void startup() {
+		configurationChanged(null);
+	}
+
+	/**
+	 * Call once this service is no longer needed, to free up internal
+	 * resources.
+	 */
+	public synchronized void shutdown() {
+		if ( startupTask != null ) {
+			startupTask.cancel(true);
+		}
+		unshceduleChores();
+	}
+
+	@Override
+	public synchronized void configurationChanged(Map<String, Object> properties) {
+		if ( startupTask != null ) {
+			return;
+		}
+		startupTask = executor.submit(new StartupTask());
+	}
+
+	private synchronized void scheduleChores() {
+		if ( taskScheduler == null ) {
+			return;
+		}
+		if ( pendingTimeoutChore == null ) {
+			pendingTimeoutChore = taskScheduler.scheduleWithFixedDelay(new PendingTimeoutChore(),
+					new Date(System.currentTimeMillis() + pendingMessageTimeout), pendingMessageTimeout);
+			log.info("Scheduled pending timeout cleaner task at rate {}s", pendingMessageTimeout / 1000);
+		}
+	}
+
+	private synchronized void unshceduleChores() {
+		if ( pendingTimeoutChore != null ) {
+			pendingTimeoutChore.cancel(true);
+		}
+	}
+
+	private class StartupTask implements Runnable {
+
+		@Override
+		public void run() {
+			try {
+				Thread.sleep(2000);
+				scheduleChores();
+				synchronized ( OcppWebSocketHandler.this ) {
+					if ( startupTask == this ) {
+						startupTask = null;
+					}
+				}
+			} catch ( InterruptedException e ) {
+				// ignore
+			}
+		}
+
+	}
+
+	private class PendingTimeoutChore implements Runnable {
+
+		@Override
+		public void run() {
+			log.debug("Looking for expired pending message to clean...");
+			final long expiration = System.currentTimeMillis() - pendingMessageTimeout;
+			boolean processNext = false;
+			PendingActionMessage msg = pendingMessages.peek();
+			if ( msg != null && msg.getDate() < expiration ) {
+				log.warn("Cleaning expired pending message {}", msg);
+				synchronized ( pendingMessages ) {
+					pendingMessages.removeFirstOccurrence(msg);
+					processNext = true;
+				}
+			}
+			if ( processNext ) {
+				processNextPendingMessage();
+			}
+		}
+
 	}
 
 	@Override
@@ -244,10 +360,9 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	 * 
 	 * <p>
 	 * The message payload will be decoded using
-	 * {@link #getCentralServiceActionPayloadDecoder()} and then passed to the
-	 * {@link #getCallMessageProcessor()}, passing this object as the
-	 * {@link CallMessageResultHandler} so the processor's result (or error) can
-	 * be returned to the client.
+	 * {@link #getCentralServiceActionPayloadDecoder()} and then passed to any
+	 * configured action message processors so the processor's result (or error)
+	 * can be returned to the client.
 	 * </p>
 	 * 
 	 * @param session
@@ -267,13 +382,6 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	private boolean handleCallMessage(final WebSocketSession session, final String clientId,
 			final String messageId, final TextMessage message, final JsonNode tree) {
 		final JsonNode actionNode = tree.path(2);
-		final CallMessageProcessor proc = getCallMessageProcessor();
-		if ( proc == null ) {
-			log.debug("OCPP {} <<< No CallMessageProcessor available, ignoring message: {}", clientId,
-					message.getPayload());
-			return sendCallError(session, clientId, messageId, ActionErrorCode.InternalError,
-					"No CallMessageProcessor available.", null);
-		}
 		final CentralSystemAction action;
 		try {
 			action = actionNode.isTextual() ? CentralSystemAction.valueOf(actionNode.textValue()) : null;
@@ -293,8 +401,9 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 				return sendCallError(session, clientId, messageId, ActionErrorCode.FormationViolation,
 						"Error parsing payload: " + e.getMessage(), null);
 			}
-			BasicCallMessage msg = new BasicCallMessage(clientId, messageId, action, payload);
-			proc.processCallMessage(msg, this);
+
+			addPendingMessage(new PendingActionMessage(
+					new BasicActionMessage<Object>(clientId, messageId, action, payload)));
 			return true;
 		} catch ( IllegalArgumentException e ) {
 			return sendCallError(session, clientId, messageId, ActionErrorCode.NotImplemented,
@@ -305,85 +414,25 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 		}
 	}
 
-	/**
-	 * Send the result of processing a client Charge Point request back to the
-	 * client.
-	 * 
-	 * <p>
-	 * If an {@code error} is provided, this method will send a
-	 * {@link MessageType#CallError} message to the client that originally made
-	 * the request. If instead a {@code result} is provided, this method will
-	 * send a {@link MessageType#CallResult} message to the client that
-	 * originally made the request.
-	 * </p>
-	 * 
-	 * @param message
-	 *        the original request message
-	 * @param result
-	 *        the result to send to the client, or {@literal null} if an error
-	 *        occurred
-	 * @param error
-	 *        the error to send to the client, or {@literal null} if no error
-	 *        occurred
-	 * @return {@literal true} if the result was sent to the client
-	 */
 	@Override
-	public boolean handleCallMessageResult(CallMessage message, CallResultMessage result,
-			CallErrorMessage error) {
-		final String clientId = message.getClientId();
-		if ( clientId == null ) {
-			log.error("Client ID not provided in result for CallMessage {}; ignoring: {}", message,
-					result != null ? result : error);
-			return false;
-		}
-		WebSocketSession session = clientSessions.get(message.getClientId());
-		if ( session == null ) {
-			log.error("Web socket not available for result of CallMessage {}; ignoring: {}", message,
-					result != null ? result : error);
-			return false;
-		}
-		if ( error != null ) {
-			return sendCallError(session, clientId, message.getMessageId(), error.getErrorCode(),
-					error.getErrorDescription(), error.getErrorDetails());
-		} else if ( result != null ) {
-			return sendCallResult(session, clientId, result.getMessageId(), result.getPayload());
-		}
-		log.error("Neither result nor error provided for result of CallMessage {}; ignoring.", message);
-		return false;
+	public boolean isChargePointAvailable(String clientId) {
+		return clientSessions.containsKey(clientId);
 	}
 
-	/**
-	 * Push a message to a Charge Point.
-	 * 
-	 * <p>
-	 * This method is for sending a push message from the Central Service to a
-	 * Charge Point. The Charge Point must be currently connected to the Central
-	 * Service via a web socket.
-	 * </p>
-	 * 
-	 * {@inheritDoc}
-	 */
+	@SuppressWarnings("unchecked")
 	@Override
-	public void processCallMessage(CallMessage message, CallMessageResultHandler resultHandler) {
+	public <T, R> boolean sendMessageToChargePoint(ActionMessage<T> message,
+			ActionMessageResultHandler<T, R> resultHandler) {
 		final String clientId = message.getClientId();
-		if ( clientId == null ) {
-			log.debug("Client ID not provided in CallMessage {}; ignoring", message);
-			BasicCallErrorMessage err = new BasicCallErrorMessage(message.getMessageId(),
-					ActionErrorCode.SecurityError, "Client ID missing.", null);
-			resultHandler.handleCallMessageResult(message, null, err);
-			return;
+		if ( clientId == null || !clientSessions.containsKey(clientId) ) {
+			log.debug("Client ID [{}] not available; ignoring message {}", clientId, message);
+			return false;
 		}
-		final PendingCallMessage msg = new PendingCallMessage(System.currentTimeMillis(), message,
-				resultHandler);
-
-		synchronized ( pendingMessages ) {
-			// enqueue the call
-			pendingMessages.add(msg);
-			if ( pendingMessages.peek() == msg ) {
-				// there are no other pending messages, so immediately send this call
-				sendCall(msg);
-			}
-		}
+		// drop generics now for internal processing
+		ActionMessage<Object> a = (ActionMessage<Object>) message;
+		ActionMessageResultHandler<Object, Object> h = (ActionMessageResultHandler<Object, Object>) resultHandler;
+		addPendingMessage(new PendingActionMessage(a, h));
+		return true;
 	}
 
 	/**
@@ -393,54 +442,79 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	 *        the pending message to send; this message is expected to have been
 	 *        added to the pending message queue already
 	 */
-	private void sendCall(PendingCallMessage msg) {
-		final CallMessage message = msg.getMessage();
-		final CallMessageResultHandler resultHandler = msg.getHandler();
+	private void sendCall(PendingActionMessage msg) {
+		final ActionMessage<Object> message = msg.getMessage();
+		final ActionMessageResultHandler<Object, Object> resultHandler = msg.getHandler();
 		WebSocketSession session = clientSessions.get(message.getClientId());
-		if ( session != null ) {
+		if ( session == null ) {
 			log.debug("Web socket not available for CallMessage {}; ignoring", message);
 			return;
 		}
 		boolean sent = sendCall(session, message.getClientId(), message.getMessageId(),
-				message.getAction(), message.getPayload());
+				message.getAction(), message.getMessage());
 		if ( !sent ) {
+			// if there was an error, then we can immediately remove this message from
+			// the pending queue and try the next message, as there won't be any response
 			synchronized ( pendingMessages ) {
 				pendingMessages.removeFirstOccurrence(msg);
 			}
-			BasicCallErrorMessage err = new BasicCallErrorMessage(message.getMessageId(),
-					ActionErrorCode.SecurityError, "Client ID missing.", null);
+			ErrorCodeException err = new ErrorCodeException(ActionErrorCode.SecurityError,
+					"Client ID missing.");
 			try {
-				resultHandler.handleCallMessageResult(message, null, err);
+				resultHandler.handleActionMessageResult(message, null, err);
 			} catch ( Exception e ) {
 				log.warn("Error handling OCPP CallError {}: {}", err, e.toString(), e);
+			} finally {
+				processNextPendingMessage();
 			}
-			sendNextPendingMessage();
 		}
 	}
 
 	/**
-	 * Send the next pending message, if available.
+	 * Add a message to the pending message queue.
 	 * 
-	 * <p>
-	 * This method assumes that the head of the pending message queue has not
-	 * been sent to the client yet. This this method should only be called after
-	 * processing the result of a sent message, after the sent message has been
-	 * removed from the queue.
-	 * </p>
-	 * 
-	 * @see #sendCall(PendingCallMessage)
+	 * @param msg
+	 *        the message to add
 	 */
-	private void sendNextPendingMessage() {
+	private void addPendingMessage(PendingActionMessage msg) {
 		synchronized ( pendingMessages ) {
-			PendingCallMessage msg = pendingMessages.peek();
-			if ( msg != null ) {
-				sendCall(msg);
+			// enqueue the call
+			pendingMessages.add(msg);
+			if ( pendingMessages.peek() == msg ) {
+				processNextPendingMessage();
 			}
 		}
 	}
 
 	/**
-	 * Find and remove a pending message based on its message ID.
+	 * Process the next pending message, if available.
+	 * 
+	 * @see #sendCall(PendingActionMessage)
+	 * @see #processRequest(PendingActionMessage)
+	 */
+	private void processNextPendingMessage() {
+		PendingActionMessage next = null;
+		synchronized ( pendingMessages ) {
+			PendingActionMessage msg = pendingMessages.peek();
+			if ( msg != null && msg.doProcess() ) {
+				next = msg;
+			}
+		}
+		if ( next != null ) {
+			final PendingActionMessage m = next;
+			executor.execute(() -> {
+				if ( m.isOutbound() ) {
+					sendCall(m);
+				} else {
+					processRequest(m);
+				}
+			});
+		}
+	}
+
+	/**
+	 * Find and remove a message from the pending message queue, based on its
+	 * message ID.
 	 * 
 	 * <p>
 	 * This method will search the pending messages queue and return the first
@@ -452,12 +526,12 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	 *        the ID to find
 	 * @return the found message, or {@literal null} if not found
 	 */
-	private PendingCallMessage pollPendingMessage(final String messageId) {
-		PendingCallMessage msg = null;
+	private PendingActionMessage pollPendingMessage(final String messageId) {
+		PendingActionMessage msg = null;
 		synchronized ( pendingMessages ) {
-			for ( Iterator<PendingCallMessage> itr = pendingMessages.descendingIterator(); itr
+			for ( Iterator<PendingActionMessage> itr = pendingMessages.descendingIterator(); itr
 					.hasNext(); ) {
-				PendingCallMessage oneMsg = itr.next();
+				PendingActionMessage oneMsg = itr.next();
 				if ( oneMsg.getMessage().getMessageId().equals(messageId) ) {
 					msg = oneMsg;
 					itr.remove();
@@ -492,7 +566,7 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	private void handleCallErrorMessage(final WebSocketSession session, final String clientId,
 			final String messageId, final TextMessage message, final JsonNode tree) {
 		try {
-			PendingCallMessage msg = pollPendingMessage(messageId);
+			PendingActionMessage msg = pollPendingMessage(messageId);
 			if ( msg == null ) {
 				log.warn(
 						"OCPP {} <<< Original Call message {} not found; ignoring CallError message: {}",
@@ -514,11 +588,11 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 				log.warn("OCPP {} <<< Error parsing CallError details object {}, ignoring: {}", clientId,
 						tree.path(4), e.toString());
 			}
-			BasicCallErrorMessage err = new BasicCallErrorMessage(messageId, errorCode,
-					tree.path(3).asText(), details);
-			msg.getHandler().handleCallMessageResult(msg.getMessage(), null, err);
+			ErrorCodeException err = new ErrorCodeException(errorCode, details, tree.path(3).asText(),
+					null);
+			msg.getHandler().handleActionMessageResult(msg.getMessage(), null, err);
 		} finally {
-			sendNextPendingMessage();
+			processNextPendingMessage();
 		}
 	}
 
@@ -546,7 +620,7 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	private void handleCallResultMessage(final WebSocketSession session, final String clientId,
 			final String messageId, final TextMessage message, final JsonNode tree) {
 		try {
-			PendingCallMessage msg = pollPendingMessage(messageId);
+			PendingActionMessage msg = pollPendingMessage(messageId);
 			if ( msg == null ) {
 				log.warn(
 						"OCPP {} <<< Original Call message {} not found; ignoring CallError message: {}",
@@ -554,22 +628,19 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 				return;
 			}
 
-			CallResultMessage result = null;
-			CallErrorMessage err = null;
-
-			Object payload;
+			ErrorCodeException err = null;
+			Object payload = null;
 			try {
 				payload = chargePointActionPayloadDecoder
 						.decodeActionPayload(msg.getMessage().getAction(), true, tree.path(2));
-				result = new BasicCallResultMessage(messageId, payload);
 			} catch ( IOException e ) {
-				err = new BasicCallErrorMessage(messageId, ActionErrorCode.FormationViolation,
-						"Error parsing payload: " + e.getMessage(), null);
+				err = new ErrorCodeException(ActionErrorCode.FormationViolation, null,
+						"Error parsing payload: " + e.getMessage(), e);
 			}
 
-			msg.getHandler().handleCallMessageResult(msg.getMessage(), result, err);
+			msg.getHandler().handleActionMessageResult(msg.getMessage(), payload, err);
 		} finally {
-			sendNextPendingMessage();
+			processNextPendingMessage();
 		}
 	}
 
@@ -622,22 +693,88 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	}
 
 	/**
-	 * Get the configured call message processor.
+	 * Process a request from a Charge Point.
 	 * 
-	 * @return the processor
+	 * <p>
+	 * This method will pass the given pending message's {@link ActionMessage}
+	 * to the available {@link ActionMessageProcessor} instances that support
+	 * the message's {@link Action}. The first available processor's result (or
+	 * error) will be passed back to the Charge Point.
+	 * </p>
+	 * 
+	 * @param msg
 	 */
-	public CallMessageProcessor getCallMessageProcessor() {
-		return callMessageProcessor;
+	private void processRequest(PendingActionMessage msg) {
+		final AtomicBoolean handled = new AtomicBoolean(false);
+		try {
+			final ActionMessage<Object> message = msg.getMessage();
+			final Action action = message.getAction();
+			final String clientId = message.getClientId();
+			final String messageId = message.getMessageId();
+			final WebSocketSession session = clientSessions.get(clientId);
+			if ( session == null ) {
+				log.debug("Web socket not available for client {}; ignoring ActionMessage {}", clientId,
+						message);
+				handled.set(true);
+				return;
+			}
+			final Set<ActionMessageProcessor<Object, Object>> procs = processors.get(action);
+			if ( procs == null ) {
+				sendCallError(session, clientId, messageId, ActionErrorCode.NotImplemented,
+						"Action not supported.", null);
+				handled.set(true);
+				return;
+			}
+			ActionMessageResultHandler<Object, Object> handler = (am, result, error) -> {
+				boolean shouldRespond = handled.compareAndSet(false, true);
+				if ( !shouldRespond ) {
+					return false;
+				}
+				try {
+					if ( error == null ) {
+						sendCallResult(session, clientId, messageId, result);
+					} else {
+						ErrorCode errorCode = null;
+						String errorDescription = null;
+						Map<String, ?> errorDetails = null;
+						if ( error instanceof ErrorHolder ) {
+							errorCode = ((ErrorHolder) error).getErrorCode();
+							errorDescription = ((ErrorHolder) error).getErrorDescription();
+							errorDetails = ((ErrorHolder) error).getErrorDetails();
+						}
+						if ( errorCode == null ) {
+							errorCode = ActionErrorCode.InternalError;
+						}
+						sendCallError(session, clientId, messageId, errorCode, errorDescription,
+								errorDetails);
+					}
+				} finally {
+					removePendingMessage(msg);
+				}
+				return true;
+			};
+			for ( ActionMessageProcessor<Object, Object> p : procs ) {
+				try {
+					p.processActionMessage(message, handler);
+				} catch ( Throwable t ) {
+					if ( handled.compareAndSet(false, true) ) {
+						sendCallError(session, clientId, messageId, ActionErrorCode.InternalError,
+								"Error handling action.", null);
+					}
+				}
+			}
+		} finally {
+			if ( handled.get() ) {
+				removePendingMessage(msg);
+			}
+		}
 	}
 
-	/**
-	 * Set the call message processor.
-	 * 
-	 * @param callMessageProcessor
-	 *        the processor to use
-	 */
-	public void setCallMessageProcessor(CallMessageProcessor callMessageProcessor) {
-		this.callMessageProcessor = callMessageProcessor;
+	private void removePendingMessage(PendingActionMessage msg) {
+		synchronized ( pendingMessages ) {
+			pendingMessages.removeFirstOccurrence(msg);
+			processNextPendingMessage();
+		}
 	}
 
 	/**
@@ -690,6 +827,100 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 					"The chargePointActionPayloadDecoder parameter must not be null.");
 		}
 		this.chargePointActionPayloadDecoder = chargePointActionPayloadDecoder;
+	}
+
+	/**
+	 * Add an action message processor.
+	 * 
+	 * <p>
+	 * Once added, messages for its supported actions will be routed to it.
+	 * </p>
+	 * 
+	 * @param processor
+	 *        to processor to add; {@literal null} will be ignored
+	 */
+	@SuppressWarnings("unchecked")
+	public void addActionMessageProcessor(ActionMessageProcessor<?, ?> processor) {
+		if ( processor == null ) {
+			return;
+		}
+		for ( Action action : processor.getSupportedActions() ) {
+			processors.compute(action, (k, v) -> {
+				Set<ActionMessageProcessor<Object, Object>> procs = v;
+				if ( procs == null ) {
+					procs = new CopyOnWriteArraySet<>();
+				}
+				procs.add((ActionMessageProcessor<Object, Object>) processor);
+				return procs;
+			});
+		}
+	}
+
+	/**
+	 * Remove an action message processor.
+	 * 
+	 * <p>
+	 * Once removed, messages will no longer be routed to it.
+	 * </p>
+	 * 
+	 * @param processor
+	 *        the processor to remove; {@literal null} will be ignored
+	 */
+	public void removeActionMessageProcessor(ActionMessageProcessor<?, ?> processor) {
+		if ( processor == null ) {
+			return;
+		}
+		for ( Set<ActionMessageProcessor<Object, Object>> procs : processors.values() ) {
+			procs.remove(processor);
+		}
+	}
+
+	/**
+	 * Get the task scheduler.
+	 * 
+	 * @return the task scheduler
+	 */
+	public TaskScheduler getTaskScheduler() {
+		return taskScheduler;
+	}
+
+	/**
+	 * Set the task scheduler.
+	 * 
+	 * <p>
+	 * This scheduler is required for automatic maintenance tasks to run. If a
+	 * scheduler is not configured, this handler will still function but some
+	 * functions like automatically removing unhandled expired tasks will not
+	 * occur.
+	 * </p>
+	 * 
+	 * @param taskScheduler
+	 *        the task scheduler to set
+	 */
+	public void setTaskScheduler(TaskScheduler taskScheduler) {
+		this.taskScheduler = taskScheduler;
+	}
+
+	/**
+	 * Get the timeout to expire pending messages that have not received a
+	 * response.
+	 * 
+	 * @return the timeout, in milliseconds; defaults to
+	 *         {@link #DEFAULT_PENDING_MESSAGE_TIMEOUT}
+	 */
+	public long getPendingMessageTimeout() {
+		return pendingMessageTimeout;
+	}
+
+	/**
+	 * Set the timeout to expire pending messages that have not received a
+	 * response.
+	 * 
+	 * @param pendingMessageTimeout
+	 *        the timeout to set, in milliseconds
+	 */
+	public void setPendingMessageTimeout(long pendingMessageTimeout) {
+		this.pendingMessageTimeout = pendingMessageTimeout;
 	}
 
 }

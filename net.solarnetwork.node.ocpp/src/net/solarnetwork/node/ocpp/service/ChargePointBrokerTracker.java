@@ -1,5 +1,5 @@
 /* ==================================================================
- * ActionMessage.java - 4/02/2020 4:12:19 pm
+ * ChargePointBrokerTracker.java - 11/02/2020 10:40:42 am
  * 
  * Copyright 2020 SolarNetwork.net Dev Team
  * 
@@ -20,51 +20,37 @@
  * ==================================================================
  */
 
-package net.solarnetwork.node.ocpp.domain;
+package net.solarnetwork.node.ocpp.service;
 
-import ocpp.domain.Action;
+import net.solarnetwork.util.OptionalServiceCollection;
 
 /**
- * An action (verb) with a message (content).
+ * Simple implementation of {@link ChargePointRouter} using an
+ * {@link OptionalServiceCollection} of brokers.
  * 
- * <p>
- * This API is not specific to any OCPP protocol version, so that services can
- * be designed that support multiple versions.
- * </p>
- * 
- * @param <T>
- *        the message type
  * @author matt
  * @version 1.0
  */
-public interface ActionMessage<T> {
+public class ChargePointBrokerTracker implements ChargePointRouter {
 
-	/**
-	 * Get the ID of the client that initiated the action.
-	 * 
-	 * @return the client ID
-	 */
-	String getClientId();
+	private final OptionalServiceCollection<ChargePointBroker> brokers;
 
-	/**
-	 * Get the ID of this message.
-	 * 
-	 * @return the message ID
-	 */
-	String getMessageId();
+	public ChargePointBrokerTracker(OptionalServiceCollection<ChargePointBroker> brokers) {
+		super();
+		if ( brokers == null ) {
+			throw new IllegalArgumentException("The brokers parameter must not be null.");
+		}
+		this.brokers = brokers;
+	}
 
-	/**
-	 * Get the action (verb) to perform.
-	 * 
-	 * @return the action; never {@literal null}
-	 */
-	Action getAction();
-
-	/**
-	 * Get the message (content).
-	 * 
-	 * @return the message, or {@literal null}
-	 */
-	T getMessage();
+	@Override
+	public ChargePointBroker brokerForChargePoint(String clientId) {
+		for ( ChargePointBroker b : brokers.services() ) {
+			if ( b.isChargePointAvailable(clientId) ) {
+				return b;
+			}
+		}
+		return null;
+	}
 
 }

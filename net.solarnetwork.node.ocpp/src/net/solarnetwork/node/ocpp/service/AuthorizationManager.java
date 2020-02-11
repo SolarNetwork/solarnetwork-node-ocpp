@@ -1,5 +1,5 @@
 /* ==================================================================
- * ActionMessage.java - 4/02/2020 4:12:19 pm
+ * AuthorizationManager.java - 6/02/2020 7:16:07 pm
  * 
  * Copyright 2020 SolarNetwork.net Dev Team
  * 
@@ -20,51 +20,36 @@
  * ==================================================================
  */
 
-package net.solarnetwork.node.ocpp.domain;
+package net.solarnetwork.node.ocpp.service;
 
-import ocpp.domain.Action;
+import net.solarnetwork.domain.Identifiable;
+import net.solarnetwork.node.ocpp.domain.AuthorizationInfo;
 
 /**
- * An action (verb) with a message (content).
+ * API for authorizing an ID tag.
  * 
  * <p>
- * This API is not specific to any OCPP protocol version, so that services can
- * be designed that support multiple versions.
+ * This API can be used by a Charge Point to authorize an ID tag value, for
+ * example against a local authorization list or by making a call to a remote
+ * service such as an OCPP Central System. This API can also be used by a
+ * Central System to authorize a request from a Charge Point.
  * </p>
  * 
- * @param <T>
- *        the message type
  * @author matt
  * @version 1.0
  */
-public interface ActionMessage<T> {
+public interface AuthorizationManager extends Identifiable {
 
 	/**
-	 * Get the ID of the client that initiated the action.
+	 * Request authorization of a specific charge point ID tag value.
 	 * 
-	 * @return the client ID
+	 * @param clientId
+	 *        the ID of the client making the request
+	 * @param idTag
+	 *        the ID tag value to authorize
+	 * @return {@literal true} if the tag is authorized, {@literal false}
+	 *         otherwise
 	 */
-	String getClientId();
-
-	/**
-	 * Get the ID of this message.
-	 * 
-	 * @return the message ID
-	 */
-	String getMessageId();
-
-	/**
-	 * Get the action (verb) to perform.
-	 * 
-	 * @return the action; never {@literal null}
-	 */
-	Action getAction();
-
-	/**
-	 * Get the message (content).
-	 * 
-	 * @return the message, or {@literal null}
-	 */
-	T getMessage();
+	AuthorizationInfo authorize(String clientId, String idTag);
 
 }

@@ -1,5 +1,5 @@
 /* ==================================================================
- * ActionMessage.java - 4/02/2020 4:12:19 pm
+ * ChargePointRouter.java - 11/02/2020 10:45:21 am
  * 
  * Copyright 2020 SolarNetwork.net Dev Team
  * 
@@ -20,51 +20,25 @@
  * ==================================================================
  */
 
-package net.solarnetwork.node.ocpp.domain;
-
-import ocpp.domain.Action;
+package net.solarnetwork.node.ocpp.service;
 
 /**
- * An action (verb) with a message (content).
+ * API for a service that can find a broker for a Charge Point based on Charge
+ * Point IDs.
  * 
- * <p>
- * This API is not specific to any OCPP protocol version, so that services can
- * be designed that support multiple versions.
- * </p>
- * 
- * @param <T>
- *        the message type
  * @author matt
  * @version 1.0
  */
-public interface ActionMessage<T> {
+public interface ChargePointRouter {
 
 	/**
-	 * Get the ID of the client that initiated the action.
+	 * Get a {@link ChargePointBroker} for a specific Charge Point ID, if
+	 * available.
 	 * 
-	 * @return the client ID
+	 * @param clientId
+	 *        the ID of the Charge Point
+	 * @return the broker, or {@literal null} if not available
 	 */
-	String getClientId();
-
-	/**
-	 * Get the ID of this message.
-	 * 
-	 * @return the message ID
-	 */
-	String getMessageId();
-
-	/**
-	 * Get the action (verb) to perform.
-	 * 
-	 * @return the action; never {@literal null}
-	 */
-	Action getAction();
-
-	/**
-	 * Get the message (content).
-	 * 
-	 * @return the message, or {@literal null}
-	 */
-	T getMessage();
+	ChargePointBroker brokerForChargePoint(String clientId);
 
 }

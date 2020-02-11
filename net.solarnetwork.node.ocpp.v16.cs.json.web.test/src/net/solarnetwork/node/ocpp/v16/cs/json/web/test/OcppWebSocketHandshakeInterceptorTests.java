@@ -99,7 +99,7 @@ public class OcppWebSocketHandshakeInterceptorTests {
 	@Test
 	public void ok() throws Exception {
 		// given
-		URI uri = URI.create("http://example.com/ocpp/v16/foobar");
+		URI uri = URI.create("http://example.com/ocpp/v16/cs/json/foobar");
 		expect(req.getURI()).andReturn(uri);
 		expect(handler.getSubProtocols())
 				.andReturn(Collections.singletonList(OcppWebSocketSubProtocol.OCPP_V16.getValue()));
@@ -123,7 +123,7 @@ public class OcppWebSocketHandshakeInterceptorTests {
 	@Test
 	public void noSubProtocol() throws Exception {
 		// given
-		URI uri = URI.create("http://example.com/ocpp/v16/foobar");
+		URI uri = URI.create("http://example.com/ocpp/v16/cs/json/foobar");
 		expect(req.getURI()).andReturn(uri);
 		expect(handler.getSubProtocols())
 				.andReturn(Collections.singletonList(OcppWebSocketSubProtocol.OCPP_V16.getValue()));
@@ -148,7 +148,7 @@ public class OcppWebSocketHandshakeInterceptorTests {
 	@Test
 	public void wrongSubProtocol() throws Exception {
 		// given
-		URI uri = URI.create("http://example.com/ocpp/v16/foobar");
+		URI uri = URI.create("http://example.com/ocpp/v16/cs/json/foobar");
 		expect(req.getURI()).andReturn(uri);
 		expect(handler.getSubProtocols())
 				.andReturn(Collections.singletonList(OcppWebSocketSubProtocol.OCPP_V16.getValue()));

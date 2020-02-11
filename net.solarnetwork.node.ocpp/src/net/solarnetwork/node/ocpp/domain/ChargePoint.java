@@ -72,6 +72,44 @@ public class ChargePoint extends BasicStringEntity {
 	}
 
 	/**
+	 * Copy constructor.
+	 * 
+	 * @param other
+	 *        the other charge point to copy
+	 */
+	public ChargePoint(ChargePoint other) {
+		this(other.getId(), other.getCreated());
+		this.info = new ChargePointInfo(other.info);
+		this.registrationStatus = other.registrationStatus;
+		this.enabled = other.enabled;
+		this.connectorCount = other.connectorCount;
+	}
+
+	/**
+	 * Test if the properties of another entity are the same as in this
+	 * instance.
+	 * 
+	 * <p>
+	 * The {@code id} and {@code created} properties are not compared by this
+	 * method.
+	 * </p>
+	 * 
+	 * @param other
+	 *        the other entity to compare to
+	 * @return {@literal true} if the properties of this instance are equal to
+	 *         the other
+	 */
+	public boolean isSameAs(ChargePoint other) {
+		if ( other == null ) {
+			return false;
+		}
+		// @formatter:off
+		return (info != null && info.isSameAs(other.info))
+				&& connectorCount == other.connectorCount;
+		// @formatter:on
+	}
+
+	/**
 	 * Get the Charge Point information.
 	 * 
 	 * @return the info

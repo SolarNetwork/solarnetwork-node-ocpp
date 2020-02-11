@@ -61,6 +61,37 @@ public class ChargePointInfo {
 		setId(id);
 	}
 
+	/**
+	 * Copy constructor.
+	 * 
+	 * @param other
+	 *        the info to copy
+	 */
+	public ChargePointInfo(ChargePointInfo other) {
+		this(other.getId());
+		this.chargePointVendor = other.chargePointVendor;
+		this.chargePointModel = other.chargePointModel;
+		this.chargePointSerialNumber = other.chargePointSerialNumber;
+		this.chargeBoxSerialNumber = other.chargeBoxSerialNumber;
+		this.firmwareVersion = other.firmwareVersion;
+		this.iccid = other.iccid;
+		this.imsi = other.imsi;
+		this.meterType = other.meterType;
+		this.meterSerialNumber = other.meterSerialNumber;
+	}
+
+	/**
+	 * Test if the properties of another info are the same as in this instance.
+	 * 
+	 * <p>
+	 * The {@code id} properties are not compared by this method.
+	 * </p>
+	 * 
+	 * @param other
+	 *        the other info to compare to
+	 * @return {@literal true} if the properties of this instance are equal to
+	 *         the other
+	 */
 	public boolean isSameAs(ChargePointInfo other) {
 		if ( other == null ) {
 			return false;

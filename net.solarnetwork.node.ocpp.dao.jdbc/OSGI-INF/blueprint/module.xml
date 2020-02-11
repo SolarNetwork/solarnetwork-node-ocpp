@@ -42,11 +42,26 @@
 
 	<!-- Published Services -->
 	
-	<service interface="net.solarnetwork.node.ocpp.dao.AuthorizationDao" ref="authorizationDao"/>
+	<service ref="authorizationDao">
+		<interfaces>
+			<value>net.solarnetwork.node.dao.jdbc.JdbcDao</value>
+			<value>net.solarnetwork.node.ocpp.dao.AuthorizationDao</value>
+		</interfaces>		
+	</service>
 
-	<service interface="net.solarnetwork.node.ocpp.dao.ChargePointDao" ref="chargePointDao"/>
+	<service ref="chargePointDao">
+		<interfaces>
+			<value>net.solarnetwork.node.dao.jdbc.JdbcDao</value>
+			<value>net.solarnetwork.node.ocpp.dao.ChargePointDao</value>
+		</interfaces>		
+	</service>
 	
-	<service interface="net.solarnetwork.node.ocpp.dao.ChargePointDao" ref="chargeSessionDao"/>
+	<service ref="chargeSessionDao">
+		<interfaces>
+			<value>net.solarnetwork.node.dao.jdbc.JdbcDao</value>
+			<value>net.solarnetwork.node.ocpp.dao.ChargeSessionDao</value>
+		</interfaces>		
+	</service>
 	
 	<service interface="net.solarnetwork.node.backup.BackupResourceProvider">
 		<bean class="net.solarnetwork.node.dao.jdbc.JdbcTableBackupResourceProvider">
@@ -63,7 +78,10 @@
 			<argument ref="taskExecutor"/>
 			<property name="tableNames">
 				<list>
+					<value>SOLARNODE.OCPP_AUTHORIZATION</value>
 					<value>SOLARNODE.OCPP_CHARGE_POINT</value>
+					<value>SOLARNODE.OCPP_CHARGE_SESS</value>
+					<value>SOLARNODE.OCPP_CHARGE_SESS_VALUE</value>
 				</list>
 			</property>
 			<property name="messageSource">

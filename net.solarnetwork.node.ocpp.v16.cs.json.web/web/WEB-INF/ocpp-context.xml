@@ -21,17 +21,26 @@
 		</websocket:handshake-interceptors>
 	</websocket:handlers>
 
-	<bean id="ocppWebSocketHandler_v16" class="net.solarnetwork.node.ocpp.v16.cs.json.web.OcppWebSocketHandler">
-		<property name="callMessageProcessor" ref="callMessageActionRouter"/>
+	<bean id="ocppWebSocketHandler_v16" class="net.solarnetwork.node.ocpp.v16.cs.json.web.OcppWebSocketHandler" 
+			init-method="startup" destroy-method="shutdown">
+		<constructor-arg>
+			<osgi:reference interface="org.springframework.core.task.AsyncTaskExecutor" filter="(function=node)"/>
+		</constructor-arg>
+		<property name="taskScheduler">
+			<osgi:reference interface="org.springframework.scheduling.TaskScheduler" filter="(function=node)"/>
+		</property>
 	</bean>
 	
-	<osgi:list id="triggers" interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor" availability="optional">
-		<osgi:reference-listener  bind-method="addActionMessageProcessor" unbind-method="removeActionMessageProcessor" ref="callMessageActionRouter"/>
+	<osgi:list id="csActions" interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor" 
+			filter="(role=cs)" availability="optional">
+		<osgi:reference-listener  bind-method="addActionMessageProcessor" unbind-method="removeActionMessageProcessor"
+				ref="ocppWebSocketHandler_v16"/>
 	</osgi:list>
 	
-	<bean id="callMessageActionRouter" class="net.solarnetwork.node.ocpp.json.CallMessageActionRouter">
-		<constructor-arg value="#{T(ocpp.v16.ActionErrorCode).InternalError}"/>
-		<constructor-arg value="#{T(ocpp.v16.ActionErrorCode).NotImplemented}"/>
-	</bean>
+	<osgi:service interface="net.solarnetwork.node.ocpp.service.ChargePointBroker" ref="ocppWebSocketHandler_v16">
+		<osgi:service-properties>
+			<entry key="protocol" value="json"/>
+		</osgi:service-properties>
+	</osgi:service>
 	
 </beans>
