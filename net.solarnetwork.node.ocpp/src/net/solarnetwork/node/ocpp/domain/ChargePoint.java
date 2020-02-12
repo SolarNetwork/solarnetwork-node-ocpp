@@ -109,6 +109,33 @@ public class ChargePoint extends BasicStringEntity {
 		// @formatter:on
 	}
 
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("ChargePoint{");
+		if ( registrationStatus != null ) {
+			builder.append("registrationStatus=");
+			builder.append(registrationStatus);
+			builder.append(", ");
+		}
+		builder.append("enabled=");
+		builder.append(enabled);
+		builder.append(", connectorCount=");
+		builder.append(connectorCount);
+		builder.append(", ");
+		if ( info != null ) {
+			builder.append("info=");
+			builder.append(info);
+			builder.append(", ");
+		}
+		if ( getId() != null ) {
+			builder.append("getId()=");
+			builder.append(getId());
+		}
+		builder.append("}");
+		return builder.toString();
+	}
+
 	/**
 	 * Get the Charge Point information.
 	 * 
