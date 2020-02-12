@@ -68,6 +68,9 @@ public class OcppAuthorizationManager implements SettingSpecifierProvider, Setti
 
 	@Override
 	public void configurationChanged(Map<String, Object> properties) {
+		if ( properties == null || properties.isEmpty() ) {
+			return;
+		}
 		Map<String, Authorization> auths = authorizationDao.getAll(null).stream()
 				.collect(Collectors.toMap(Authorization::getId, a -> a));
 		List<AuthorizationConfig> configs = authorizations;
