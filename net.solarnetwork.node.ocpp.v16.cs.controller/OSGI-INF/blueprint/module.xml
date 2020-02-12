@@ -64,13 +64,13 @@
 	<service interface="net.solarnetwork.node.ocpp.service.cs.ChargePointManager" ref="controller"/>
 	
 	<service interface="net.solarnetwork.node.settings.SettingSpecifierProvider">
-		<bean class="net.solarnetwork.node.ocpp.cs.controller.OcppAuthorizationManager">
-			<osgix:managed-properties persistent-id="net.solarnetwork.node.ocpp.cs.controller.OcppAuthorizationManager" 
+		<bean class="net.solarnetwork.node.ocpp.v16.cs.controller.OcppAuthorizationManager">
+			<osgix:managed-properties persistent-id="net.solarnetwork.node.ocpp.v16.cs.controller.OcppAuthorizationManager" 
 					autowire-on-update="true" update-method="configurationChanged"/>
 			<argument ref="authorizationDao"/>
 			<property name="messageSource">
 				<bean class="org.springframework.context.support.ResourceBundleMessageSource">
-					<property name="basename" value="net.solarnetwork.node.ocpp.cs.controller.OcppAuthorizationManager"/>
+					<property name="basename" value="net.solarnetwork.node.ocpp.v16.cs.controller.OcppAuthorizationManager"/>
 				</bean>
 			</property>
 		</bean>
@@ -78,7 +78,7 @@
 
 	<!-- Supporting services -->
 
-	<bean id="controller" class="net.solarnetwork.node.ocpp.cs.controller.OcppControllerService">
+	<bean id="controller" class="net.solarnetwork.node.ocpp.v16.cs.controller.OcppControllerService">
 		<argument ref="executor"/>
 		<argument ref="chargePointRouter"/>
 		<argument ref="chargePointDao"/>

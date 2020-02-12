@@ -20,7 +20,7 @@
  * ==================================================================
  */
 
-package net.solarnetwork.node.ocpp.cs.controller;
+package net.solarnetwork.node.ocpp.v16.cs.controller;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -98,7 +98,7 @@ public class OcppAuthorizationManager implements SettingSpecifierProvider, Setti
 
 	@Override
 	public String getSettingUID() {
-		return "net.solarnetwork.node.ocpp.cs.controller.OcppAuthorizationManager";
+		return "net.solarnetwork.node.ocpp.v16.cs.controller.OcppAuthorizationManager";
 	}
 
 	@Override

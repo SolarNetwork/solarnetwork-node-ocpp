@@ -20,7 +20,7 @@
  * ==================================================================
  */
 
-package net.solarnetwork.node.ocpp.cs.controller;
+package net.solarnetwork.node.ocpp.v16.cs.controller;
 
 import java.time.Instant;
 import java.util.UUID;
