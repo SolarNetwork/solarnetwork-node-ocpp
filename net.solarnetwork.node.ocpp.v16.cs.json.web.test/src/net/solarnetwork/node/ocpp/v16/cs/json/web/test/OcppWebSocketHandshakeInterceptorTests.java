@@ -42,8 +42,8 @@ import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.socket.SubProtocolCapable;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketHttpHeaders;
-import net.solarnetwork.node.ocpp.json.OcppWebSocketSubProtocol;
 import net.solarnetwork.node.ocpp.v16.cs.json.web.OcppWebSocketHandshakeInterceptor;
+import ocpp.json.WebSocketSubProtocol;
 
 /**
  * Test cases for the {@link OcppWebSocketHandshakeInterceptor} class.
@@ -102,10 +102,10 @@ public class OcppWebSocketHandshakeInterceptorTests {
 		URI uri = URI.create("http://example.com/ocpp/v16/cs/json/foobar");
 		expect(req.getURI()).andReturn(uri);
 		expect(handler.getSubProtocols())
-				.andReturn(Collections.singletonList(OcppWebSocketSubProtocol.OCPP_V16.getValue()));
+				.andReturn(Collections.singletonList(WebSocketSubProtocol.OCPP_V16.getValue()));
 
 		HttpHeaders h = new HttpHeaders();
-		h.add(WebSocketHttpHeaders.SEC_WEBSOCKET_PROTOCOL, OcppWebSocketSubProtocol.OCPP_V16.getValue());
+		h.add(WebSocketHttpHeaders.SEC_WEBSOCKET_PROTOCOL, WebSocketSubProtocol.OCPP_V16.getValue());
 		expect(req.getHeaders()).andReturn(h).anyTimes();
 
 		OcppWebSocketHandshakeInterceptor hi = new OcppWebSocketHandshakeInterceptor();
@@ -126,7 +126,7 @@ public class OcppWebSocketHandshakeInterceptorTests {
 		URI uri = URI.create("http://example.com/ocpp/v16/cs/json/foobar");
 		expect(req.getURI()).andReturn(uri);
 		expect(handler.getSubProtocols())
-				.andReturn(Collections.singletonList(OcppWebSocketSubProtocol.OCPP_V16.getValue()));
+				.andReturn(Collections.singletonList(WebSocketSubProtocol.OCPP_V16.getValue()));
 
 		HttpHeaders h = new HttpHeaders();
 		expect(req.getHeaders()).andReturn(h).anyTimes();
@@ -151,10 +151,10 @@ public class OcppWebSocketHandshakeInterceptorTests {
 		URI uri = URI.create("http://example.com/ocpp/v16/cs/json/foobar");
 		expect(req.getURI()).andReturn(uri);
 		expect(handler.getSubProtocols())
-				.andReturn(Collections.singletonList(OcppWebSocketSubProtocol.OCPP_V16.getValue()));
+				.andReturn(Collections.singletonList(WebSocketSubProtocol.OCPP_V16.getValue()));
 
 		HttpHeaders h = new HttpHeaders();
-		h.add(WebSocketHttpHeaders.SEC_WEBSOCKET_PROTOCOL, OcppWebSocketSubProtocol.OCPP_V15.getValue());
+		h.add(WebSocketHttpHeaders.SEC_WEBSOCKET_PROTOCOL, WebSocketSubProtocol.OCPP_V15.getValue());
 		expect(req.getHeaders()).andReturn(h).anyTimes();
 
 		res.setStatusCode(HttpStatus.BAD_REQUEST);

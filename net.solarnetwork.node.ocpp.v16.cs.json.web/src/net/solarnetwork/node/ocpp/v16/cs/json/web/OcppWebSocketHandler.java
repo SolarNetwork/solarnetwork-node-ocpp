@@ -57,7 +57,6 @@ import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
 import net.solarnetwork.node.ocpp.domain.ActionMessage;
 import net.solarnetwork.node.ocpp.domain.BasicActionMessage;
 import net.solarnetwork.node.ocpp.domain.PendingActionMessage;
-import net.solarnetwork.node.ocpp.json.OcppWebSocketSubProtocol;
 import net.solarnetwork.node.ocpp.service.ActionMessageProcessor;
 import net.solarnetwork.node.ocpp.service.ActionMessageQueue;
 import net.solarnetwork.node.ocpp.service.ActionMessageResultHandler;
@@ -74,6 +73,7 @@ import ocpp.json.CallErrorMessage;
 import ocpp.json.CallMessage;
 import ocpp.json.CallResultMessage;
 import ocpp.json.MessageType;
+import ocpp.json.WebSocketSubProtocol;
 import ocpp.v16.ActionErrorCode;
 import ocpp.v16.CentralSystemAction;
 import ocpp.v16.ChargePointAction;
@@ -290,7 +290,7 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 
 	@Override
 	public List<String> getSubProtocols() {
-		return singletonList(OcppWebSocketSubProtocol.OCPP_V16.getValue());
+		return singletonList(WebSocketSubProtocol.OCPP_V16.getValue());
 	}
 
 	@Override
