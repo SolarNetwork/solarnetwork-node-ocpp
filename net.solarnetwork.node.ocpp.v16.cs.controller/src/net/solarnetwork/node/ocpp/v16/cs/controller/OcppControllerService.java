@@ -23,6 +23,7 @@
 package net.solarnetwork.node.ocpp.v16.cs.controller;
 
 import java.time.Instant;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -108,6 +109,17 @@ public class OcppControllerService extends BaseIdentifiable
 		}
 		this.chargePointDao = chargePointDao;
 		this.initialRegistrationStatus = DEFAULT_INITIAL_REGISTRATION_STATUS;
+	}
+
+	@Override
+	public Set<String> availableChargePointsIds() {
+		return chargePointRouter.availableChargePointsIds();
+	}
+
+	@Override
+	public boolean isChargePointAvailable(String chargePointId) {
+		// TODO Auto-generated method stub
+		return false;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

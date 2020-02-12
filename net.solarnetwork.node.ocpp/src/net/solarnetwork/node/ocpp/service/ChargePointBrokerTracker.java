@@ -22,6 +22,8 @@
 
 package net.solarnetwork.node.ocpp.service;
 
+import java.util.Set;
+import java.util.TreeSet;
 import net.solarnetwork.util.OptionalServiceCollection;
 
 /**
@@ -41,6 +43,15 @@ public class ChargePointBrokerTracker implements ChargePointRouter {
 			throw new IllegalArgumentException("The brokers parameter must not be null.");
 		}
 		this.brokers = brokers;
+	}
+
+	@Override
+	public Set<String> availableChargePointsIds() {
+		Set<String> ids = new TreeSet<>();
+		for ( ChargePointBroker b : brokers.services() ) {
+			ids.addAll(b.availableChargePointsIds());
+		}
+		return ids;
 	}
 
 	@Override

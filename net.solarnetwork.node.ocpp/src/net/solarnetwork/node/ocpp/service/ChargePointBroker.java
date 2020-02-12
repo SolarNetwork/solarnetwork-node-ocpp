@@ -22,7 +22,9 @@
 
 package net.solarnetwork.node.ocpp.service;
 
+import java.util.Set;
 import net.solarnetwork.node.ocpp.domain.ActionMessage;
+import ocpp.domain.Action;
 
 /**
  * API for sending messages to Charge Points.
@@ -33,15 +35,38 @@ import net.solarnetwork.node.ocpp.domain.ActionMessage;
 public interface ChargePointBroker {
 
 	/**
+	 * Get a complete set of Charge Point identifiers that are available, or
+	 * otherwise know to this broker.
+	 * 
+	 * @return the set of available charge point identifiers, never
+	 *         {@literal null}
+	 */
+	Set<String> availableChargePointsIds();
+
+	/**
 	 * Test if a Charge Point is available, or otherwise known to this broker.
 	 * 
-	 * @param clientId
+	 * @param chargePointId
 	 *        the Charge Point ID to query
 	 * @return {@literal true} if this broker is aware of the given
 	 *         {@code clientId} and should be able to send messages to it via
 	 *         {@link #sendMessageToChargePoint(ActionMessage, ActionMessageResultHandler)}
 	 */
-	boolean isChargePointAvailable(String clientId);
+	boolean isChargePointAvailable(String chargePointId);
+
+	/**
+	 * Test if an {@link ActionMessage} is supported by this broker.
+	 * 
+	 * <p>
+	 * A message is supported if the message {@link Action} is supported by this
+	 * broker and the message {@code clientId} is available.
+	 * </p>
+	 * 
+	 * @param message
+	 *        the message to test
+	 * @return {@literal true} if the message is supported
+	 */
+	boolean isMessageSupported(ActionMessage<?> message);
 
 	/**
 	 * Send an {@link ActionMessage} to a Charge Point and provide the result to

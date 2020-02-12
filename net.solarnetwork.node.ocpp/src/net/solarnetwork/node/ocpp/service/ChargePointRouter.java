@@ -22,6 +22,8 @@
 
 package net.solarnetwork.node.ocpp.service;
 
+import java.util.Set;
+
 /**
  * API for a service that can find a broker for a Charge Point based on Charge
  * Point IDs.
@@ -30,6 +32,15 @@ package net.solarnetwork.node.ocpp.service;
  * @version 1.0
  */
 public interface ChargePointRouter {
+
+	/**
+	 * Get a complete set of Charge Point identifiers that are available, or
+	 * otherwise know to all available brokers.
+	 * 
+	 * @return the set of available charge point identifiers, never
+	 *         {@literal null}
+	 */
+	Set<String> availableChargePointsIds();
 
 	/**
 	 * Get a {@link ChargePointBroker} for a specific Charge Point ID, if

@@ -76,6 +76,7 @@ import ocpp.json.CallResultMessage;
 import ocpp.json.MessageType;
 import ocpp.v16.ActionErrorCode;
 import ocpp.v16.CentralSystemAction;
+import ocpp.v16.ChargePointAction;
 import ocpp.v16.cp.json.ChargePointActionPayloadDecoder;
 import ocpp.v16.cs.json.CentralServiceActionPayloadDecoder;
 
@@ -423,8 +424,34 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 	}
 
 	@Override
+	public Set<String> availableChargePointsIds() {
+		return clientSessions.keySet();
+	}
+
+	@Override
 	public boolean isChargePointAvailable(String clientId) {
 		return clientSessions.containsKey(clientId);
+	}
+
+	@Override
+	public boolean isMessageSupported(ActionMessage<?> message) {
+		if ( message == null || !isChargePointAvailable(message.getClientId())
+				|| message.getAction() == null ) {
+			return false;
+		}
+		final String action = message.getAction().getName();
+		try {
+			ChargePointAction.valueOf(action);
+			return true;
+		} catch ( IllegalArgumentException e ) {
+			try {
+				CentralSystemAction.valueOf(action);
+				return true;
+			} catch ( IllegalArgumentException e2 ) {
+				// ignore
+			}
+		}
+		return false;
 	}
 
 	@SuppressWarnings("unchecked")
