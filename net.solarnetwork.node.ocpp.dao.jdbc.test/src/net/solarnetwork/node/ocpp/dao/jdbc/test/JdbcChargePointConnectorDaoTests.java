@@ -22,6 +22,9 @@
 
 package net.solarnetwork.node.ocpp.dao.jdbc.test;
 
+import static org.easymock.EasyMock.capture;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import java.time.Instant;
@@ -32,8 +35,13 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.annotation.Resource;
 import javax.sql.DataSource;
+import org.easymock.Capture;
+import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
+import org.osgi.service.event.Event;
+import org.osgi.service.event.EventAdmin;
+import net.solarnetwork.dao.GenericDao;
 import net.solarnetwork.node.dao.jdbc.DatabaseSetup;
 import net.solarnetwork.node.ocpp.dao.jdbc.JdbcChargePointConnectorDao;
 import net.solarnetwork.node.ocpp.dao.jdbc.JdbcChargePointDao;
@@ -46,6 +54,7 @@ import net.solarnetwork.node.ocpp.domain.ChargePointStatus;
 import net.solarnetwork.node.ocpp.domain.RegistrationStatus;
 import net.solarnetwork.node.ocpp.domain.StatusNotification;
 import net.solarnetwork.node.test.AbstractNodeTransactionalTest;
+import net.solarnetwork.util.StaticOptionalService;
 
 /**
  * Test cases for the {@link JdbcChargePointConnectorDao}.
@@ -196,6 +205,63 @@ public class JdbcChargePointConnectorDaoTests extends AbstractNodeTransactionalT
 		assertThat("Result keys",
 				results.stream().map(ChargePointConnector::getId).collect(Collectors.toList()),
 				equalTo(expectedKeys));
+	}
+
+	@Test
+	public void postStoredEvent_insert() {
+		EventAdmin eventAdmin = EasyMock.createMock(EventAdmin.class);
+		dao.setEventAdmin(new StaticOptionalService<EventAdmin>(eventAdmin));
+
+		Capture<Event> eventCaptor = new Capture<>();
+		eventAdmin.postEvent(capture(eventCaptor));
+
+		// when
+		replay(eventAdmin);
+		insert();
+
+		// then
+		verify(eventAdmin);
+
+		Event event = eventCaptor.getValue();
+		assertThat("Event topic", event.getTopic(),
+				equalTo("net/solarnetwork/dao/ChargePointConnector/STORED"));
+		assertThat("Event prop ID", event.getProperty(GenericDao.ENTITY_EVENT_ENTITY_ID_PROPERTY),
+				equalTo(last.getId()));
+		assertThat("Event prop entity", event.getProperty(GenericDao.ENTITY_EVENT_ENTITY_PROPERTY),
+				equalTo(last));
+	}
+
+	@Test
+	public void postStoredEvent_update() {
+		insert();
+
+		EventAdmin eventAdmin = EasyMock.createMock(EventAdmin.class);
+		dao.setEventAdmin(new StaticOptionalService<EventAdmin>(eventAdmin));
+
+		Capture<Event> eventCaptor = new Capture<>();
+		eventAdmin.postEvent(capture(eventCaptor));
+
+		// when
+		replay(eventAdmin);
+		ChargePointConnector cpc = dao.get(last.getId());
+		cpc.setInfo(cpc.getInfo().toBuilder().withStatus(ChargePointStatus.Unavailable)
+				.withVendorId(UUID.randomUUID().toString()).build());
+		dao.save(cpc);
+
+		// then
+		verify(eventAdmin);
+
+		Event event = eventCaptor.getValue();
+		assertThat("Event topic", event.getTopic(),
+				equalTo("net/solarnetwork/dao/ChargePointConnector/STORED"));
+		assertThat("Event prop ID", event.getProperty(GenericDao.ENTITY_EVENT_ENTITY_ID_PROPERTY),
+				equalTo(last.getId()));
+		assertThat("Event prop entity", event.getProperty(GenericDao.ENTITY_EVENT_ENTITY_PROPERTY),
+				equalTo(cpc));
+		assertThat("Event prop entity is updated instance",
+				((ChargePointConnector) event.getProperty(GenericDao.ENTITY_EVENT_ENTITY_PROPERTY))
+						.isSameAs(cpc),
+				equalTo(true));
 	}
 
 }

@@ -26,6 +26,7 @@ import java.util.Collection;
 import net.solarnetwork.dao.GenericDao;
 import net.solarnetwork.node.ocpp.domain.ChargePointConnector;
 import net.solarnetwork.node.ocpp.domain.ChargePointConnectorKey;
+import net.solarnetwork.node.ocpp.domain.StatusNotification;
 
 /**
  * Data Access Object API for {@link ChargePointConnector} entities.
@@ -35,6 +36,23 @@ import net.solarnetwork.node.ocpp.domain.ChargePointConnectorKey;
  */
 public interface ChargePointConnectorDao
 		extends GenericDao<ChargePointConnector, ChargePointConnectorKey> {
+
+	/**
+	 * Save (insert/update) status information directly.
+	 * 
+	 * <p>
+	 * If a {@link ChargePointConnector} entity does not exist, this method will
+	 * insert a new row, using default values for all non
+	 * {@link StatusNotification} properties.
+	 * </p>
+	 * 
+	 * @param chargePointId
+	 *        the Charge Point ID
+	 * @param info
+	 *        the status info
+	 * @return the saved primary key
+	 */
+	ChargePointConnectorKey saveStatusInfo(String chargePointId, StatusNotification info);
 
 	/**
 	 * Find all available connectors for a given Charge Point ID.

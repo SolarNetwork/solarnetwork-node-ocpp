@@ -74,6 +74,19 @@ public class JdbcChargePointConnectorDao
 	}
 
 	@Override
+	public ChargePointConnectorKey saveStatusInfo(String chargePointId, StatusNotification info) {
+		ChargePointConnectorKey pk = new ChargePointConnectorKey(chargePointId, info.getConnectorId());
+		ChargePointConnector entity = get(pk);
+		if ( entity == null ) {
+			entity = new ChargePointConnector(pk, Instant.now());
+		} else if ( info.isSameAs(entity.getInfo()) ) {
+			return pk;
+		}
+		entity.setInfo(info);
+		return save(entity);
+	}
+
+	@Override
 	protected Object[] primaryKeyArguments(ChargePointConnectorKey id) {
 		return new Object[] { id.getChargePointId(), id.getConnectorId() };
 	}

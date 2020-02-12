@@ -28,20 +28,34 @@
 	
 	<reference id="dataSource" interface="javax.sql.DataSource" filter="(db=node)"/>
 	
+	<reference id="eventAdmin" interface="org.osgi.service.event.EventAdmin"/>
+	
 	<bean id="authorizationDao" class="net.solarnetwork.node.ocpp.dao.jdbc.JdbcAuthorizationDao" init-method="init">
 		<property name="dataSource" ref="dataSource"/>
+		<property name="eventAdmin" ref="txEventAdmin"/>
 	</bean>
 
 	<bean id="chargePointDao" class="net.solarnetwork.node.ocpp.dao.jdbc.JdbcChargePointDao" init-method="init">
 		<property name="dataSource" ref="dataSource"/>
+		<property name="eventAdmin" ref="txEventAdmin"/>
 	</bean>
 
 	<bean id="chargePointConnectorDao" class="net.solarnetwork.node.ocpp.dao.jdbc.JdbcChargePointConnectorDao" init-method="init">
 		<property name="dataSource" ref="dataSource"/>
+		<property name="eventAdmin" ref="txEventAdmin"/>
 	</bean>
 
 	<bean id="chargeSessionDao" class="net.solarnetwork.node.ocpp.dao.jdbc.JdbcChargeSessionDao" init-method="init">
 		<property name="dataSource" ref="dataSource"/>
+		<property name="eventAdmin" ref="txEventAdmin"/>
+	</bean>
+	
+	<bean id="txEventAdmin" class="net.solarnetwork.util.StaticOptionalService">
+		<argument>
+			<bean class="net.solarnetwork.support.TransactionSynchronizationEventAdminAdapter">
+				<argument ref="eventAdmin"/>
+			</bean>
+		</argument>
 	</bean>
 
 	<!-- Published Services -->
