@@ -35,6 +35,8 @@
 	
 	<reference id="chargePointDao" interface="net.solarnetwork.node.ocpp.dao.ChargePointDao"/>
 	
+	<reference id="chargePointConnectorDao" interface="net.solarnetwork.node.ocpp.dao.ChargePointConnectorDao"/>
+	
 	<reference id="chargePointRouter" interface="net.solarnetwork.node.ocpp.service.ChargePointRouter"/>
 
 	<!-- Use Java @Transactional annotations to declare transactions. -->
@@ -58,6 +60,16 @@
 		<bean class="net.solarnetwork.node.ocpp.v16.cs.BootNotificationProcessor">
 			<argument ref="controller"/>
 			<property name="heartbeatIntervalSeconds" value="${heartbeatIntervalSeconds}"/>
+		</bean>
+	</service>
+	
+	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
+		<service-properties>
+			<entry key="action" value="StatusNotification"/>
+			<entry key="role" value="cs"/>
+		</service-properties>
+		<bean class="net.solarnetwork.node.ocpp.v16.cs.StatusNotificationProcessor">
+			<argument ref="chargePointConnectorDao"/>
 		</bean>
 	</service>
 
