@@ -94,6 +94,7 @@
 		<argument ref="executor"/>
 		<argument ref="chargePointRouter"/>
 		<argument ref="chargePointDao"/>
+		<argument ref="chargePointConnectorDao"/>
 		<property name="transactionTemplate" ref="transactionTemplate"/>
 	</bean>
 	

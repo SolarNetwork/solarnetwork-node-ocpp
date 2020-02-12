@@ -61,6 +61,16 @@ import net.solarnetwork.util.StringUtils;
  * OCPP Charge Point connector control that exposes all available connectors as
  * boolean controls for the purposes of toggling their availability on/off.
  * 
+ * <p>
+ * This control provider uses a {@link ChargePointConnectorDao} as the
+ * persistent store of available connectors to expose as boolean switch
+ * controls. The generated control IDs are encoded with a Charge Point ID and
+ * connector ID. When an {@link InstructionHandler#TOPIC_SET_CONTROL_PARAMETER}
+ * instruction is received,
+ * {@link ChargePointManager#adjustConnectorEnabledState(String, int, boolean)}
+ * will be invoked to inform the Charge Point of the desired on/off state.
+ * </p>
+ * 
  * @author matt
  * @version 1.0
  */
@@ -75,7 +85,7 @@ public class ConnectorAvailabilityControl extends BaseIdentifiable
 			Pattern.CASE_INSENSITIVE);
 
 	/** The default {@code messageTimeout} value. */
-	public static final long DEFAULT_MESSAGE_TIMEOUT = TimeUnit.SECONDS.toMillis(10);
+	public static final long DEFAULT_MESSAGE_TIMEOUT = TimeUnit.SECONDS.toMillis(60);
 
 	private final OptionalServiceCollection<ChargePointManager> chargePointManagers;
 	private final ChargePointConnectorDao chargePointConnectorDao;

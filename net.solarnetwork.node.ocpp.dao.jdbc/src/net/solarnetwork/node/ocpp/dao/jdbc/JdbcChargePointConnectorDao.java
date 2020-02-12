@@ -53,6 +53,17 @@ public class JdbcChargePointConnectorDao
 	 */
 	public static final String SQL_FIND_BY_CHARGE_POINT = "find-for-charge-point";
 
+	/**
+	 * The SQL resource suffix for updating the status of a specific connector.
+	 */
+	public static final String SQL_UPDATE_STATUS = "update-status";
+
+	/**
+	 * The SQL resource suffix for updating the status of all connectors with a
+	 * given Charge Point ID.
+	 */
+	public static final String SQL_UPDATE_STATUS_FOR_CHARGE_POINT = "update-status-for-charge-point";
+
 	/** The table name for {@link ChargePointConnector} entities. */
 	public static final String TABLE_NAME = "charge_point_conn";
 
@@ -84,6 +95,16 @@ public class JdbcChargePointConnectorDao
 		}
 		entity.setInfo(info);
 		return save(entity);
+	}
+
+	@Override
+	public int updateChargePointStatus(String chargePointId, int connectorId, ChargePointStatus status) {
+		if ( connectorId < 1 ) {
+			return getJdbcTemplate().update(getSqlResource(SQL_UPDATE_STATUS_FOR_CHARGE_POINT),
+					status.codeValue(), chargePointId);
+		}
+		return getJdbcTemplate().update(getSqlResource(SQL_UPDATE_STATUS), status.codeValue(),
+				chargePointId, connectorId);
 	}
 
 	@Override

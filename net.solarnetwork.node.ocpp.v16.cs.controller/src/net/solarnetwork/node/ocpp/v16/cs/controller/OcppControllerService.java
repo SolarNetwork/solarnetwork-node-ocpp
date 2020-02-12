@@ -35,12 +35,15 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionCallbackWithoutResult;
 import org.springframework.transaction.support.TransactionTemplate;
+import net.solarnetwork.node.ocpp.dao.ChargePointConnectorDao;
 import net.solarnetwork.node.ocpp.dao.ChargePointDao;
 import net.solarnetwork.node.ocpp.domain.ActionMessage;
 import net.solarnetwork.node.ocpp.domain.AuthorizationInfo;
 import net.solarnetwork.node.ocpp.domain.BasicActionMessage;
 import net.solarnetwork.node.ocpp.domain.ChargePoint;
+import net.solarnetwork.node.ocpp.domain.ChargePointConnector;
 import net.solarnetwork.node.ocpp.domain.ChargePointInfo;
+import net.solarnetwork.node.ocpp.domain.ChargePointStatus;
 import net.solarnetwork.node.ocpp.domain.RegistrationStatus;
 import net.solarnetwork.node.ocpp.service.ActionMessageResultHandler;
 import net.solarnetwork.node.ocpp.service.AuthorizationService;
@@ -76,6 +79,7 @@ public class OcppControllerService extends BaseIdentifiable
 	private final Executor executor;
 	private final ChargePointRouter chargePointRouter;
 	private final ChargePointDao chargePointDao;
+	private final ChargePointConnectorDao chargePointConnectorDao;
 	private RegistrationStatus initialRegistrationStatus;
 	private TransactionTemplate transactionTemplate;
 
@@ -90,11 +94,13 @@ public class OcppControllerService extends BaseIdentifiable
 	 *        the broker router to push messages to Charge Points with with
 	 * @param chargePointDao
 	 *        the {@link ChargePoint} DAO to use
+	 * @param chargePointConnectorDao
+	 *        the {@link ChargePointConnector} DAO to use
 	 * @throws IllegalArgumentException
 	 *         if any parameter is {@literal null}
 	 */
 	public OcppControllerService(Executor executor, ChargePointRouter chargePointRouter,
-			ChargePointDao chargePointDao) {
+			ChargePointDao chargePointDao, ChargePointConnectorDao chargePointConnectorDao) {
 		super();
 		if ( executor == null ) {
 			throw new IllegalArgumentException("The executor parameter must not be null.");
@@ -108,6 +114,11 @@ public class OcppControllerService extends BaseIdentifiable
 			throw new IllegalArgumentException("The chargePointDao parameter must not be null.");
 		}
 		this.chargePointDao = chargePointDao;
+		if ( chargePointConnectorDao == null ) {
+			throw new IllegalArgumentException(
+					"The chargePointConnectorDao parameter must not be null.");
+		}
+		this.chargePointConnectorDao = chargePointConnectorDao;
 		this.initialRegistrationStatus = DEFAULT_INITIAL_REGISTRATION_STATUS;
 	}
 
@@ -118,8 +129,7 @@ public class OcppControllerService extends BaseIdentifiable
 
 	@Override
 	public boolean isChargePointAvailable(String chargePointId) {
-		// TODO Auto-generated method stub
-		return false;
+		return chargePointRouter.availableChargePointsIds().contains(chargePointId);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -217,14 +227,23 @@ public class OcppControllerService extends BaseIdentifiable
 		return (msg, res, err) -> {
 			if ( res != null ) {
 				AvailabilityStatus status = res.getStatus();
-				if ( status == AvailabilityStatus.REJECTED ) {
+				if ( status == AvailabilityStatus.ACCEPTED ) {
 					log.info("Charge Point {} connector {} availability set to {}", chargePointId,
 							req.getConnectorId(), req.getType());
-					future.complete(false);
+					try {
+						chargePointConnectorDao.updateChargePointStatus(chargePointId,
+								req.getConnectorId(),
+								req.getType() == AvailabilityType.OPERATIVE ? ChargePointStatus.Available
+										: ChargePointStatus.Unavailable);
+					} catch ( RuntimeException e ) {
+						log.error("Error saving Charge Point {} connector {} status {}: {}",
+								chargePointId, req.getConnectorId(), e.toString());
+					}
+					future.complete(true);
 				} else {
 					log.warn("Charge Point {} connector {} availability rejected change to {}",
 							chargePointId, req.getConnectorId(), req.getType());
-					future.complete(true);
+					future.complete(false);
 				}
 			} else {
 				future.completeExceptionally(err);

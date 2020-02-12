@@ -26,6 +26,7 @@ import java.util.Collection;
 import net.solarnetwork.dao.GenericDao;
 import net.solarnetwork.node.ocpp.domain.ChargePointConnector;
 import net.solarnetwork.node.ocpp.domain.ChargePointConnectorKey;
+import net.solarnetwork.node.ocpp.domain.ChargePointStatus;
 import net.solarnetwork.node.ocpp.domain.StatusNotification;
 
 /**
@@ -53,6 +54,21 @@ public interface ChargePointConnectorDao
 	 * @return the saved primary key
 	 */
 	ChargePointConnectorKey saveStatusInfo(String chargePointId, StatusNotification info);
+
+	/**
+	 * Update just the status of one or more connectors for a specific Charge
+	 * Point.
+	 * 
+	 * @param chargePointId
+	 *        the Charge Point ID
+	 * @param connectorId
+	 *        the connector ID, or {@literal 0} for all connectors for Charge
+	 *        Point
+	 * @param status
+	 *        the desired status
+	 * @return the number of connectors updated
+	 */
+	int updateChargePointStatus(String chargePointId, int connectorId, ChargePointStatus status);
 
 	/**
 	 * Find all available connectors for a given Charge Point ID.

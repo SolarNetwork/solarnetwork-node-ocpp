@@ -25,6 +25,7 @@ package net.solarnetwork.node.ocpp.dao.jdbc.test;
 import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import java.time.Instant;
@@ -262,6 +263,56 @@ public class JdbcChargePointConnectorDaoTests extends AbstractNodeTransactionalT
 				((ChargePointConnector) event.getProperty(GenericDao.ENTITY_EVENT_ENTITY_PROPERTY))
 						.isSameAs(cpc),
 				equalTo(true));
+	}
+
+	@Test
+	public void updateStatus() {
+		// given
+		insert();
+
+		// when
+		int result = dao.updateChargePointStatus(last.getId().getChargePointId(),
+				last.getId().getConnectorId(), ChargePointStatus.Charging);
+
+		// then
+		assertThat("One row updated", result, equalTo(1));
+		assertThat("Status updated", dao.get(last.getId()).getInfo().getStatus(),
+				equalTo(ChargePointStatus.Charging));
+	}
+
+	@Test
+	public void updateStatusForChargePoint() {
+		// given
+		insert();
+
+		// add another for same charge point
+		ChargePointConnector cpc = new ChargePointConnector(
+				new ChargePointConnectorKey(last.getId().getChargePointId(), 2), Instant.now());
+
+		// @formatter:off
+		cpc.setInfo(StatusNotification.builder()
+				.withConnectorId(cpc.getId().getConnectorId())
+				.withStatus(ChargePointStatus.Available)
+				.withErrorCode(ChargePointErrorCode.NoError)
+				.withTimestamp(Instant.now()).build());
+		// @formatter:on
+		dao.save(cpc);
+
+		// add another for a different charge point, to verify we don't update this
+		insert();
+
+		// when
+		int result = dao.updateChargePointStatus(cpc.getId().getChargePointId(), 0,
+				ChargePointStatus.Charging);
+
+		// then
+		assertThat("Two row updated", result, equalTo(2));
+		assertThat("Status updated for charge point",
+				dao.findByIdChargePointId(cpc.getId().getChargePointId()).stream()
+						.map(c -> c.getInfo().getStatus()).collect(Collectors.toList()),
+				contains(ChargePointStatus.Charging, ChargePointStatus.Charging));
+		assertThat("Other charge point status unchanged", dao.get(last.getId()).getInfo().getStatus(),
+				equalTo(last.getInfo().getStatus()));
 	}
 
 }
