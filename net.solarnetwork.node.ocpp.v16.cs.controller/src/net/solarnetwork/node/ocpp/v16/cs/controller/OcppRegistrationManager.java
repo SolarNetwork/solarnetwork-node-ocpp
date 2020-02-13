@@ -22,6 +22,7 @@
 
 package net.solarnetwork.node.ocpp.v16.cs.controller;
 
+import static net.solarnetwork.dao.GenericDao.SORT_BY_CREATED_ASCENDING;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,7 +35,6 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
-import net.solarnetwork.domain.SimpleSortDescriptor;
 import net.solarnetwork.node.ocpp.dao.ChargePointDao;
 import net.solarnetwork.node.ocpp.domain.ChargePoint;
 import net.solarnetwork.node.settings.SettingSpecifier;
@@ -74,8 +74,7 @@ public class OcppRegistrationManager implements SettingSpecifierProvider, Settin
 		if ( properties == null || properties.isEmpty() ) {
 			return;
 		}
-		Map<String, ChargePoint> cpMap = chargePointDao
-				.getAll(Collections.singletonList(new SimpleSortDescriptor("created"))).stream()
+		Map<String, ChargePoint> cpMap = chargePointDao.getAll(SORT_BY_CREATED_ASCENDING).stream()
 				.collect(Collectors.toMap(ChargePoint::getId, a -> a));
 		List<ChargePointConfig> configs = chargePoints;
 		Iterator<ChargePointConfig> confItr = (configs != null ? configs.iterator()
@@ -119,8 +118,7 @@ public class OcppRegistrationManager implements SettingSpecifierProvider, Settin
 	}
 
 	private synchronized List<ChargePointConfig> loadChargePoints() {
-		Collection<ChargePoint> result = chargePointDao
-				.getAll(Collections.singletonList(new SimpleSortDescriptor("created")));
+		Collection<ChargePoint> result = chargePointDao.getAll(SORT_BY_CREATED_ASCENDING);
 		List<ChargePointConfig> configs = (result != null
 				? result.stream().map(ChargePointConfig::new).collect(Collectors.toList())
 				: new ArrayList<>());

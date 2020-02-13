@@ -22,6 +22,7 @@
 
 package net.solarnetwork.node.ocpp.v16.cs.controller;
 
+import static net.solarnetwork.dao.GenericDao.SORT_BY_CREATED_ASCENDING;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -52,6 +53,7 @@ public class OcppAuthorizationManager implements SettingSpecifierProvider, Setti
 	private final AuthorizationDao authorizationDao;
 	private List<AuthorizationConfig> authorizations;
 	private MessageSource messageSource;
+	private int authorizationsCount = -1;
 
 	private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -71,7 +73,7 @@ public class OcppAuthorizationManager implements SettingSpecifierProvider, Setti
 		if ( properties == null || properties.isEmpty() ) {
 			return;
 		}
-		Map<String, Authorization> auths = authorizationDao.getAll(null).stream()
+		Map<String, Authorization> auths = authorizationDao.getAll(SORT_BY_CREATED_ASCENDING).stream()
 				.collect(Collectors.toMap(Authorization::getId, a -> a));
 		List<AuthorizationConfig> configs = authorizations;
 		Iterator<AuthorizationConfig> confItr = (configs != null ? configs.iterator()
@@ -115,17 +117,28 @@ public class OcppAuthorizationManager implements SettingSpecifierProvider, Setti
 	}
 
 	private List<AuthorizationConfig> loadAuthorizations() {
-		Collection<Authorization> auths = authorizationDao.getAll(null);
-		return (auths != null ? auths.stream().map(AuthorizationConfig::new).collect(Collectors.toList())
-				: Collections.emptyList());
+		Collection<Authorization> result = authorizationDao.getAll(SORT_BY_CREATED_ASCENDING);
+		List<AuthorizationConfig> configs = (result != null
+				? result.stream().map(AuthorizationConfig::new).collect(Collectors.toList())
+				: new ArrayList<>());
+		if ( this.authorizations != null ) {
+			while ( configs.size() < this.authorizationsCount ) {
+				configs.add(new AuthorizationConfig());
+			}
+		} else {
+			this.authorizationsCount = configs.size();
+		}
+		this.authorizations = configs;
+		return configs;
+
 	}
 
 	@Override
 	public List<SettingSpecifier> getSettingSpecifiers() {
 		List<SettingSpecifier> results = new ArrayList<>(1);
 
-		List<AuthorizationConfig> authConfsList = getAuthorizations();
-		results.add(SettingsUtil.dynamicListSettingSpecifier("authorizations", authConfsList,
+		List<AuthorizationConfig> configs = getAuthorizations();
+		results.add(SettingsUtil.dynamicListSettingSpecifier("authorizations", configs,
 				new SettingsUtil.KeyedListCallback<AuthorizationConfig>() {
 
 					@Override
@@ -156,7 +169,7 @@ public class OcppAuthorizationManager implements SettingSpecifierProvider, Setti
 	 */
 	public synchronized List<AuthorizationConfig> getAuthorizations() {
 		if ( authorizations == null ) {
-			authorizations = loadAuthorizations();
+			loadAuthorizations();
 		}
 		return authorizations;
 	}
@@ -176,9 +189,11 @@ public class OcppAuthorizationManager implements SettingSpecifierProvider, Setti
 	 * 
 	 * @return the authorization count
 	 */
-	public int getAuthorizationsCount() {
-		List<AuthorizationConfig> auths = getAuthorizations();
-		return (auths != null ? auths.size() : 0);
+	public synchronized int getAuthorizationsCount() {
+		if ( authorizationsCount < 0 ) {
+			loadAuthorizations();
+		}
+		return authorizationsCount;
 	}
 
 	/**
@@ -194,6 +209,8 @@ public class OcppAuthorizationManager implements SettingSpecifierProvider, Setti
 	 */
 	public void setAuthorizationsCount(int count) {
 		List<AuthorizationConfig> auths = getAuthorizations();
+		this.authorizationsCount = count;
+
 		int currCount = (auths != null ? auths.size() : 0);
 		if ( currCount == count ) {
 			return;
