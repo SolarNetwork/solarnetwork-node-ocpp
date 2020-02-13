@@ -73,7 +73,15 @@
 		</bean>
 	</service>
 
-	<service interface="net.solarnetwork.node.ocpp.service.cs.ChargePointManager" ref="controller"/>
+	<service ref="controller">
+		<interfaces>
+			<value>net.solarnetwork.node.ocpp.service.AuthorizationService</value>
+			<value>net.solarnetwork.node.ocpp.service.cs.ChargePointManager</value>
+		</interfaces>
+		<service-properties>
+			<entry key="role" value="cs"/><!-- For AuthorizationService -->
+		</service-properties>
+	</service>
 	
 	<service interface="net.solarnetwork.node.settings.SettingSpecifierProvider">
 		<bean class="net.solarnetwork.node.ocpp.v16.cs.controller.OcppAuthorizationManager">
@@ -106,6 +114,7 @@
 	<bean id="controller" class="net.solarnetwork.node.ocpp.v16.cs.controller.OcppControllerService">
 		<argument ref="executor"/>
 		<argument ref="chargePointRouter"/>
+		<argument ref="authorizationDao"/>
 		<argument ref="chargePointDao"/>
 		<argument ref="chargePointConnectorDao"/>
 		<property name="transactionTemplate" ref="transactionTemplate"/>

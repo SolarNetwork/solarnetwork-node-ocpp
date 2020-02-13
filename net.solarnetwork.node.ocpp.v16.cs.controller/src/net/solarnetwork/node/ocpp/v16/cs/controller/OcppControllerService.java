@@ -35,10 +35,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionCallbackWithoutResult;
 import org.springframework.transaction.support.TransactionTemplate;
+import net.solarnetwork.node.ocpp.dao.AuthorizationDao;
 import net.solarnetwork.node.ocpp.dao.ChargePointConnectorDao;
 import net.solarnetwork.node.ocpp.dao.ChargePointDao;
 import net.solarnetwork.node.ocpp.domain.ActionMessage;
+import net.solarnetwork.node.ocpp.domain.Authorization;
 import net.solarnetwork.node.ocpp.domain.AuthorizationInfo;
+import net.solarnetwork.node.ocpp.domain.AuthorizationStatus;
 import net.solarnetwork.node.ocpp.domain.BasicActionMessage;
 import net.solarnetwork.node.ocpp.domain.ChargePoint;
 import net.solarnetwork.node.ocpp.domain.ChargePointConnector;
@@ -78,6 +81,7 @@ public class OcppControllerService extends BaseIdentifiable
 
 	private final Executor executor;
 	private final ChargePointRouter chargePointRouter;
+	private final AuthorizationDao authorizationDao;
 	private final ChargePointDao chargePointDao;
 	private final ChargePointConnectorDao chargePointConnectorDao;
 	private RegistrationStatus initialRegistrationStatus;
@@ -92,6 +96,8 @@ public class OcppControllerService extends BaseIdentifiable
 	 *        a task runner
 	 * @param chargePointRouter
 	 *        the broker router to push messages to Charge Points with with
+	 * @param authorizationDao
+	 *        the {@link Authorization} DAO to use
 	 * @param chargePointDao
 	 *        the {@link ChargePoint} DAO to use
 	 * @param chargePointConnectorDao
@@ -100,7 +106,8 @@ public class OcppControllerService extends BaseIdentifiable
 	 *         if any parameter is {@literal null}
 	 */
 	public OcppControllerService(Executor executor, ChargePointRouter chargePointRouter,
-			ChargePointDao chargePointDao, ChargePointConnectorDao chargePointConnectorDao) {
+			AuthorizationDao authorizationDao, ChargePointDao chargePointDao,
+			ChargePointConnectorDao chargePointConnectorDao) {
 		super();
 		if ( executor == null ) {
 			throw new IllegalArgumentException("The executor parameter must not be null.");
@@ -110,6 +117,10 @@ public class OcppControllerService extends BaseIdentifiable
 			throw new IllegalArgumentException("The chargePointRouter parameter must not be null.");
 		}
 		this.chargePointRouter = chargePointRouter;
+		if ( authorizationDao == null ) {
+			throw new IllegalArgumentException("The authorizationDao parameter must not be null.");
+		}
+		this.authorizationDao = authorizationDao;
 		if ( chargePointDao == null ) {
 			throw new IllegalArgumentException("The chargePointDao parameter must not be null.");
 		}
@@ -261,8 +272,25 @@ public class OcppControllerService extends BaseIdentifiable
 
 	@Override
 	public AuthorizationInfo authorize(final String clientId, final String idTag) {
-		// TODO Auto-generated method stub
-		return null;
+		Authorization auth = null;
+		if ( clientId != null && idTag != null ) {
+			auth = authorizationDao.get(idTag);
+		}
+		AuthorizationInfo.Builder result = AuthorizationInfo.builder().withId(idTag);
+		if ( auth != null ) {
+			result.withExpiryDate(auth.getExpiryDate()).withParentId(auth.getParentId());
+			if ( !auth.isEnabled() ) {
+				result.withStatus(AuthorizationStatus.Blocked);
+			} else if ( auth.isExpired() ) {
+				result.withStatus(AuthorizationStatus.Expired);
+			} else {
+				result.withStatus(AuthorizationStatus.Accepted);
+			}
+			// TODO: handle ConcurrentTx
+		} else {
+			result.withStatus(AuthorizationStatus.Invalid);
+		}
+		return result.build();
 	}
 
 	private <T> T tryWithTransaction(TransactionCallback<T> tx) {

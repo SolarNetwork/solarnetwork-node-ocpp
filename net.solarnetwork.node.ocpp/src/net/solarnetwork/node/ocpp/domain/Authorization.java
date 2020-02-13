@@ -138,6 +138,16 @@ public class Authorization extends BasicStringEntity implements Differentiable<A
 	}
 
 	/**
+	 * Test if this authorization has expired.
+	 * 
+	 * @return {@literal true} if the {@code expiryDate} property is available
+	 *         and is not before the current system time
+	 */
+	public boolean isExpired() {
+		return (expiryDate != null && expiryDate.isBefore(Instant.now()));
+	}
+
+	/**
 	 * Get the enabled flag.
 	 * 
 	 * @return the enabled flag
