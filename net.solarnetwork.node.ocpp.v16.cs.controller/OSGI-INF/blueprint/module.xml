@@ -88,6 +88,19 @@
 		</bean>
 	</service>
 
+	<service interface="net.solarnetwork.node.settings.SettingSpecifierProvider">
+		<bean class="net.solarnetwork.node.ocpp.v16.cs.controller.OcppRegistrationManager">
+			<osgix:managed-properties persistent-id="net.solarnetwork.node.ocpp.v16.cs.controller.OcppRegistrationManager" 
+					autowire-on-update="true" update-method="configurationChanged"/>
+			<argument ref="chargePointDao"/>
+			<property name="messageSource">
+				<bean class="org.springframework.context.support.ResourceBundleMessageSource">
+					<property name="basename" value="net.solarnetwork.node.ocpp.v16.cs.controller.OcppRegistrationManager"/>
+				</bean>
+			</property>
+		</bean>
+	</service>
+
 	<!-- Supporting services -->
 
 	<bean id="controller" class="net.solarnetwork.node.ocpp.v16.cs.controller.OcppControllerService">

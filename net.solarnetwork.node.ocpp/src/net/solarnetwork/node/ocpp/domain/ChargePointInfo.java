@@ -68,7 +68,11 @@ public class ChargePointInfo {
 	 *        the info to copy
 	 */
 	public ChargePointInfo(ChargePointInfo other) {
-		this(other.getId());
+		super();
+		if ( other == null ) {
+			return;
+		}
+		this.id = other.id;
 		this.chargePointVendor = other.chargePointVendor;
 		this.chargePointModel = other.chargePointModel;
 		this.chargePointSerialNumber = other.chargePointSerialNumber;

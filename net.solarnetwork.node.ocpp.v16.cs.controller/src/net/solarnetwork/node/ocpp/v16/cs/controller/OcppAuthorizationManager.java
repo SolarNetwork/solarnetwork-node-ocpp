@@ -182,16 +182,15 @@ public class OcppAuthorizationManager implements SettingSpecifierProvider, Setti
 	}
 
 	/**
-	 * Adjust the number of configured {@code ExpressionConfig} elements.
+	 * Adjust the number of configured {@code AuthorizationConfig} elements.
 	 * 
 	 * <p>
 	 * Any newly added element values will be set to new
-	 * {@link ExpressionConfig} instances.
+	 * {@link AuthorizationConfig} instances.
 	 * </p>
 	 * 
 	 * @param count
-	 *        The desired number of {@code expressionConfigs} elements.
-	 * @since 1.5
+	 *        the desired number of elements
 	 */
 	public void setAuthorizationsCount(int count) {
 		List<AuthorizationConfig> auths = getAuthorizations();

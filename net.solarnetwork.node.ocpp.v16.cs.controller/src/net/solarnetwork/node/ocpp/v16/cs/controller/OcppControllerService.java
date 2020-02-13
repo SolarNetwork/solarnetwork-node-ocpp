@@ -176,6 +176,13 @@ public class OcppControllerService extends BaseIdentifiable
 		return cp;
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public boolean isChargePointRegistrationAccepted(String chargePointId) {
+		ChargePoint cp = chargePointDao.get(chargePointId);
+		return cp != null && cp.isEnabled() && cp.getRegistrationStatus() == RegistrationStatus.Accepted;
+	}
+
 	private ActionMessageResultHandler<GetConfigurationRequest, GetConfigurationResponse> processConfiguration(
 			String chargePointId) {
 		return (msg, confs, err) -> {

@@ -23,6 +23,7 @@
 package net.solarnetwork.node.ocpp.domain;
 
 import java.time.Instant;
+import java.util.Objects;
 import net.solarnetwork.dao.BasicStringEntity;
 
 /**
@@ -105,6 +106,8 @@ public class ChargePoint extends BasicStringEntity {
 		}
 		// @formatter:off
 		return (info != null && info.isSameAs(other.info))
+				&& Objects.equals(registrationStatus, other.registrationStatus)
+				&& enabled == other.enabled
 				&& connectorCount == other.connectorCount;
 		// @formatter:on
 	}

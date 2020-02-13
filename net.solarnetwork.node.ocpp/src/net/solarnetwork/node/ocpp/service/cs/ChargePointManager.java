@@ -27,6 +27,7 @@ import java.util.concurrent.CompletableFuture;
 import net.solarnetwork.domain.Identifiable;
 import net.solarnetwork.node.ocpp.domain.ChargePoint;
 import net.solarnetwork.node.ocpp.domain.ChargePointInfo;
+import net.solarnetwork.node.ocpp.domain.RegistrationStatus;
 
 /**
  * This API represents the set of functionality required by an OCPP Central
@@ -51,6 +52,17 @@ public interface ChargePointManager extends Identifiable {
 	 * @return the registered charge point
 	 */
 	ChargePoint registerChargePoint(ChargePointInfo info);
+
+	/**
+	 * Test if a Charge Point's registration has been accepted.
+	 * 
+	 * @param chargePointId
+	 *        the Charge Point ID
+	 * @return {@literal true} if the Charge Point has previously been
+	 *         registered, is not disabled, and has a status of
+	 *         {@link RegistrationStatus#Accepted}
+	 */
+	boolean isChargePointRegistrationAccepted(String chargePointId);
 
 	/**
 	 * Get a complete set of Charge Point identifiers that are available, or
