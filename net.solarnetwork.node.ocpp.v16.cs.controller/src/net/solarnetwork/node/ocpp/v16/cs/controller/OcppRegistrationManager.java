@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
+import net.solarnetwork.domain.SimpleSortDescriptor;
 import net.solarnetwork.node.ocpp.dao.ChargePointDao;
 import net.solarnetwork.node.ocpp.domain.ChargePoint;
 import net.solarnetwork.node.settings.SettingSpecifier;
@@ -53,7 +54,7 @@ public class OcppRegistrationManager implements SettingSpecifierProvider, Settin
 	private final ChargePointDao chargePointDao;
 	private MessageSource messageSource;
 	private List<ChargePointConfig> chargePoints;
-	private int chargePointsCount;
+	private int chargePointsCount = -1;
 
 	private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -73,7 +74,8 @@ public class OcppRegistrationManager implements SettingSpecifierProvider, Settin
 		if ( properties == null || properties.isEmpty() ) {
 			return;
 		}
-		Map<String, ChargePoint> cpMap = chargePointDao.getAll(null).stream()
+		Map<String, ChargePoint> cpMap = chargePointDao
+				.getAll(Collections.singletonList(new SimpleSortDescriptor("created"))).stream()
 				.collect(Collectors.toMap(ChargePoint::getId, a -> a));
 		List<ChargePointConfig> configs = chargePoints;
 		Iterator<ChargePointConfig> confItr = (configs != null ? configs.iterator()
@@ -86,12 +88,13 @@ public class OcppRegistrationManager implements SettingSpecifierProvider, Settin
 			ChargePoint chargePoint = cpMap.remove(conf.getId());
 			if ( chargePoint == null ) {
 				chargePoint = new ChargePoint(conf.getId(), Instant.now());
+				chargePoint.setInfo(conf.getInfo());
 			}
 			ChargePoint orig = new ChargePoint(chargePoint);
 			chargePoint.setEnabled(conf.isEnabled());
 			chargePoint.setRegistrationStatus(conf.getRegistrationStatus());
 			if ( !chargePoint.isSameAs(orig) ) {
-				log.info("Saving OCPP authorization: {}", chargePoint);
+				log.info("Saving OCPP Charge Point: {}", chargePoint);
 				chargePointDao.save(chargePoint);
 			}
 		}
@@ -116,14 +119,19 @@ public class OcppRegistrationManager implements SettingSpecifierProvider, Settin
 	}
 
 	private synchronized List<ChargePointConfig> loadChargePoints() {
-		Collection<ChargePoint> result = chargePointDao.getAll(null);
+		Collection<ChargePoint> result = chargePointDao
+				.getAll(Collections.singletonList(new SimpleSortDescriptor("created")));
 		List<ChargePointConfig> configs = (result != null
 				? result.stream().map(ChargePointConfig::new).collect(Collectors.toList())
 				: new ArrayList<>());
-		this.chargePoints = configs;
-		while ( configs.size() < this.chargePointsCount ) {
-			chargePoints.add(new ChargePointConfig());
+		if ( this.chargePoints != null ) {
+			while ( configs.size() < this.chargePointsCount ) {
+				configs.add(new ChargePointConfig());
+			}
+		} else {
+			this.chargePointsCount = configs.size();
 		}
+		this.chargePoints = configs;
 		return configs;
 	}
 
@@ -198,9 +206,10 @@ public class OcppRegistrationManager implements SettingSpecifierProvider, Settin
 	 * @param count
 	 *        the desired number of elements
 	 */
-	public void setChargePointsCount(int count) {
-		this.chargePointsCount = count;
+	public synchronized void setChargePointsCount(int count) {
 		List<ChargePointConfig> chargePoints = getChargePoints();
+		this.chargePointsCount = count;
+
 		int currCount = (chargePoints != null ? chargePoints.size() : 0);
 		if ( currCount == count ) {
 			return;

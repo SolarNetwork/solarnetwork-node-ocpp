@@ -49,6 +49,12 @@ import net.solarnetwork.node.settings.support.BasicToggleSettingSpecifier;
  */
 public class ChargePointConfig {
 
+	/**
+	 * A default property value used for required properties like
+	 * {@code chargePointVendor} and {@code chargePointModel}.
+	 */
+	public static final String DEFAULT_PROPERTY_VALUE = "N/A";
+
 	private String id;
 	private Instant created;
 	private boolean enabled;
@@ -62,8 +68,8 @@ public class ChargePointConfig {
 		super();
 		setEnabled(true);
 		ChargePointInfo info = new ChargePointInfo();
-		info.setChargePointVendor("N/A");
-		info.setChargePointModel("N/A");
+		info.setChargePointVendor(DEFAULT_PROPERTY_VALUE);
+		info.setChargePointModel(DEFAULT_PROPERTY_VALUE);
 		setInfo(info);
 	}
 
