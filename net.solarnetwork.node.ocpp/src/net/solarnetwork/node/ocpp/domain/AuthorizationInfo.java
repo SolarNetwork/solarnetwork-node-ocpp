@@ -62,6 +62,33 @@ public class AuthorizationInfo {
 		this(builder.id, builder.status, builder.expiryDate, builder.parentId);
 	}
 
+	@Override
+	public String toString() {
+		StringBuilder builder2 = new StringBuilder();
+		builder2.append("AuthorizationInfo{");
+		if ( id != null ) {
+			builder2.append("id=");
+			builder2.append(id);
+			builder2.append(", ");
+		}
+		if ( status != null ) {
+			builder2.append("status=");
+			builder2.append(status);
+			builder2.append(", ");
+		}
+		if ( expiryDate != null ) {
+			builder2.append("expiryDate=");
+			builder2.append(expiryDate);
+			builder2.append(", ");
+		}
+		if ( parentId != null ) {
+			builder2.append("parentId=");
+			builder2.append(parentId);
+		}
+		builder2.append("}");
+		return builder2.toString();
+	}
+
 	public String getId() {
 		return id;
 	}

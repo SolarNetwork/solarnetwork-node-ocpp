@@ -24,8 +24,6 @@ package net.solarnetwork.node.ocpp.v16.cs;
 
 import java.util.Collections;
 import java.util.Set;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import net.solarnetwork.node.ocpp.domain.ActionMessage;
 import net.solarnetwork.node.ocpp.domain.ChargePoint;
 import net.solarnetwork.node.ocpp.domain.ChargePointInfo;
@@ -59,8 +57,6 @@ public class BootNotificationProcessor
 
 	private final ChargePointManager chargePointManager;
 	private int heartbeatIntervalSeconds = DEFAULT_HEARTBEAT_INTERVAL_SECONDS;
-
-	private final Logger log = LoggerFactory.getLogger(getClass());
 
 	/**
 	 * Constructor.
@@ -107,42 +103,33 @@ public class BootNotificationProcessor
 
 		try {
 			ChargePoint cp = chargePointManager.registerChargePoint(info);
-			if ( cp != null ) {
-				BootNotificationResponse res = new BootNotificationResponse();
-				res.setCurrentTime(XmlDateUtils.newXmlCalendar());
-				if ( cp.getRegistrationStatus() != null ) {
-					switch (cp.getRegistrationStatus()) {
-						case Accepted:
-							res.setStatus(RegistrationStatus.ACCEPTED);
-							break;
 
-						case Rejected:
-							res.setStatus(RegistrationStatus.REJECTED);
-							break;
+			BootNotificationResponse res = new BootNotificationResponse();
+			res.setCurrentTime(XmlDateUtils.newXmlCalendar());
+			if ( cp.getRegistrationStatus() != null ) {
+				switch (cp.getRegistrationStatus()) {
+					case Accepted:
+						res.setStatus(RegistrationStatus.ACCEPTED);
+						break;
 
-						default:
-							res.setStatus(RegistrationStatus.PENDING);
-							break;
-					}
-				} else {
-					res.setStatus(RegistrationStatus.PENDING);
+					case Rejected:
+						res.setStatus(RegistrationStatus.REJECTED);
+						break;
+
+					default:
+						res.setStatus(RegistrationStatus.PENDING);
+						break;
 				}
-				res.setInterval(getHeartbeatIntervalSeconds());
-				resultHandler.handleActionMessageResult(message, res, null);
-				return;
 			} else {
-				log.debug(
-						"ChargePointManager {} did not provide a ChargePoint for response to BootNotificationRequest");
+				res.setStatus(RegistrationStatus.PENDING);
 			}
+			res.setInterval(getHeartbeatIntervalSeconds());
+			resultHandler.handleActionMessageResult(message, res, null);
 		} catch ( Throwable t ) {
 			ErrorCodeException err = new ErrorCodeException(ActionErrorCode.InternalError,
 					"Internal error: " + t.getMessage());
 			resultHandler.handleActionMessageResult(message, null, err);
 		}
-
-		ErrorCodeException err = new ErrorCodeException(ActionErrorCode.InternalError,
-				"No ChargePointManager service handled BootNotificationRequest.");
-		resultHandler.handleActionMessageResult(message, null, err);
 	}
 
 	/**

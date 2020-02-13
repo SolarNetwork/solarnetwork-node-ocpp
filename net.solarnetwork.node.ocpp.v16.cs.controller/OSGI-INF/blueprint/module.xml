@@ -46,10 +46,12 @@
 
 	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
 		<service-properties>
-			<entry key="action" value="Heartbeat"/>
+			<entry key="action" value="Authorize"/>
 			<entry key="role" value="cs"/>
 		</service-properties>
-		<bean class="net.solarnetwork.node.ocpp.v16.cs.HeartbeatProcessor"/>
+		<bean class="net.solarnetwork.node.ocpp.v16.cs.AuthorizeProcessor">
+			<argument ref="controller"/>
+		</bean>
 	</service>
 	
 	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
@@ -61,6 +63,14 @@
 			<argument ref="controller"/>
 			<property name="heartbeatIntervalSeconds" value="${heartbeatIntervalSeconds}"/>
 		</bean>
+	</service>
+	
+	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
+		<service-properties>
+			<entry key="action" value="Heartbeat"/>
+			<entry key="role" value="cs"/>
+		</service-properties>
+		<bean class="net.solarnetwork.node.ocpp.v16.cs.HeartbeatProcessor"/>
 	</service>
 	
 	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">

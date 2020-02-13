@@ -49,7 +49,7 @@ public interface ChargePointManager extends Identifiable {
 	 * 
 	 * @param info
 	 *        the details to register
-	 * @return the registered charge point
+	 * @return the resulting charge point, never {@literal null}
 	 */
 	ChargePoint registerChargePoint(ChargePointInfo info);
 
