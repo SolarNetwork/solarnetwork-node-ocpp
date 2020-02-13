@@ -25,6 +25,7 @@ package net.solarnetwork.node.ocpp.domain;
 import java.time.Instant;
 import java.util.Objects;
 import net.solarnetwork.dao.BasicStringEntity;
+import net.solarnetwork.domain.Differentiable;
 
 /**
  * An authorization entity.
@@ -36,7 +37,7 @@ import net.solarnetwork.dao.BasicStringEntity;
  * @author matt
  * @version 1.0
  */
-public class Authorization extends BasicStringEntity {
+public class Authorization extends BasicStringEntity implements Differentiable<Authorization> {
 
 	private boolean enabled;
 	private Instant expiryDate;
@@ -107,6 +108,11 @@ public class Authorization extends BasicStringEntity {
 				&& Objects.equals(expiryDate, other.expiryDate)
 				&& Objects.equals(parentId, other.parentId);
 		// @formatter:on
+	}
+
+	@Override
+	public boolean differsFrom(Authorization other) {
+		return !isSameAs(other);
 	}
 
 	@Override

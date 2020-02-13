@@ -25,6 +25,7 @@ package net.solarnetwork.node.ocpp.domain;
 import java.time.Instant;
 import java.util.Objects;
 import net.solarnetwork.dao.BasicStringEntity;
+import net.solarnetwork.domain.Differentiable;
 
 /**
  * A Charge Point entity.
@@ -36,7 +37,7 @@ import net.solarnetwork.dao.BasicStringEntity;
  * @author matt
  * @version 1.0
  */
-public class ChargePoint extends BasicStringEntity {
+public class ChargePoint extends BasicStringEntity implements Differentiable<ChargePoint> {
 
 	private ChargePointInfo info;
 	private RegistrationStatus registrationStatus;
@@ -110,6 +111,11 @@ public class ChargePoint extends BasicStringEntity {
 				&& enabled == other.enabled
 				&& connectorCount == other.connectorCount;
 		// @formatter:on
+	}
+
+	@Override
+	public boolean differsFrom(ChargePoint other) {
+		return !isSameAs(other);
 	}
 
 	@Override

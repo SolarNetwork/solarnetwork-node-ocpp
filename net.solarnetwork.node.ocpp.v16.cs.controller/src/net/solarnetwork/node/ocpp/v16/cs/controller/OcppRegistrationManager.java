@@ -22,26 +22,13 @@
 
 package net.solarnetwork.node.ocpp.v16.cs.controller;
 
-import static net.solarnetwork.dao.GenericDao.SORT_BY_CREATED_ASCENDING;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.MessageSource;
+import java.util.function.Function;
 import net.solarnetwork.node.ocpp.dao.ChargePointDao;
 import net.solarnetwork.node.ocpp.domain.ChargePoint;
 import net.solarnetwork.node.settings.SettingSpecifier;
-import net.solarnetwork.node.settings.SettingSpecifierProvider;
-import net.solarnetwork.node.settings.support.BasicGroupSettingSpecifier;
-import net.solarnetwork.node.settings.support.SettingsUtil;
-import net.solarnetwork.settings.SettingsChangeObserver;
 
 /**
  * Manager for Charge Point registrations.
@@ -49,14 +36,8 @@ import net.solarnetwork.settings.SettingsChangeObserver;
  * @author matt
  * @version 1.0
  */
-public class OcppRegistrationManager implements SettingSpecifierProvider, SettingsChangeObserver {
-
-	private final ChargePointDao chargePointDao;
-	private MessageSource messageSource;
-	private List<ChargePointConfig> chargePoints;
-	private int chargePointsCount = -1;
-
-	private final Logger log = LoggerFactory.getLogger(getClass());
+public class OcppRegistrationManager
+		extends BaseEntityManager<ChargePointDao, ChargePoint, String, ChargePointConfig> {
 
 	/**
 	 * Constructor.
@@ -65,41 +46,39 @@ public class OcppRegistrationManager implements SettingSpecifierProvider, Settin
 	 *        the DAO to manage charge points with
 	 */
 	public OcppRegistrationManager(ChargePointDao chargePointDao) {
-		super();
-		this.chargePointDao = chargePointDao;
+		super(chargePointDao);
 	}
 
 	@Override
-	public void configurationChanged(Map<String, Object> properties) {
-		if ( properties == null || properties.isEmpty() ) {
-			return;
-		}
-		Map<String, ChargePoint> cpMap = chargePointDao.getAll(SORT_BY_CREATED_ASCENDING).stream()
-				.collect(Collectors.toMap(ChargePoint::getId, a -> a));
-		List<ChargePointConfig> configs = chargePoints;
-		Iterator<ChargePointConfig> confItr = (configs != null ? configs.iterator()
-				: Collections.emptyIterator());
-		while ( confItr.hasNext() ) {
-			ChargePointConfig conf = confItr.next();
-			if ( conf.getId() == null || conf.getId().isEmpty() ) {
-				continue;
-			}
-			ChargePoint chargePoint = cpMap.remove(conf.getId());
-			if ( chargePoint == null ) {
-				chargePoint = new ChargePoint(conf.getId(), Instant.now());
-				chargePoint.setInfo(conf.getInfo());
-			}
-			ChargePoint orig = new ChargePoint(chargePoint);
-			chargePoint.setEnabled(conf.isEnabled());
-			chargePoint.setRegistrationStatus(conf.getRegistrationStatus());
-			if ( !chargePoint.isSameAs(orig) ) {
-				log.info("Saving OCPP Charge Point: {}", chargePoint);
-				chargePointDao.save(chargePoint);
-			}
-		}
-		for ( ChargePoint old : cpMap.values() ) {
-			chargePointDao.delete(old);
-		}
+	protected ChargePoint createNewEntity(ChargePointConfig conf) {
+		return new ChargePoint(conf.getId(), Instant.now());
+	}
+
+	@Override
+	protected ChargePoint cloneEntity(ChargePoint entity) {
+		return new ChargePoint(entity);
+	}
+
+	@Override
+	protected void applyConfiguration(ChargePointConfig conf, ChargePoint entity) {
+		entity.setEnabled(conf.isEnabled());
+		entity.setRegistrationStatus(conf.getRegistrationStatus());
+	}
+
+	@Override
+	protected List<SettingSpecifier> settingsForConfiguration(ChargePointConfig conf, int index,
+			String keyPrefix) {
+		return conf.settings(getMessageSource(), Locale.getDefault(), keyPrefix);
+	}
+
+	@Override
+	protected Function<? super ChargePoint, ? extends ChargePointConfig> mapToConfiguration() {
+		return ChargePointConfig::new;
+	}
+
+	@Override
+	protected ChargePointConfig createNewConfiguration() {
+		return new ChargePointConfig();
 	}
 
 	@Override
@@ -112,115 +91,4 @@ public class OcppRegistrationManager implements SettingSpecifierProvider, Settin
 		return "OCPP ChargePoint Manager";
 	}
 
-	@Override
-	public MessageSource getMessageSource() {
-		return messageSource;
-	}
-
-	private synchronized List<ChargePointConfig> loadChargePoints() {
-		Collection<ChargePoint> result = chargePointDao.getAll(SORT_BY_CREATED_ASCENDING);
-		List<ChargePointConfig> configs = (result != null
-				? result.stream().map(ChargePointConfig::new).collect(Collectors.toList())
-				: new ArrayList<>());
-		if ( this.chargePoints != null ) {
-			while ( configs.size() < this.chargePointsCount ) {
-				configs.add(new ChargePointConfig());
-			}
-		} else {
-			this.chargePointsCount = configs.size();
-		}
-		this.chargePoints = configs;
-		return configs;
-	}
-
-	@Override
-	public List<SettingSpecifier> getSettingSpecifiers() {
-		List<SettingSpecifier> results = new ArrayList<>(1);
-
-		List<ChargePointConfig> configs = loadChargePoints();
-		results.add(SettingsUtil.dynamicListSettingSpecifier("chargePoints", configs,
-				new SettingsUtil.KeyedListCallback<ChargePointConfig>() {
-
-					@Override
-					public Collection<SettingSpecifier> mapListSettingKey(ChargePointConfig value,
-							int index, String key) {
-						return Collections.singletonList(new BasicGroupSettingSpecifier(
-								value.settings(messageSource, Locale.getDefault(), key + ".")));
-					}
-				}));
-
-		return results;
-	}
-
-	/**
-	 * Set the message source.
-	 * 
-	 * @param messageSource
-	 *        the message source to set
-	 */
-	public void setMessageSource(MessageSource messageSource) {
-		this.messageSource = messageSource;
-	}
-
-	/**
-	 * Get the list of charge points.
-	 * 
-	 * @return the authorizations
-	 */
-	public synchronized List<ChargePointConfig> getChargePoints() {
-		if ( chargePoints == null ) {
-			loadChargePoints();
-		}
-		return chargePoints;
-	}
-
-	/**
-	 * Set the list of charge points.
-	 * 
-	 * @param chargePoints
-	 *        the charge points to set
-	 */
-	public synchronized void setChargePoints(List<ChargePointConfig> chargePoints) {
-		this.chargePoints = chargePoints;
-	}
-
-	/**
-	 * Get the count of charge points.
-	 * 
-	 * @return the charge point count
-	 */
-	public synchronized int getChargePointsCount() {
-		if ( chargePointsCount < 0 ) {
-			loadChargePoints();
-		}
-		return chargePointsCount;
-	}
-
-	/**
-	 * Adjust the number of configured {@link ChargePointConfig} elements.
-	 * 
-	 * <p>
-	 * Any newly added element values will be set to new
-	 * {@link ChargePointConfig} instances.
-	 * </p>
-	 * 
-	 * @param count
-	 *        the desired number of elements
-	 */
-	public synchronized void setChargePointsCount(int count) {
-		List<ChargePointConfig> chargePoints = getChargePoints();
-		this.chargePointsCount = count;
-
-		int currCount = (chargePoints != null ? chargePoints.size() : 0);
-		if ( currCount == count ) {
-			return;
-		}
-		while ( currCount < count ) {
-			chargePoints.add(new ChargePointConfig());
-			currCount++;
-		}
-		while ( currCount > count ) {
-			chargePoints.remove(--currCount);
-		}
-	}
 }

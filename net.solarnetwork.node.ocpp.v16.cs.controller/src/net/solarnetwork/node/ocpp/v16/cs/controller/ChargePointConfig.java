@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import org.springframework.context.MessageSource;
+import net.solarnetwork.domain.Identity;
 import net.solarnetwork.node.ocpp.domain.ChargePoint;
 import net.solarnetwork.node.ocpp.domain.ChargePointInfo;
 import net.solarnetwork.node.ocpp.domain.RegistrationStatus;
@@ -47,7 +48,7 @@ import net.solarnetwork.node.settings.support.BasicToggleSettingSpecifier;
  * @author matt
  * @version 1.0
  */
-public class ChargePointConfig {
+public class ChargePointConfig implements Identity<String> {
 
 	/**
 	 * A default property value used for required properties like
@@ -89,6 +90,11 @@ public class ChargePointConfig {
 		setEnabled(chargePoint.isEnabled());
 		setRegistrationStatus(chargePoint.getRegistrationStatus());
 		setInfo(chargePoint.getInfo());
+	}
+
+	@Override
+	public int compareTo(String o) {
+		return id.compareTo(o);
 	}
 
 	/**
@@ -163,6 +169,7 @@ public class ChargePointConfig {
 	 * 
 	 * @return the Charge Point ID
 	 */
+	@Override
 	public String getId() {
 		return id;
 	}

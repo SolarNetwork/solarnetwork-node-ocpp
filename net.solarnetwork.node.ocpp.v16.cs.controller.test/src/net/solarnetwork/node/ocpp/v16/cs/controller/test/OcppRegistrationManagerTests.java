@@ -75,13 +75,13 @@ public class OcppRegistrationManagerTests {
 
 		// when
 		replayAll();
-		mgr.setChargePointsCount(1);
+		mgr.setEntitiesCount(1);
 
 		// then
-		assertThat("New count", mgr.getChargePointsCount(), equalTo(1));
-		assertThat("Conf list size", mgr.getChargePoints(), hasSize(1));
+		assertThat("New count", mgr.getEntitiesCount(), equalTo(1));
+		assertThat("Conf list size", mgr.getEntities(), hasSize(1));
 
-		ChargePointConfig conf = mgr.getChargePoints().get(0);
+		ChargePointConfig conf = mgr.getEntities().get(0);
 		assertThat("New config has no ID", conf.getId(), nullValue());
 		assertThat("Vendor defaulted", conf.getInfo().getChargePointVendor(),
 				equalTo(ChargePointConfig.DEFAULT_PROPERTY_VALUE));
@@ -103,12 +103,12 @@ public class OcppRegistrationManagerTests {
 
 		// when
 		replayAll();
-		assertThat("Initial count", mgr.getChargePointsCount(), equalTo(1));
-		mgr.setChargePointsCount(0);
+		assertThat("Initial count", mgr.getEntitiesCount(), equalTo(1));
+		mgr.setEntitiesCount(0);
 
 		// then
-		assertThat("New count", mgr.getChargePointsCount(), equalTo(0));
-		assertThat("Conf list size", mgr.getChargePoints(), hasSize(0));
+		assertThat("New count", mgr.getEntitiesCount(), equalTo(0));
+		assertThat("Conf list size", mgr.getEntities(), hasSize(0));
 	}
 
 	@Test
@@ -127,12 +127,12 @@ public class OcppRegistrationManagerTests {
 
 		// when
 		replayAll();
-		assertThat("Initial count", mgr.getChargePointsCount(), equalTo(1));
-		mgr.setChargePointsCount(0);
+		assertThat("Initial count", mgr.getEntitiesCount(), equalTo(1));
+		mgr.setEntitiesCount(0);
 		mgr.configurationChanged(singletonMap("chargePointsCount", "0"));
 
 		// then
-		assertThat("New count", mgr.getChargePointsCount(), equalTo(0));
-		assertThat("Conf list size", mgr.getChargePoints(), hasSize(0));
+		assertThat("New count", mgr.getEntitiesCount(), equalTo(0));
+		assertThat("Conf list size", mgr.getEntities(), hasSize(0));
 	}
 }

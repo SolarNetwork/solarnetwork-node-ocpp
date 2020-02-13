@@ -74,13 +74,13 @@ public class OcppAuthorizationManagerTests {
 
 		// when
 		replayAll();
-		mgr.setAuthorizationsCount(1);
+		mgr.setEntitiesCount(1);
 
 		// then
-		assertThat("New count", mgr.getAuthorizationsCount(), equalTo(1));
-		assertThat("Conf list size", mgr.getAuthorizations(), hasSize(1));
+		assertThat("New count", mgr.getEntitiesCount(), equalTo(1));
+		assertThat("Conf list size", mgr.getEntities(), hasSize(1));
 
-		AuthorizationConfig conf = mgr.getAuthorizations().get(0);
+		AuthorizationConfig conf = mgr.getEntities().get(0);
 		assertThat("New config has no ID", conf.getId(), nullValue());
 	}
 
@@ -95,12 +95,12 @@ public class OcppAuthorizationManagerTests {
 
 		// when
 		replayAll();
-		assertThat("Initial count", mgr.getAuthorizationsCount(), equalTo(1));
-		mgr.setAuthorizationsCount(0);
+		assertThat("Initial count", mgr.getEntitiesCount(), equalTo(1));
+		mgr.setEntitiesCount(0);
 
 		// then
-		assertThat("New count", mgr.getAuthorizationsCount(), equalTo(0));
-		assertThat("Conf list size", mgr.getAuthorizations(), hasSize(0));
+		assertThat("New count", mgr.getEntitiesCount(), equalTo(0));
+		assertThat("Conf list size", mgr.getEntities(), hasSize(0));
 	}
 
 	@Test
@@ -116,13 +116,13 @@ public class OcppAuthorizationManagerTests {
 
 		// when
 		replayAll();
-		assertThat("Initial count", mgr.getAuthorizationsCount(), equalTo(1));
-		mgr.setAuthorizationsCount(0);
+		assertThat("Initial count", mgr.getEntitiesCount(), equalTo(1));
+		mgr.setEntitiesCount(0);
 		mgr.configurationChanged(singletonMap("chargePointsCount", "0"));
 
 		// then
-		assertThat("New count", mgr.getAuthorizationsCount(), equalTo(0));
-		assertThat("Conf list size", mgr.getAuthorizations(), hasSize(0));
+		assertThat("New count", mgr.getEntitiesCount(), equalTo(0));
+		assertThat("Conf list size", mgr.getEntities(), hasSize(0));
 	}
 
 }

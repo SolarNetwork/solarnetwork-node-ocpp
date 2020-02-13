@@ -27,6 +27,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import net.solarnetwork.domain.Identity;
 import net.solarnetwork.node.ocpp.domain.Authorization;
 import net.solarnetwork.node.settings.SettingSpecifier;
 import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
@@ -39,7 +40,7 @@ import net.solarnetwork.util.DateUtils;
  * @author matt
  * @version 1.0
  */
-public class AuthorizationConfig {
+public class AuthorizationConfig implements Identity<String> {
 
 	private String id;
 	private boolean enabled;
@@ -90,9 +91,12 @@ public class AuthorizationConfig {
 		return results;
 	}
 
-	/**
-	 * @return the id
-	 */
+	@Override
+	public int compareTo(String o) {
+		return id.compareTo(o);
+	}
+
+	@Override
 	public String getId() {
 		return id;
 	}
