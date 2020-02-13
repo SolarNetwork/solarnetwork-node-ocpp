@@ -37,7 +37,6 @@ public class SampledValue {
 	private final Instant timestamp;
 	private final String value;
 	private final ReadingContext context;
-	private final ValueFormat format;
 	private final Measurand measurand;
 	private final Phase phase;
 	private final Location location;
@@ -48,7 +47,6 @@ public class SampledValue {
 		this.timestamp = builder.timestamp;
 		this.value = builder.value;
 		this.context = builder.context;
-		this.format = builder.format;
 		this.measurand = builder.measurand;
 		this.phase = builder.phase;
 		this.location = builder.location;
@@ -94,15 +92,6 @@ public class SampledValue {
 	 */
 	public ReadingContext getContext() {
 		return context;
-	}
-
-	/**
-	 * Get the value format.
-	 * 
-	 * @return the format
-	 */
-	public ValueFormat getFormat() {
-		return format;
 	}
 
 	/**
@@ -168,7 +157,6 @@ public class SampledValue {
 		private Instant timestamp;
 		private String value;
 		private ReadingContext context;
-		private ValueFormat format;
 		private Measurand measurand;
 		private Phase phase;
 		private Location location;
@@ -184,7 +172,6 @@ public class SampledValue {
 			this.timestamp = value.timestamp;
 			this.value = value.value;
 			this.context = value.context;
-			this.format = value.format;
 			this.measurand = value.measurand;
 			this.phase = value.phase;
 			this.location = value.location;
@@ -208,11 +195,6 @@ public class SampledValue {
 
 		public Builder withContext(ReadingContext context) {
 			this.context = context;
-			return this;
-		}
-
-		public Builder withFormat(ValueFormat format) {
-			this.format = format;
 			return this;
 		}
 
