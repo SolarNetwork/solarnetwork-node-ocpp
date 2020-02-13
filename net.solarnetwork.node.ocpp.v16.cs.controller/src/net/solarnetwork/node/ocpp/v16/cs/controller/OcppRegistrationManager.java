@@ -191,7 +191,10 @@ public class OcppRegistrationManager implements SettingSpecifierProvider, Settin
 	 * 
 	 * @return the charge point count
 	 */
-	public int getChargePointsCount() {
+	public synchronized int getChargePointsCount() {
+		if ( chargePointsCount < 0 ) {
+			loadChargePoints();
+		}
 		return chargePointsCount;
 	}
 
