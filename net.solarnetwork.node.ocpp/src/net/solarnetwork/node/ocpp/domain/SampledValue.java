@@ -90,6 +90,38 @@ public class SampledValue implements Comparable<SampledValue> {
 		return Integer.compare(measurand.codeValue(), o.measurand.codeValue());
 	}
 
+	@Override
+	public String toString() {
+		StringBuilder builder2 = new StringBuilder();
+		builder2.append("SampledValue{");
+		if ( timestamp != null ) {
+			builder2.append("timestamp=");
+			builder2.append(timestamp);
+			builder2.append(", ");
+		}
+		if ( context != null ) {
+			builder2.append("context=");
+			builder2.append(context);
+			builder2.append(", ");
+		}
+		if ( location != null ) {
+			builder2.append("location=");
+			builder2.append(location);
+			builder2.append(", ");
+		}
+		if ( measurand != null ) {
+			builder2.append("measurand=");
+			builder2.append(measurand);
+			builder2.append(", ");
+		}
+		if ( value != null ) {
+			builder2.append("value=");
+			builder2.append(value);
+		}
+		builder2.append("}");
+		return builder2.toString();
+	}
+
 	/**
 	 * Get the {@link ChargeSession} ID associated with this value.
 	 * 

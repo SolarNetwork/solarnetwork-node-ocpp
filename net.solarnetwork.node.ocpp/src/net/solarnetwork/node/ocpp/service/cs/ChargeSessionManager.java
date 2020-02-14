@@ -22,11 +22,14 @@
 
 package net.solarnetwork.node.ocpp.service.cs;
 
+import java.util.Collection;
+import java.util.UUID;
 import net.solarnetwork.domain.Identifiable;
 import net.solarnetwork.node.ocpp.domain.AuthorizationInfo;
 import net.solarnetwork.node.ocpp.domain.ChargeSession;
 import net.solarnetwork.node.ocpp.domain.ChargeSessionEndInfo;
 import net.solarnetwork.node.ocpp.domain.ChargeSessionStartInfo;
+import net.solarnetwork.node.ocpp.domain.SampledValue;
 import net.solarnetwork.node.ocpp.service.AuthorizationException;
 
 /**
@@ -68,6 +71,23 @@ public interface ChargeSessionManager extends Identifiable {
 	 */
 	ChargeSession getActiveChargingSession(String chargePointId, int transactionId)
 			throws AuthorizationException;
+
+	/**
+	 * Get all available charge session readings.
+	 * 
+	 * @param sessionId
+	 *        the charge session ID
+	 * @return the readings, never {@literal null}
+	 */
+	Collection<SampledValue> getChargingSessionReadings(UUID sessionId);
+
+	/**
+	 * Add charge session readings.
+	 * 
+	 * @param readings
+	 *        the readings to add
+	 */
+	void addChargingSessionReadings(Iterable<SampledValue> readings);
 
 	/**
 	 * End a charging session.
