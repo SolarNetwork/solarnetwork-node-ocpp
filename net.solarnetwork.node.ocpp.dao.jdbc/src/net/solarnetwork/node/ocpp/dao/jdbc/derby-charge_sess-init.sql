@@ -19,18 +19,17 @@ CREATE TABLE solarnode.ocpp_charge_sess (
 		ON DELETE CASCADE
 );
 
-CREATE TABLE solarnode.ocpp_charge_sess_value (
+CREATE TABLE solarnode.ocpp_charge_sess_reading (
 	sess_id_hi			BIGINT NOT NULL,
 	sess_id_lo			BIGINT NOT NULL,
 	ts					TIMESTAMP NOT NULL WITH DEFAULT CURRENT_TIMESTAMP,
-	format              SMALLINT NOT NULL WITH DEFAULT 0,
 	location			SMALLINT NOT NULL WITH DEFAULT 0,
 	unit 				SMALLINT NOT NULL WITH DEFAULT 0,
 	context 			SMALLINT NOT NULL WITH DEFAULT 0,
 	measurand			SMALLINT NOT NULL WITH DEFAULT 0,
-	phase				SMALLINT NOT NULL WITH DEFAULT 0,
+	phase				SMALLINT,
 	reading 			VARCHAR(64) NOT NULL,
-	CONSTRAINT ocpp_charge_sess_value_charge_sess_fk FOREIGN KEY (sess_id_hi, sess_id_lo)
+	CONSTRAINT ocpp_charge_sess_reading_charge_sess_fk FOREIGN KEY (sess_id_hi, sess_id_lo)
 		REFERENCES solarnode.ocpp_charge_sess (id_hi, id_lo)
 		ON DELETE CASCADE
 );

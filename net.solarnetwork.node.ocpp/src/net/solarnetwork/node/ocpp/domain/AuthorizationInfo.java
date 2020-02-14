@@ -44,6 +44,18 @@ public class AuthorizationInfo {
 	 *        the ID value, e.g. RFID tag ID
 	 * @param status
 	 *        the associated OCCP status
+	 */
+	public AuthorizationInfo(String id, AuthorizationStatus status) {
+		this(id, status, null, null);
+	}
+
+	/**
+	 * Constructor.
+	 * 
+	 * @param id
+	 *        the ID value, e.g. RFID tag ID
+	 * @param status
+	 *        the associated OCCP status
 	 * @param expiryDate
 	 *        the expiration date
 	 * @param parentId

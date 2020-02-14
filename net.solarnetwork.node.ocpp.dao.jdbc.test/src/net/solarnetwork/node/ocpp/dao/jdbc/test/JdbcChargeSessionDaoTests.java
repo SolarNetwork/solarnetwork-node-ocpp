@@ -24,9 +24,13 @@ package net.solarnetwork.node.ocpp.dao.jdbc.test;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import javax.annotation.Resource;
 import javax.sql.DataSource;
@@ -39,7 +43,12 @@ import net.solarnetwork.node.ocpp.domain.ChargePoint;
 import net.solarnetwork.node.ocpp.domain.ChargePointInfo;
 import net.solarnetwork.node.ocpp.domain.ChargeSession;
 import net.solarnetwork.node.ocpp.domain.ChargeSessionEndReason;
+import net.solarnetwork.node.ocpp.domain.Location;
+import net.solarnetwork.node.ocpp.domain.Measurand;
+import net.solarnetwork.node.ocpp.domain.ReadingContext;
 import net.solarnetwork.node.ocpp.domain.RegistrationStatus;
+import net.solarnetwork.node.ocpp.domain.SampledValue;
+import net.solarnetwork.node.ocpp.domain.UnitOfMeasure;
 import net.solarnetwork.node.test.AbstractNodeTransactionalTest;
 
 /**
@@ -129,6 +138,89 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 		ChargeSession entity = dao.get(pk);
 		assertThat("Ended updated", entity.getEnded(), equalTo(sess.getEnded()));
 		assertThat("Posted updated", entity.getPosted(), equalTo(sess.getPosted()));
+	}
+
+	@Test
+	public void findIncomplete_none() {
+		ChargeSession sess = dao.getIncompleteChargeSessionForTransaction("n/a", 1);
+		assertThat("No incomplete session found", sess, nullValue());
+	}
+
+	@Test
+	public void findIncomplete_noMatchingId() {
+		insert();
+		ChargeSession sess = dao.getIncompleteChargeSessionForTransaction("n/a", 1);
+		assertThat("No incomplete session found", sess, nullValue());
+	}
+
+	@Test
+	public void findIncomplete_onlyComplete() {
+		insert();
+
+		ChargeSession s = dao.get(last.getId());
+		s.setEnded(Instant.now());
+		dao.save(s);
+
+		ChargeSession sess = dao.getIncompleteChargeSessionForTransaction(s.getChargePointId(),
+				s.getTransactionId());
+		assertThat("No incomplete session found", sess, nullValue());
+	}
+
+	@Test
+	public void findIncomplete() {
+		insert();
+
+		ChargeSession s = dao.get(last.getId());
+
+		ChargeSession sess = dao.getIncompleteChargeSessionForTransaction(s.getChargePointId(),
+				s.getTransactionId());
+		assertThat("Incomplete session found", sess, equalTo(last));
+	}
+
+	private List<SampledValue> createTestReadings() {
+		// @formatter:off
+		SampledValue v1 = SampledValue.builder().withSessionId(last.getId())
+				.withTimestamp(Instant.now().minusSeconds(60))
+				.withContext(ReadingContext.TransactionBegin)
+				.withLocation(Location.Outlet)
+				.withMeasurand(Measurand.EnergyActiveImportRegister)
+				.withUnit(UnitOfMeasure.Wh)
+				.withValue("1234")
+				.build();
+		SampledValue v2 = SampledValue.builder().withSessionId(last.getId())
+				.withTimestamp(Instant.now())
+				.withContext(ReadingContext.TransactionEnd)
+				.withLocation(Location.Outlet)
+				.withMeasurand(Measurand.EnergyActiveImportRegister)
+				.withUnit(UnitOfMeasure.Wh)
+				.withValue("4321")
+				.build();
+		// @formatter:on
+		return Arrays.asList(v1, v2);
+	}
+
+	@Test
+	public void addReadings() {
+		insert();
+		dao.addReadings(createTestReadings());
+	}
+
+	@Test
+	public void findReadings() {
+		insert();
+		List<SampledValue> expected = createTestReadings();
+		dao.addReadings(expected);
+
+		List<SampledValue> results = dao.findReadingsForSession(last.getId());
+		assertThat("Readings found", results, equalTo(expected));
+	}
+
+	@Test
+	public void findReadings_none() {
+		insert();
+
+		List<SampledValue> results = dao.findReadingsForSession(last.getId());
+		assertThat("Readings found", results, hasSize(0));
 	}
 
 }

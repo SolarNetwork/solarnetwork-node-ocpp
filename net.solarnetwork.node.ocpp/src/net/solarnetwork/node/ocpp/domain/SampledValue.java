@@ -23,6 +23,7 @@
 package net.solarnetwork.node.ocpp.domain;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -31,7 +32,7 @@ import java.util.UUID;
  * @author matt
  * @version 1.0
  */
-public class SampledValue {
+public class SampledValue implements Comparable<SampledValue> {
 
 	private final UUID sessionId;
 	private final Instant timestamp;
@@ -51,6 +52,42 @@ public class SampledValue {
 		this.phase = builder.phase;
 		this.location = builder.location;
 		this.unit = builder.unit;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(context, location, measurand, phase, sessionId, timestamp);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if ( this == obj ) {
+			return true;
+		}
+		if ( !(obj instanceof SampledValue) ) {
+			return false;
+		}
+		SampledValue other = (SampledValue) obj;
+		return context == other.context && location == other.location && measurand == other.measurand
+				&& phase == other.phase && Objects.equals(sessionId, other.sessionId)
+				&& Objects.equals(timestamp, other.timestamp);
+	}
+
+	@Override
+	public int compareTo(SampledValue o) {
+		int result = timestamp.compareTo(o.timestamp);
+		if ( result != 0 ) {
+			return result;
+		}
+		result = Integer.compare(context.codeValue(), o.context.codeValue());
+		if ( result != 0 ) {
+			return result;
+		}
+		result = Integer.compare(location.codeValue(), o.location.codeValue());
+		if ( result != 0 ) {
+			return result;
+		}
+		return Integer.compare(measurand.codeValue(), o.measurand.codeValue());
 	}
 
 	/**
