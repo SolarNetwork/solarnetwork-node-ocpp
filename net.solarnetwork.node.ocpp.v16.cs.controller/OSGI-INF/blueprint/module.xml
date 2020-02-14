@@ -39,6 +39,8 @@
 	
 	<reference id="chargePointRouter" interface="net.solarnetwork.node.ocpp.service.ChargePointRouter"/>
 
+	<reference id="chargeSessionManager" interface="net.solarnetwork.node.ocpp.service.cs.ChargeSessionManager" availability="optional" />
+	
 	<!-- Use Java @Transactional annotations to declare transactions. -->
 	<tx:annotation-driven transaction-manager="transactionManager"/>
 	
@@ -73,6 +75,15 @@
 		<bean class="net.solarnetwork.node.ocpp.v16.cs.HeartbeatProcessor"/>
 	</service>
 	
+	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
+		<service-properties>
+			<entry key="action" value="MeterValues"/>
+			<entry key="role" value="cs"/>
+		</service-properties>
+		<bean class="net.solarnetwork.node.ocpp.v16.cs.MeterValuesProcessor">
+			<argument ref="chargeSessionManager"/>
+		</bean>
+	</service>
 	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
 		<service-properties>
 			<entry key="action" value="StatusNotification"/>
