@@ -25,7 +25,6 @@ package net.solarnetwork.node.ocpp.v16.cs;
 import java.time.Instant;
 import java.util.UUID;
 import net.solarnetwork.node.ocpp.domain.AuthorizationStatus;
-import net.solarnetwork.node.ocpp.domain.ChargeSession;
 import net.solarnetwork.node.ocpp.domain.Location;
 import net.solarnetwork.node.ocpp.domain.Measurand;
 import net.solarnetwork.node.ocpp.domain.Phase;
@@ -76,7 +75,7 @@ public final class CentralSystemUtils {
 	 * Convert a {@link ocpp.v16.cs.SampledValue} into a {@link SampleValue}.
 	 * 
 	 * @param chargeSessionId
-	 *        the {@link ChargeSession#getId()} associated with the sample
+	 *        the charge session ID associated with the sample
 	 * @param timestamp
 	 *        the timestamp associated with the sample
 	 * @param value
