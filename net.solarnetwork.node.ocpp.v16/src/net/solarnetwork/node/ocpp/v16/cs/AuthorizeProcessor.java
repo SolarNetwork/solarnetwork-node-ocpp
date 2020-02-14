@@ -26,7 +26,6 @@ import java.util.Collections;
 import java.util.Set;
 import net.solarnetwork.node.ocpp.domain.ActionMessage;
 import net.solarnetwork.node.ocpp.domain.AuthorizationInfo;
-import net.solarnetwork.node.ocpp.domain.AuthorizationStatus;
 import net.solarnetwork.node.ocpp.service.ActionMessageProcessor;
 import net.solarnetwork.node.ocpp.service.ActionMessageResultHandler;
 import net.solarnetwork.node.ocpp.service.AuthorizationService;
@@ -85,7 +84,7 @@ public class AuthorizeProcessor
 
 			IdTagInfo tagInfo = new IdTagInfo();
 			tagInfo.setParentIdTag(info.getParentId());
-			tagInfo.setStatus(statusForStatus(info.getStatus()));
+			tagInfo.setStatus(CentralSystemUtils.statusForStatus(info.getStatus()));
 			if ( info.getExpiryDate() != null ) {
 				tagInfo.setExpiryDate(XmlDateUtils.newXmlCalendar(info.getExpiryDate().toEpochMilli()));
 			}
@@ -98,25 +97,6 @@ public class AuthorizeProcessor
 			ErrorCodeException err = new ErrorCodeException(ActionErrorCode.InternalError,
 					"Internal error: " + t.getMessage());
 			resultHandler.handleActionMessageResult(message, null, err);
-		}
-	}
-
-	private ocpp.v16.cs.AuthorizationStatus statusForStatus(AuthorizationStatus status) {
-		switch (status) {
-			case Accepted:
-				return ocpp.v16.cs.AuthorizationStatus.ACCEPTED;
-
-			case Blocked:
-				return ocpp.v16.cs.AuthorizationStatus.BLOCKED;
-
-			case ConcurrentTx:
-				return ocpp.v16.cs.AuthorizationStatus.CONCURRENT_TX;
-
-			case Expired:
-				return ocpp.v16.cs.AuthorizationStatus.EXPIRED;
-
-			default:
-				return ocpp.v16.cs.AuthorizationStatus.INVALID;
 		}
 	}
 

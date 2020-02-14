@@ -40,6 +40,7 @@ import ocpp.v16.ActionErrorCode;
 import ocpp.v16.CentralSystemAction;
 import ocpp.v16.cs.StatusNotificationRequest;
 import ocpp.v16.cs.StatusNotificationResponse;
+import ocpp.xml.support.XmlDateUtils;
 
 /**
  * Process {@link StatusNotificationRequest} action messages.
@@ -97,7 +98,7 @@ public class StatusNotificationProcessor
 				.withConnectorId(req.getConnectorId())
 				.withStatus(statusValue(req))
 				.withErrorCode(errorCode(req))
-				.withTimestamp(timestamp(req))
+				.withTimestamp(XmlDateUtils.timestamp(req.getTimestamp(), Instant::now))
 				.withInfo(req.getInfo())
 				.withVendorId(req.getVendorId())
 				.withVendorErrorCode(req.getVendorErrorCode())
@@ -136,12 +137,6 @@ public class StatusNotificationProcessor
 			}
 		}
 		return ChargePointErrorCode.Unknown;
-	}
-
-	private Instant timestamp(StatusNotificationRequest req) {
-		return req.getTimestamp() != null
-				? Instant.ofEpochMilli(req.getTimestamp().toGregorianCalendar().getTimeInMillis())
-				: Instant.now();
 	}
 
 }

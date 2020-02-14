@@ -32,6 +32,7 @@ import org.springframework.jdbc.core.RowMapper;
 import net.solarnetwork.node.dao.jdbc.BaseJdbcGenericDao;
 import net.solarnetwork.node.ocpp.dao.ChargeSessionDao;
 import net.solarnetwork.node.ocpp.domain.ChargeSession;
+import net.solarnetwork.node.ocpp.domain.ChargeSessionEndReason;
 
 /**
  * JDBC based implementation of {@link ChargeSessionDao}.
@@ -61,21 +62,25 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 		setUuidParameters(ps, 1, obj.getId());
 		setInstantParameter(ps, 3, obj.getCreated() != null ? obj.getCreated() : Instant.now());
 		ps.setString(4, obj.getAuthId());
-		ps.setInt(5, obj.getConnectionId());
-		setUpdateStatementValues(obj, ps, 5);
+		ps.setString(5, obj.getChargePointId());
+		ps.setInt(6, obj.getConnectorId());
+		setUpdateStatementValues(obj, ps, 6);
 	}
 
 	@Override
 	protected void setUpdateStatementValues(ChargeSession obj, PreparedStatement ps)
 			throws SQLException {
 		setUpdateStatementValues(obj, ps, 0);
-		setUuidParameters(ps, 3, obj.getId());
+		setUuidParameters(ps, 5, obj.getId());
 	}
 
 	protected void setUpdateStatementValues(ChargeSession obj, PreparedStatement ps, int offset)
 			throws SQLException {
 		setInstantParameter(ps, 1 + offset, obj.getEnded());
-		setInstantParameter(ps, 2 + offset, obj.getPosted());
+		ps.setInt(2 + offset, obj.getEndReason() != null ? obj.getEndReason().codeValue()
+				: ChargeSessionEndReason.Unknown.codeValue());
+		ps.setString(3 + offset, obj.getEndAuthId());
+		setInstantParameter(ps, 4 + offset, obj.getPosted());
 	}
 
 	/**
@@ -88,10 +93,12 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 			UUID id = getUuidColumns(rs, 1);
 			Instant created = getInstantColumn(rs, 3);
 
-			ChargeSession obj = new ChargeSession(id, created, rs.getString(4), rs.getInt(5));
-			obj.setTransactionId(rs.getInt(6));
-			obj.setEnded(getInstantColumn(rs, 7));
-			obj.setPosted(getInstantColumn(rs, 8));
+			ChargeSession obj = new ChargeSession(id, created, rs.getString(4), rs.getString(5),
+					rs.getInt(6), rs.getInt(7));
+			obj.setEnded(getInstantColumn(rs, 8));
+			obj.setEndReason(ChargeSessionEndReason.forCode(rs.getInt(9)));
+			obj.setEndAuthId(rs.getString(10));
+			obj.setPosted(getInstantColumn(rs, 11));
 
 			return obj;
 		}

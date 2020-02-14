@@ -36,9 +36,12 @@ import net.solarnetwork.dao.BasicUuidEntity;
 public class ChargeSession extends BasicUuidEntity {
 
 	private final String authId;
-	private final int connectionId;
-	private int transactionId;
+	private final String chargePointId;
+	private final int connectorId;
+	private final int transactionId;
 	private Instant ended;
+	private String endAuthId;
+	private ChargeSessionEndReason endReason;
 	private Instant posted;
 
 	/**
@@ -48,11 +51,22 @@ public class ChargeSession extends BasicUuidEntity {
 	 *        the primary key
 	 * @param created
 	 *        the created date
+	 * @param authId
+	 *        the authorization ID
+	 * @param chargePointId
+	 *        the Charge Point ID
+	 * @param connectorId
+	 *        the Charge Point connector ID
+	 * @param transactionId
+	 *        the transactionID
 	 */
-	public ChargeSession(UUID id, Instant created, String authId, int connectionId) {
+	public ChargeSession(UUID id, Instant created, String authId, String chargePointId, int connectorId,
+			int transactionId) {
 		super(id, created);
 		this.authId = authId;
-		this.connectionId = connectionId;
+		this.chargePointId = chargePointId;
+		this.connectorId = connectorId;
+		this.transactionId = transactionId;
 	}
 
 	/**
@@ -65,12 +79,21 @@ public class ChargeSession extends BasicUuidEntity {
 	}
 
 	/**
+	 * Get the Charge Point ID.
+	 * 
+	 * @return the Charge Point ID
+	 */
+	public String getChargePointId() {
+		return chargePointId;
+	}
+
+	/**
 	 * Get the Charge Point connection ID.
 	 * 
 	 * @return the Charge Point connection ID
 	 */
-	public int getConnectionId() {
-		return connectionId;
+	public int getConnectorId() {
+		return connectorId;
 	}
 
 	/**
@@ -80,16 +103,6 @@ public class ChargeSession extends BasicUuidEntity {
 	 */
 	public int getTransactionId() {
 		return transactionId;
-	}
-
-	/**
-	 * Set the assigned transaction ID.
-	 * 
-	 * @param transactionId
-	 *        the transaction ID to set
-	 */
-	public void setTransactionId(int transactionId) {
-		this.transactionId = transactionId;
 	}
 
 	/**
@@ -109,6 +122,44 @@ public class ChargeSession extends BasicUuidEntity {
 	 */
 	public void setEnded(Instant ended) {
 		this.ended = ended;
+	}
+
+	/**
+	 * Get the session end reason.
+	 * 
+	 * @return the the end reason
+	 */
+	public ChargeSessionEndReason getEndReason() {
+		return endReason;
+	}
+
+	/**
+	 * Set the session end reason.
+	 * 
+	 * @param endReason
+	 *        the reason to set
+	 */
+	public void setEndReason(ChargeSessionEndReason endReason) {
+		this.endReason = endReason;
+	}
+
+	/**
+	 * The authorization ID used to end the transaction.
+	 * 
+	 * @return the ending authorization ID, or {@literal null}
+	 */
+	public String getEndAuthId() {
+		return endAuthId;
+	}
+
+	/**
+	 * Set the authorization ID used to end the transaction.
+	 * 
+	 * @param endAuthId
+	 *        the ending authorization ID to set
+	 */
+	public void setEndAuthId(String endAuthId) {
+		this.endAuthId = endAuthId;
 	}
 
 	/**

@@ -6,11 +6,17 @@ CREATE TABLE solarnode.ocpp_charge_sess (
 	id_lo				BIGINT NOT NULL,
 	created				TIMESTAMP NOT NULL WITH DEFAULT CURRENT_TIMESTAMP,
 	auth_id				VARCHAR(20) NOT NULL,
+	cp_id				VARCHAR(255) NOT NULL,
 	conn_id				INTEGER NOT NULL,
 	tx_id				INTEGER NOT NULL,
 	ended				TIMESTAMP,
+	end_reason			SMALLINT NOT NULL DEFAULT 0,
+	end_auth_id			VARCHAR(20),
 	posted				TIMESTAMP,
-	CONSTRAINT ocpp_charge_sess_pk PRIMARY KEY (id_hi, id_lo)
+	CONSTRAINT ocpp_charge_sess_pk PRIMARY KEY (id_hi, id_lo),
+	CONSTRAINT ocpp_charge_sess_charge_point_fk FOREIGN KEY (cp_id)
+		REFERENCES solarnode.ocpp_charge_point (id)
+		ON DELETE CASCADE
 );
 
 CREATE TABLE solarnode.ocpp_charge_sess_value (
