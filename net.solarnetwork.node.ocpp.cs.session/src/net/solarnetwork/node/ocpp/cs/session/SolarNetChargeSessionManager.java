@@ -35,9 +35,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import net.solarnetwork.domain.GeneralDatumSamplesType;
@@ -47,6 +50,7 @@ import net.solarnetwork.node.domain.AtmosphericDatum;
 import net.solarnetwork.node.domain.Datum;
 import net.solarnetwork.node.domain.GeneralNodeDatum;
 import net.solarnetwork.node.ocpp.dao.ChargeSessionDao;
+import net.solarnetwork.node.ocpp.dao.PurgePostedChargeSessionsTask;
 import net.solarnetwork.node.ocpp.domain.AuthorizationInfo;
 import net.solarnetwork.node.ocpp.domain.AuthorizationStatus;
 import net.solarnetwork.node.ocpp.domain.ChargeSession;
@@ -65,6 +69,7 @@ import net.solarnetwork.node.settings.SettingSpecifier;
 import net.solarnetwork.node.settings.SettingSpecifierProvider;
 import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
 import net.solarnetwork.node.support.BaseIdentifiable;
+import net.solarnetwork.settings.SettingsChangeObserver;
 import net.solarnetwork.util.NumberUtils;
 import net.solarnetwork.util.OptionalService;
 import net.solarnetwork.util.StringUtils;
@@ -76,7 +81,7 @@ import net.solarnetwork.util.StringUtils;
  * @version 1.0
  */
 public class SolarNetChargeSessionManager extends BaseIdentifiable
-		implements ChargeSessionManager, SettingSpecifierProvider {
+		implements ChargeSessionManager, SettingSpecifierProvider, SettingsChangeObserver {
 
 	/** A datum property name for a charging session ID. */
 	public static final String SESSION_ID_PROPERTY = "sessionId";
@@ -87,13 +92,18 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 	/** The default {@code maxTemperatureScale} value. */
 	public static final int DEFAULT_MAX_TEMPERATURE_SCALE = 1;
 
+	private final Logger log = LoggerFactory.getLogger(getClass());
+
 	private final AuthorizationService authService;
 	private final ChargeSessionDao chargeSessionDao;
 	private final OptionalService<DatumDao<GeneralNodeDatum>> datumDao;
 	private String sourceIdTemplate = DEFAULT_SOURCE_ID_TEMPLATE;
 	private int maxTemperatureScale = DEFAULT_MAX_TEMPERATURE_SCALE;
+	private TaskScheduler taskScheduler;
 
-	private final Logger log = LoggerFactory.getLogger(getClass());
+	private final PurgePostedChargeSessionsTask purgePostedTask = new PurgePostedChargeSessionsTask();
+	private ScheduledFuture<?> configurationFuture;
+	private ScheduledFuture<?> purgePostedFuture;
 
 	/**
 	 * Constructor.
@@ -111,6 +121,74 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 		this.authService = authService;
 		this.chargeSessionDao = chargeSessionDao;
 		this.datumDao = datumDao;
+	}
+
+	/**
+	 * Initialize after properties configured.
+	 */
+	public void startup() {
+		reconfigure();
+	}
+
+	/**
+	 * Free resources after no longer needed.
+	 */
+	public void shutdown() {
+		stopTasks();
+	}
+
+	@Override
+	public synchronized void configurationChanged(Map<String, Object> properties) {
+		if ( properties == null || properties.isEmpty() ) {
+			return;
+		}
+		reconfigure();
+	}
+
+	private synchronized void stopTasks() {
+		if ( purgePostedFuture != null ) {
+			if ( !purgePostedFuture.isDone() ) {
+				purgePostedFuture.cancel(true);
+			}
+			purgePostedFuture = null;
+		}
+	}
+
+	private synchronized void reconfigure() {
+		if ( taskScheduler != null ) {
+			stopTasks();
+			if ( configurationFuture != null ) {
+				if ( !configurationFuture.isDone() ) {
+					configurationFuture.cancel(true);
+				}
+			}
+			configurationFuture = taskScheduler.schedule(new ConfigurationTask(),
+					new Date(System.currentTimeMillis() + 1000));
+		}
+	}
+
+	private final class ConfigurationTask implements Runnable {
+
+		@Override
+		public void run() {
+			TaskScheduler scheduler = getTaskScheduler();
+			if ( scheduler == null ) {
+				return;
+			}
+			synchronized ( SolarNetChargeSessionManager.this ) {
+				configurationFuture = null;
+				stopTasks();
+				int purgeHours = getPurgePostedChargeSessionsExpirationHours();
+				if ( purgeHours > 0 ) {
+					log.info("Scheduling OCPP posted charge session purge task at {} hours.",
+							purgeHours);
+					long purgeMs = TimeUnit.HOURS.toMillis(purgeHours);
+					purgePostedFuture = scheduler.scheduleWithFixedDelay(purgePostedTask,
+							new Date(System.currentTimeMillis() + purgeMs), purgeMs);
+				}
+			}
+		}
+
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -426,6 +504,12 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 		}
 	}
 
+	@Override
+	public Collection<ChargeSession> getActiveChargingSessions(String chargePointId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 	// SettingsSpecifierProvider
 
 	@Override
@@ -439,6 +523,8 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 		results.add(new BasicTextFieldSettingSpecifier("sourceIdTemplate", DEFAULT_SOURCE_ID_TEMPLATE));
 		results.add(new BasicTextFieldSettingSpecifier("maxTemperatureScale",
 				String.valueOf(DEFAULT_MAX_TEMPERATURE_SCALE)));
+		results.add(new BasicTextFieldSettingSpecifier("purgePostedChargeSessionsExpirationHours",
+				String.valueOf(PurgePostedChargeSessionsTask.DEFAULT_EXPIRATION_HOURS)));
 		return results;
 	}
 
@@ -495,6 +581,46 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 	 */
 	public void setMaxTemperatureScale(int maxTemperatureScale) {
 		this.maxTemperatureScale = maxTemperatureScale;
+	}
+
+	/**
+	 * Get the task scheduler.
+	 * 
+	 * @return the task scheduler
+	 */
+	public TaskScheduler getTaskScheduler() {
+		return taskScheduler;
+	}
+
+	/**
+	 * Set the task scheduler.
+	 * 
+	 * @param taskScheduler
+	 *        the task scheduler to set
+	 */
+	public void setTaskScheduler(TaskScheduler taskScheduler) {
+		this.taskScheduler = taskScheduler;
+	}
+
+	/**
+	 * Get the number of hours after which posted charge sessions may be purged
+	 * (deleted).
+	 * 
+	 * @return the posted charge sessions expiration time, in hours
+	 */
+	public int getPurgePostedChargeSessionsExpirationHours() {
+		return purgePostedTask.getExpirationHours();
+	}
+
+	/**
+	 * Set the number of hours after which posted charge sessions may be purged
+	 * (deleted).
+	 * 
+	 * @param hours
+	 *        posted charge sessions expiration time, in hours
+	 */
+	public void setPurgePostedChargeSessionsExpirationHours(int hours) {
+		purgePostedTask.setExpirationHours(hours);
 	}
 
 }

@@ -22,16 +22,24 @@
 
 package net.solarnetwork.node.ocpp.cs.session.test;
 
+import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.capture;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.verify;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.easymock.Capture;
@@ -40,11 +48,13 @@ import org.easymock.IAnswer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.scheduling.TaskScheduler;
 import net.solarnetwork.node.dao.DatumDao;
 import net.solarnetwork.node.domain.ACEnergyDatum;
 import net.solarnetwork.node.domain.GeneralNodeDatum;
 import net.solarnetwork.node.ocpp.cs.session.SolarNetChargeSessionManager;
 import net.solarnetwork.node.ocpp.dao.ChargeSessionDao;
+import net.solarnetwork.node.ocpp.dao.PurgePostedChargeSessionsTask;
 import net.solarnetwork.node.ocpp.domain.AuthorizationInfo;
 import net.solarnetwork.node.ocpp.domain.AuthorizationStatus;
 import net.solarnetwork.node.ocpp.domain.ChargeSession;
@@ -69,25 +79,31 @@ public class SolarNetChargeSessionManagerTests {
 	private AuthorizationService authService;
 	private ChargeSessionDao chargeSessionDao;
 	private DatumDao<GeneralNodeDatum> datumDao;
+	private TaskScheduler taskScheduler;
 	private SolarNetChargeSessionManager manager;
 
 	@SuppressWarnings("unchecked")
 	@Before
 	public void setup() {
-		authService = EasyMock.createMock(AuthorizationService.class);
-		chargeSessionDao = EasyMock.createMock(ChargeSessionDao.class);
-		datumDao = EasyMock.createMock(DatumDao.class);
+		authService = createMock(AuthorizationService.class);
+		chargeSessionDao = createMock(ChargeSessionDao.class);
+		datumDao = createMock(DatumDao.class);
+		taskScheduler = createMock(TaskScheduler.class);
 		manager = new SolarNetChargeSessionManager(authService, chargeSessionDao,
 				new StaticOptionalService<>(datumDao));
+		manager.setTaskScheduler(taskScheduler);
 	}
 
 	@After
 	public void teardown() {
-		EasyMock.verify(authService, chargeSessionDao, datumDao);
+		EasyMock.verify(authService, chargeSessionDao, datumDao, taskScheduler);
 	}
 
-	private void replayAll() {
-		EasyMock.replay(authService, chargeSessionDao, datumDao);
+	private void replayAll(Object... mocks) {
+		EasyMock.replay(authService, chargeSessionDao, datumDao, taskScheduler);
+		if ( mocks != null ) {
+			EasyMock.replay(mocks);
+		}
 	}
 
 	@Test
@@ -244,4 +260,35 @@ public class SolarNetChargeSessionManagerTests {
 		}
 	}
 
+	@Test
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public void startup() {
+		// given
+		int expireHours = 2;
+		manager.setPurgePostedChargeSessionsExpirationHours(expireHours);
+
+		Capture<Runnable> startupTaskCaptor = new Capture<>();
+		ScheduledFuture<Object> startupTaskFuture = createMock(ScheduledFuture.class);
+		expect(taskScheduler.schedule(capture(startupTaskCaptor), anyObject(Date.class)))
+				.andReturn((ScheduledFuture) startupTaskFuture);
+
+		long taskDelay = TimeUnit.HOURS.toMillis(expireHours);
+		ScheduledFuture<Object> purgePostedTaskFuture = createMock(ScheduledFuture.class);
+		Capture<Runnable> purgeTaskCaptor = new Capture<>();
+		expect(taskScheduler.scheduleWithFixedDelay(capture(purgeTaskCaptor), anyObject(),
+				eq(taskDelay))).andReturn((ScheduledFuture) purgePostedTaskFuture);
+
+		// when
+		replayAll(startupTaskFuture, purgePostedTaskFuture);
+
+		manager.startup();
+
+		Runnable startupTask = startupTaskCaptor.getValue();
+		startupTask.run();
+
+		// then
+		assertThat("Purge posted task scheduled", purgeTaskCaptor.getValue(),
+				instanceOf(PurgePostedChargeSessionsTask.class));
+		verify(startupTaskFuture, purgePostedTaskFuture);
+	}
 }

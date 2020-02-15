@@ -23,6 +23,9 @@
 		<property name="serviceFilter" value="(datumClassName=net.solarnetwork.node.domain.GeneralNodeDatum)"/>
 	</bean>
 	
+	<reference id="taskScheduler" interface="org.springframework.scheduling.TaskScheduler"
+		filter="(function=node)"/>
+	
 	<reference id="transactionManager" interface="org.springframework.transaction.PlatformTransactionManager"/>
 
 	<!-- Use Java @Transactional annotations to declare transactions. -->
@@ -30,27 +33,29 @@
 	
 	<!-- Published Services -->
 
-	<service>
+	<service ref="manager">
 		<interfaces>
 			<value>net.solarnetwork.node.settings.SettingSpecifierProvider</value>
 			<value>net.solarnetwork.node.ocpp.service.cs.ChargeSessionManager</value>
 		</interfaces>
-		<bean class="net.solarnetwork.node.ocpp.cs.session.SolarNetChargeSessionManager">
-			<osgix:managed-properties persistent-id="net.solarnetwork.node.ocpp.cs.session.datum" 
-					autowire-on-update="true"/>
-			<argument ref="authService"/>
-			<argument ref="chargeSessionDao"/>
-			<argument ref="generalNodeDatumDao"/>
-			<property name="messageSource">
-					<bean class="org.springframework.context.support.ResourceBundleMessageSource">
-						<property name="basenames">
-							<list>
-								<value>net.solarnetwork.node.ocpp.cs.session.SolarNetChargeSessionManager</value>
-							</list>
-						</property>
-					</bean>		
-			</property>
-		</bean>
 	</service>
+
+	<bean id="manager" class="net.solarnetwork.node.ocpp.cs.session.SolarNetChargeSessionManager" init-method="startup" destroy-method="shutdown">
+		<osgix:managed-properties persistent-id="net.solarnetwork.node.ocpp.cs.session.datum" 
+				autowire-on-update="true" update-method="configurationChanged"/>
+		<argument ref="authService"/>
+		<argument ref="chargeSessionDao"/>
+		<argument ref="generalNodeDatumDao"/>
+		<property name="taskScheduler" ref="taskScheduler"/>
+		<property name="messageSource">
+				<bean class="org.springframework.context.support.ResourceBundleMessageSource">
+					<property name="basenames">
+						<list>
+							<value>net.solarnetwork.node.ocpp.cs.session.SolarNetChargeSessionManager</value>
+						</list>
+					</property>
+				</bean>		
+		</property>
+	</bean>
 
 </blueprint>
