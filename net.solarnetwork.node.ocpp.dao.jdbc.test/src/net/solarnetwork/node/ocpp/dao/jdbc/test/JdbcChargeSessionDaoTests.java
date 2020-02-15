@@ -22,6 +22,7 @@
 
 package net.solarnetwork.node.ocpp.dao.jdbc.test;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
@@ -30,6 +31,7 @@ import static org.junit.Assert.assertThat;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import javax.annotation.Resource;
@@ -181,11 +183,57 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 	public void findIncomplete_conn() {
 		insert();
 
-		ChargeSession s = dao.get(last.getId());
-
-		ChargeSession sess = dao.getIncompleteChargeSessionForConnector(s.getChargePointId(),
-				s.getConnectorId());
+		ChargeSession sess = dao.getIncompleteChargeSessionForConnector(last.getChargePointId(),
+				last.getConnectorId());
 		assertThat("Incomplete session found", sess, equalTo(last));
+	}
+
+	@Test
+	public void findIncomplete_chargePoint_onlyChargePoint() {
+		insert();
+
+		// add another for different charge point
+		ChargePoint cp2 = createTestChargePoint("vendor 2", "model 2");
+		chargePointDao.save(cp2);
+		ChargeSession s = dao.get(last.getId());
+		ChargeSession two = new ChargeSession(UUID.randomUUID(), Instant.now(), s.getAuthId(),
+				cp2.getId(), s.getConnectorId() + 1, s.getTransactionId() + 1);
+		dao.save(two);
+
+		Collection<ChargeSession> sess = dao
+				.getIncompleteChargeSessionForChargePoint(s.getChargePointId());
+		assertThat("Incomplete session found", sess, contains(s));
+	}
+
+	@Test
+	public void findIncomplete_chargePoint_onlyComplete() {
+		insert();
+
+		// add another for same charge point, but complete
+		ChargeSession s = dao.get(last.getId());
+		ChargeSession two = new ChargeSession(UUID.randomUUID(), Instant.now(), s.getAuthId(),
+				s.getChargePointId(), s.getConnectorId() + 1, s.getTransactionId() + 1);
+		two.setEnded(Instant.now());
+		dao.save(two);
+
+		Collection<ChargeSession> sess = dao
+				.getIncompleteChargeSessionForChargePoint(s.getChargePointId());
+		assertThat("Incomplete session found", sess, contains(s));
+	}
+
+	@Test
+	public void findIncomplete_chargePoint() {
+		insert();
+
+		// add another for same charge point, also incomplete
+		ChargeSession s = dao.get(last.getId());
+		ChargeSession two = new ChargeSession(UUID.randomUUID(), s.getCreated().plusSeconds(1),
+				s.getAuthId(), s.getChargePointId(), s.getConnectorId() + 1, s.getTransactionId() + 1);
+		dao.save(two);
+
+		Collection<ChargeSession> sess = dao
+				.getIncompleteChargeSessionForChargePoint(s.getChargePointId());
+		assertThat("Incomplete session found", sess, contains(s, two));
 	}
 
 	private List<SampledValue> createTestReadings() {
@@ -234,4 +282,51 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 		assertThat("Readings found", results, hasSize(0));
 	}
 
+	@Test
+	public void deletePosted() {
+		insert();
+
+		ChargeSession s = dao.get(last.getId());
+		s.setPosted(Instant.now());
+		dao.save(s);
+
+		int result = dao.deletePostedChargeSessions(s.getPosted().plusSeconds(1));
+		assertThat("Deleted posted", result, equalTo(1));
+		assertThat("Table empty", jdbcTemplate.queryForObject(
+				"select count(*) from solarnode.ocpp_charge_sess", Integer.class), equalTo(0));
+	}
+
+	@Test
+	public void deletePosted_onlyOlder() {
+		insert();
+
+		ChargeSession s = dao.get(last.getId());
+		s.setPosted(Instant.now());
+		dao.save(s);
+
+		ChargeSession two = new ChargeSession(UUID.randomUUID(), s.getCreated(), s.getAuthId(),
+				s.getChargePointId(), s.getConnectorId() + 1, s.getTransactionId() + 1);
+		two.setPosted(s.getPosted().minusSeconds(1));
+		dao.save(two);
+
+		int result = dao.deletePostedChargeSessions(s.getPosted());
+		assertThat("Deleted posted", result, equalTo(1));
+		assertThat("Remaining sessions", dao.getAll(null), contains(s));
+	}
+
+	@Test
+	public void deletePosted_noIncomplete() {
+		insert();
+
+		ChargeSession s = dao.get(last.getId());
+		dao.save(s);
+
+		ChargeSession two = new ChargeSession(UUID.randomUUID(), s.getCreated(), s.getAuthId(),
+				s.getChargePointId(), s.getConnectorId() + 1, s.getTransactionId() + 1);
+		dao.save(two);
+
+		int result = dao.deletePostedChargeSessions(Instant.now().plusSeconds(1));
+		assertThat("Deleted posted", result, equalTo(0));
+		assertThat("Remaining sessions", dao.getAll(null), contains(s, two));
+	}
 }

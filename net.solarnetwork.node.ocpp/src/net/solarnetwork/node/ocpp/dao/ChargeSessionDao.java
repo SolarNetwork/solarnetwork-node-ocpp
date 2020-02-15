@@ -22,6 +22,8 @@
 
 package net.solarnetwork.node.ocpp.dao;
 
+import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import net.solarnetwork.dao.GenericDao;
@@ -64,6 +66,25 @@ public interface ChargeSessionDao extends GenericDao<ChargeSession, UUID> {
 	ChargeSession getIncompleteChargeSessionForConnector(String chargePointId, int connectorId);
 
 	/**
+	 * Get all <em>incomplete</em> charge session for a given charge point ID.
+	 * An <em>incomplete</em> session is one that has no {@code ended} date.
+	 * 
+	 * @param chargePointId
+	 *        the charge point ID to look for
+	 * @return all available incomplete charge session for the given charge
+	 *         point, never {@literal null}
+	 */
+	Collection<ChargeSession> getIncompleteChargeSessionForChargePoint(String chargePointId);
+
+	/**
+	 * Get all <em>incomplete</em> charge sessions. An <em>incomplete</em>
+	 * session is one that has no {@code ended} date.
+	 * 
+	 * @return all available incomplete charge sessions, never {@literal null}
+	 */
+	Collection<ChargeSession> getIncompleteChargeSessions();
+
+	/**
 	 * Store one or more charge session readings.
 	 * 
 	 * @param readings
@@ -84,5 +105,16 @@ public interface ChargeSessionDao extends GenericDao<ChargeSession, UUID> {
 	 * @return the readings, or an empty list if none available
 	 */
 	List<SampledValue> findReadingsForSession(UUID sessionId);
+
+	/**
+	 * Delete all posted charge sessions with {@code posted} values on or before
+	 * a given date.
+	 * 
+	 * @param expirationDate
+	 *        the {@code posted} date to delete up to, or {@literal null} to use
+	 *        the current time
+	 * @return the number of charge sessions deleted
+	 */
+	int deletePostedChargeSessions(Instant expirationDate);
 
 }

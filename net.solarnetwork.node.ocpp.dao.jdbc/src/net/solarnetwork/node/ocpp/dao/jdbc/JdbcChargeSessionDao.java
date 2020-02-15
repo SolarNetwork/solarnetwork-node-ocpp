@@ -27,10 +27,12 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.PreparedStatementCallback;
+import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import net.solarnetwork.node.dao.jdbc.BaseJdbcGenericDao;
 import net.solarnetwork.node.ocpp.dao.ChargeSessionDao;
@@ -52,28 +54,55 @@ import net.solarnetwork.node.ocpp.domain.UnitOfMeasure;
 public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID>
 		implements ChargeSessionDao {
 
-	/**
-	 * The SQL resource suffix for finding all entities for a given Charge Point
-	 * ID and transaction ID and a {@literal null} {@code ended} value.
-	 */
-	public static final String SQL_FIND_BY_INCOMPLETE_TRANSACTION = "find-for-incomplete-tx";
+	public enum SqlResource {
 
-	/**
-	 * The SQL resource suffix for finding all entities for a given Charge Point
-	 * ID and connector ID and a {@literal null} {@code ended} value.
-	 */
-	public static final String SQL_FIND_BY_INCOMPLETE_CONNECTOR = "find-for-incomplete-conn";
+		/**
+		 * Delete entities with a {@code posted} date older than a given date.
+		 */
+		DeleteByPosted("delete-for-posted"),
 
-	/**
-	 * The SQL resource suffix for inserting a sampled value reading.
-	 */
-	public static final String SQL_INSERT_READING = "insert-reading";
+		/**
+		 * Find entities for a given charge point ID and transaction ID and a
+		 * {@literal null} {@code ended} value.
+		 */
+		FindByIncompleteTransaction("find-for-incomplete-tx"),
 
-	/**
-	 * The SQL resource suffix for finding all sampled value readings for a
-	 * given charge session ID.
-	 */
-	public static final String SQL_FIND_READINGS_BY_SESSION = "find-reading-for-session";
+		/**
+		 * Find entities for a given charge point ID and connector ID and a
+		 * {@literal null} {@code ended} value.
+		 */
+		FindByIncompleteConnector("find-for-incomplete-conn"),
+
+		/**
+		 * Find entities for a given charge point ID and a {@literal null}
+		 * {@code ended} value.
+		 */
+		FindByIncompleteChargePoint("find-for-incomplete-cp"),
+
+		/** Find entities with a {@literal null} {@code ended} value. */
+		FindByIncomplete("find-for-incomplete"),
+
+		/** Find all sampled value readings for a charge session ID. */
+		FindReadingBySession("find-reading-for-session"),
+
+		/** Insert a sampled value reading. */
+		InsertReading("insert-reading"),;
+
+		private final String resource;
+
+		private SqlResource(String resource) {
+			this.resource = resource;
+		}
+
+		/**
+		 * Get the SQL resource name.
+		 * 
+		 * @return the resource
+		 */
+		public String getResource() {
+			return resource;
+		}
+	}
 
 	/** The table name for {@link ChargeSession} entities. */
 	public static final String TABLE_NAME = "charge_sess";
@@ -104,13 +133,41 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 	@Override
 	public ChargeSession getIncompleteChargeSessionForTransaction(String chargePointId,
 			int transactionId) {
-		return findFirst(getSqlResource(SQL_FIND_BY_INCOMPLETE_TRANSACTION), chargePointId,
-				transactionId);
+		return findFirst(getSqlResource(SqlResource.FindByIncompleteTransaction.getResource()),
+				chargePointId, transactionId);
 	}
 
 	@Override
 	public ChargeSession getIncompleteChargeSessionForConnector(String chargePointId, int connectorId) {
-		return findFirst(getSqlResource(SQL_FIND_BY_INCOMPLETE_CONNECTOR), chargePointId, connectorId);
+		return findFirst(getSqlResource(SqlResource.FindByIncompleteConnector.getResource()),
+				chargePointId, connectorId);
+	}
+
+	@Override
+	public Collection<ChargeSession> getIncompleteChargeSessionForChargePoint(String chargePointId) {
+		return getJdbcTemplate().query(
+				getSqlResource(SqlResource.FindByIncompleteChargePoint.getResource()), getRowMapper(),
+				chargePointId);
+	}
+
+	@Override
+	public Collection<ChargeSession> getIncompleteChargeSessions() {
+		return getJdbcTemplate().query(getSqlResource(SqlResource.FindByIncomplete.getResource()),
+				getRowMapper());
+	}
+
+	@Override
+	public int deletePostedChargeSessions(Instant expirationDate) {
+		return getJdbcTemplate().update(getSqlResource(SqlResource.DeleteByPosted.getResource()),
+				new PreparedStatementSetter() {
+
+					@Override
+					public void setValues(PreparedStatement ps) throws SQLException {
+						setInstantParameter(ps, 1,
+								expirationDate != null ? expirationDate : Instant.now());
+					}
+
+				});
 	}
 
 	@Override
@@ -118,7 +175,7 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 		if ( readings == null ) {
 			return;
 		}
-		getJdbcTemplate().execute(getSqlResource(SQL_INSERT_READING),
+		getJdbcTemplate().execute(getSqlResource(SqlResource.InsertReading.getResource()),
 				new PreparedStatementCallback<Object>() {
 
 					@Override
@@ -172,7 +229,7 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 
 	@Override
 	public List<SampledValue> findReadingsForSession(UUID sessionId) {
-		return getJdbcTemplate().query(getSqlResource(SQL_FIND_READINGS_BY_SESSION),
+		return getJdbcTemplate().query(getSqlResource(SqlResource.FindReadingBySession.getResource()),
 				new Object[] { sessionId.getMostSignificantBits(), sessionId.getLeastSignificantBits() },
 				READING_ROW_MAPPER);
 	}
