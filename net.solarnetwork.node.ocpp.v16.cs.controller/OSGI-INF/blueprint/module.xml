@@ -83,7 +83,18 @@
 		<bean class="net.solarnetwork.node.ocpp.v16.cs.MeterValuesProcessor">
 			<argument ref="chargeSessionManager"/>
 		</bean>
+	</service>	
+	
+	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
+		<service-properties>
+			<entry key="action" value="StartTransaction"/>
+			<entry key="role" value="cs"/>
+		</service-properties>
+		<bean class="net.solarnetwork.node.ocpp.v16.cs.StartTransactionProcessor">
+			<argument ref="chargeSessionManager"/>
+		</bean>
 	</service>
+	
 	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
 		<service-properties>
 			<entry key="action" value="StatusNotification"/>
@@ -94,6 +105,16 @@
 		</bean>
 	</service>
 
+	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
+		<service-properties>
+			<entry key="action" value="StopTransaction"/>
+			<entry key="role" value="cs"/>
+		</service-properties>
+		<bean class="net.solarnetwork.node.ocpp.v16.cs.StopTransactionProcessor">
+			<argument ref="chargeSessionManager"/>
+		</bean>
+	</service>
+	
 	<service ref="controller">
 		<interfaces>
 			<value>net.solarnetwork.node.ocpp.service.AuthorizationService</value>

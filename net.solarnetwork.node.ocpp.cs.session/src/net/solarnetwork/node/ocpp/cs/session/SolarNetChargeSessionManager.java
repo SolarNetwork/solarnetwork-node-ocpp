@@ -61,6 +61,9 @@ import net.solarnetwork.node.ocpp.domain.UnitOfMeasure;
 import net.solarnetwork.node.ocpp.service.AuthorizationException;
 import net.solarnetwork.node.ocpp.service.AuthorizationService;
 import net.solarnetwork.node.ocpp.service.cs.ChargeSessionManager;
+import net.solarnetwork.node.settings.SettingSpecifier;
+import net.solarnetwork.node.settings.SettingSpecifierProvider;
+import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
 import net.solarnetwork.node.support.BaseIdentifiable;
 import net.solarnetwork.util.NumberUtils;
 import net.solarnetwork.util.OptionalService;
@@ -72,7 +75,8 @@ import net.solarnetwork.util.StringUtils;
  * @author matt
  * @version 1.0
  */
-public class SolarNetChargeSessionManager extends BaseIdentifiable implements ChargeSessionManager {
+public class SolarNetChargeSessionManager extends BaseIdentifiable
+		implements ChargeSessionManager, SettingSpecifierProvider {
 
 	/** A datum property name for a charging session ID. */
 	public static final String SESSION_ID_PROPERTY = "sessionId";
@@ -423,6 +427,22 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 			default:
 				return null;
 		}
+	}
+
+	// SettingsSpecifierProvider
+
+	@Override
+	public String getSettingUID() {
+		return "net.solarnetwork.node.ocpp.cs.session.datum";
+	}
+
+	@Override
+	public List<SettingSpecifier> getSettingSpecifiers() {
+		List<SettingSpecifier> results = new ArrayList<>(2);
+		results.add(new BasicTextFieldSettingSpecifier("sourceIdTemplate", DEFAULT_SOURCE_ID_TEMPLATE));
+		results.add(new BasicTextFieldSettingSpecifier("maxTemperatureScale",
+				String.valueOf(DEFAULT_MAX_TEMPERATURE_SCALE)));
+		return results;
 	}
 
 	/**
