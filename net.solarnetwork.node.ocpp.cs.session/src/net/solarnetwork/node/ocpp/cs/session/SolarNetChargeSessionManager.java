@@ -255,6 +255,15 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 		return chargeSessionDao.getIncompleteChargeSessionForTransaction(chargePointId, transactionId);
 	}
 
+	@Transactional(readOnly = true, propagation = Propagation.SUPPORTS)
+	@Override
+	public Collection<ChargeSession> getActiveChargingSessions(String chargePointId) {
+		if ( chargePointId != null && !chargePointId.isEmpty() ) {
+			return chargeSessionDao.getIncompleteChargeSessionForChargePoint(chargePointId);
+		}
+		return chargeSessionDao.getIncompleteChargeSessions();
+	}
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public AuthorizationInfo endChargingSession(ChargeSessionEndInfo info) {
@@ -502,12 +511,6 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 			default:
 				return null;
 		}
-	}
-
-	@Override
-	public Collection<ChargeSession> getActiveChargingSessions(String chargePointId) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	// SettingsSpecifierProvider
