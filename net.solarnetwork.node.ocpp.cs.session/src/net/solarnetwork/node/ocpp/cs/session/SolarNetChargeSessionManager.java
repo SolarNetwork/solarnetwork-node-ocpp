@@ -59,6 +59,7 @@ import net.solarnetwork.node.ocpp.domain.ReadingContext;
 import net.solarnetwork.node.ocpp.domain.SampledValue;
 import net.solarnetwork.node.ocpp.domain.UnitOfMeasure;
 import net.solarnetwork.node.ocpp.service.AuthorizationException;
+import net.solarnetwork.node.ocpp.service.AuthorizationService;
 import net.solarnetwork.node.ocpp.service.cs.ChargeSessionManager;
 import net.solarnetwork.node.support.BaseIdentifiable;
 import net.solarnetwork.util.NumberUtils;
@@ -73,12 +74,16 @@ import net.solarnetwork.util.StringUtils;
  */
 public class SolarNetChargeSessionManager extends BaseIdentifiable implements ChargeSessionManager {
 
+	/** A datum property name for a charging session ID. */
+	public static final String SESSION_ID_PROPERTY = "sessionId";
+
 	/** The default {@code sourceIdTemplate} value. */
-	public static final String DEFAULT_SOURCE_ID_TEMPLATE = "/ocpp/cp/{chargePointId}/conn/{connectorId}/{location}";
+	public static final String DEFAULT_SOURCE_ID_TEMPLATE = "/ocpp/cp/{chargePointId}/{connectorId}/{location}";
 
 	/** The default {@code maxTemperatureScale} value. */
 	public static final int DEFAULT_MAX_TEMPERATURE_SCALE = 1;
 
+	private final AuthorizationService authService;
 	private final ChargeSessionDao chargeSessionDao;
 	private final OptionalService<DatumDao<GeneralNodeDatum>> datumDao;
 	private String sourceIdTemplate = DEFAULT_SOURCE_ID_TEMPLATE;
@@ -89,14 +94,17 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 	/**
 	 * Constructor.
 	 * 
+	 * @param authService
+	 *        the authorization service to use
 	 * @param chargeSessionDao
-	 *        the charge session DAO
+	 *        the charge session DAO to use
 	 * @param datumDao
 	 *        the DAO for saving Datum
 	 */
-	public SolarNetChargeSessionManager(ChargeSessionDao chargeSessionDao,
-			OptionalService<DatumDao<GeneralNodeDatum>> datumDao) {
+	public SolarNetChargeSessionManager(AuthorizationService authService,
+			ChargeSessionDao chargeSessionDao, OptionalService<DatumDao<GeneralNodeDatum>> datumDao) {
 		super();
+		this.authService = authService;
 		this.chargeSessionDao = chargeSessionDao;
 		this.datumDao = datumDao;
 	}
@@ -105,8 +113,24 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 	@Override
 	public ChargeSession startChargingSession(ChargeSessionStartInfo info)
 			throws AuthorizationException {
-		// persist the new session and then re-load to get the generated transaction ID
-		ChargeSession sess;
+		// check authorization
+		AuthorizationInfo authInfo = authService.authorize(info.getChargePointId(),
+				info.getAuthorizationId());
+		if ( authInfo == null || AuthorizationStatus.Accepted != authInfo.getStatus() ) {
+			throw new AuthorizationException(authInfo);
+		}
+
+		// check for existing session, e.g. ConcurrentTx
+		ChargeSession sess = chargeSessionDao
+				.getIncompleteChargeSessionForConnector(info.getChargePointId(), info.getConnectorId());
+		if ( sess != null ) {
+			throw new AuthorizationException(
+					String.format("ChargeSession %s already active for Charge Point %s connector %d",
+							sess.getId(), info.getChargePointId(), info.getConnectorId()),
+					new AuthorizationInfo(info.getAuthorizationId(), AuthorizationStatus.ConcurrentTx));
+		}
+
+		// persist a new session and then re-load to get the generated transaction ID
 		try {
 			sess = new ChargeSession(UUID.randomUUID(), info.getTimestampStart(),
 					info.getAuthorizationId(), info.getChargePointId(), info.getConnectorId(), 0);
@@ -199,7 +223,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 			d.setCreated(new Date(sess.getCreated().toEpochMilli()));
 			d.setSourceId(sourceId(sess.getChargePointId(), sess.getConnectorId(), reading.getLocation(),
 					reading.getPhase()));
-			d.putStatusSampleValue("sessionId", sess.getId().toString());
+			d.putStatusSampleValue(SESSION_ID_PROPERTY, sess.getId().toString());
 			return d;
 		}
 		return null;

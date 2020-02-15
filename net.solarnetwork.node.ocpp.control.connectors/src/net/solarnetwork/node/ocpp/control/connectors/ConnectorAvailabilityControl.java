@@ -78,10 +78,10 @@ public class ConnectorAvailabilityControl extends BaseIdentifiable
 		implements EventHandler, InstructionHandler, NodeControlProvider, SettingSpecifierProvider {
 
 	/** The default {@code controlIdTemplate} value. */
-	public static final String DEFAULT_CONTROL_ID_TEMPLATE = "/ocpp/cp/{chargePointId}/conn/{connectorId}";
+	public static final String DEFAULT_CONTROL_ID_TEMPLATE = "/ocpp/cp/{chargePointId}/{connectorId}";
 
 	/** The default {@code controlIdRegex} value. */
-	public static final Pattern DEFAULT_CONTROL_ID_REGEX = Pattern.compile("/ocpp/cp/(\\w+)/conn/(\\d+)",
+	public static final Pattern DEFAULT_CONTROL_ID_REGEX = Pattern.compile("/ocpp/cp/(\\w+)/(\\d+)",
 			Pattern.CASE_INSENSITIVE);
 
 	/** The default {@code messageTimeout} value. */

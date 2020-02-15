@@ -53,6 +53,17 @@ public interface ChargeSessionDao extends GenericDao<ChargeSession, UUID> {
 	ChargeSession getIncompleteChargeSessionForTransaction(String chargePointId, int transactionId);
 
 	/**
+	 * Get an <em>incomplete</em> charge session for a given connector ID. An
+	 * <em>incomplete</em> session is one that has no {@code ended} date.
+	 * 
+	 * @param connectorId
+	 *        the connectorId ID to look for
+	 * @return the first available incomplete charge session, or {@literal null}
+	 *         if not found
+	 */
+	ChargeSession getIncompleteChargeSessionForConnector(String chargePointId, int connectorId);
+
+	/**
 	 * Store one or more charge session readings.
 	 * 
 	 * @param readings

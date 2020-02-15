@@ -141,20 +141,20 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 	}
 
 	@Test
-	public void findIncomplete_none() {
+	public void findIncomplete_tx_none() {
 		ChargeSession sess = dao.getIncompleteChargeSessionForTransaction("n/a", 1);
 		assertThat("No incomplete session found", sess, nullValue());
 	}
 
 	@Test
-	public void findIncomplete_noMatchingId() {
+	public void findIncomplete_tx_noMatchingId() {
 		insert();
 		ChargeSession sess = dao.getIncompleteChargeSessionForTransaction("n/a", 1);
 		assertThat("No incomplete session found", sess, nullValue());
 	}
 
 	@Test
-	public void findIncomplete_onlyComplete() {
+	public void findIncomplete_tx_onlyComplete() {
 		insert();
 
 		ChargeSession s = dao.get(last.getId());
@@ -167,13 +167,24 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 	}
 
 	@Test
-	public void findIncomplete() {
+	public void findIncomplete_tx() {
 		insert();
 
 		ChargeSession s = dao.get(last.getId());
 
 		ChargeSession sess = dao.getIncompleteChargeSessionForTransaction(s.getChargePointId(),
 				s.getTransactionId());
+		assertThat("Incomplete session found", sess, equalTo(last));
+	}
+
+	@Test
+	public void findIncomplete_conn() {
+		insert();
+
+		ChargeSession s = dao.get(last.getId());
+
+		ChargeSession sess = dao.getIncompleteChargeSessionForConnector(s.getChargePointId(),
+				s.getConnectorId());
 		assertThat("Incomplete session found", sess, equalTo(last));
 	}
 

@@ -59,6 +59,12 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 	public static final String SQL_FIND_BY_INCOMPLETE_TRANSACTION = "find-for-incomplete-tx";
 
 	/**
+	 * The SQL resource suffix for finding all entities for a given Charge Point
+	 * ID and connector ID and a {@literal null} {@code ended} value.
+	 */
+	public static final String SQL_FIND_BY_INCOMPLETE_CONNECTOR = "find-for-incomplete-conn";
+
+	/**
 	 * The SQL resource suffix for inserting a sampled value reading.
 	 */
 	public static final String SQL_INSERT_READING = "insert-reading";
@@ -100,6 +106,11 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 			int transactionId) {
 		return findFirst(getSqlResource(SQL_FIND_BY_INCOMPLETE_TRANSACTION), chargePointId,
 				transactionId);
+	}
+
+	@Override
+	public ChargeSession getIncompleteChargeSessionForConnector(String chargePointId, int connectorId) {
+		return findFirst(getSqlResource(SQL_FIND_BY_INCOMPLETE_CONNECTOR), chargePointId, connectorId);
 	}
 
 	@Override

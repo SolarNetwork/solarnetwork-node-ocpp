@@ -18,6 +18,8 @@
 		http://www.springframework.org/schema/tx/spring-tx-4.2.xsd">
 
 	<!-- Service references -->
+	
+	<reference id="authService" interface="net.solarnetwork.node.ocpp.service.AuthorizationService"/>
 
 	<reference id="chargeSessionDao" interface="net.solarnetwork.node.ocpp.dao.ChargeSessionDao"/>
 
@@ -41,6 +43,7 @@
 	<!-- Supporting services -->
 
 	<bean id="sessionManager" class="net.solarnetwork.node.ocpp.cs.session.SolarNetChargeSessionManager">
+		<argument ref="authService"/>
 		<argument ref="chargeSessionDao"/>
 		<argument ref="generalNodeDatumDao"/>
 	</bean>
