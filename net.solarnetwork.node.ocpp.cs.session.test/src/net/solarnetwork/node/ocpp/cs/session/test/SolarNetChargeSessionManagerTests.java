@@ -28,6 +28,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -53,6 +54,7 @@ import net.solarnetwork.node.ocpp.domain.Measurand;
 import net.solarnetwork.node.ocpp.domain.ReadingContext;
 import net.solarnetwork.node.ocpp.domain.SampledValue;
 import net.solarnetwork.node.ocpp.domain.UnitOfMeasure;
+import net.solarnetwork.node.ocpp.service.AuthorizationException;
 import net.solarnetwork.node.ocpp.service.AuthorizationService;
 import net.solarnetwork.util.StaticOptionalService;
 
@@ -199,6 +201,47 @@ public class SolarNetChargeSessionManagerTests {
 		assertThat("Datum prop session ID",
 				datum.getStatusSampleString(SolarNetChargeSessionManager.SESSION_ID_PROPERTY),
 				equalTo(sess.getId().toString()));
+	}
+
+	@Test
+	public void startSession_concurrentTx() {
+		// given
+
+		// verify authorization
+		String chargePointId = UUID.randomUUID().toString();
+		String idTag = UUID.randomUUID().toString().substring(0, 20);
+		AuthorizationInfo authInfo = new AuthorizationInfo(idTag, AuthorizationStatus.Accepted);
+		expect(authService.authorize(chargePointId, idTag)).andReturn(authInfo);
+
+		// verify concurrent tx
+		int connectorId = 1;
+		int transactionId = 123;
+		ChargeSession existingSess = new ChargeSession(UUID.randomUUID(), Instant.now().minusSeconds(60),
+				idTag, chargePointId, connectorId, transactionId);
+		expect(chargeSessionDao.getIncompleteChargeSessionForConnector(chargePointId, connectorId))
+				.andReturn(existingSess);
+
+		// when
+		replayAll();
+
+		// @formatter:off
+		ChargeSessionStartInfo info = ChargeSessionStartInfo.builder()
+				.withTimestampStart(Instant.now())
+				.withChargePointId(chargePointId)
+				.withAuthorizationId(idTag)
+				.withConnectorId(connectorId)
+				.withMeterStart(1234)
+				.build();
+		// @formatter:on
+
+		try {
+			manager.startChargingSession(info);
+			fail("Should have failed with ConcurrentTx");
+		} catch ( AuthorizationException e ) {
+			assertThat("Authorization info available", e.getInfo(), notNullValue());
+			assertThat("Authorization status is ConcurrentTx", e.getInfo().getStatus(),
+					equalTo(AuthorizationStatus.ConcurrentTx));
+		}
 	}
 
 }
