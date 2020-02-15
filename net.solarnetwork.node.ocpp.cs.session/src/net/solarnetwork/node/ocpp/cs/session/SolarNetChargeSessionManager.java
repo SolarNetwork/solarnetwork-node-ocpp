@@ -147,8 +147,6 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 
 		// generate Datum from start meter value
 
-		// generate reading from end meter value
-
 		// @formatter:off
 		SampledValue reading = SampledValue.builder()
 				.withSessionId(sess.getId())
@@ -199,7 +197,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 		// @formatter:off
 		SampledValue reading = SampledValue.builder()
 				.withSessionId(sess.getId())
-				.withTimestamp(sess.getCreated())
+				.withTimestamp(sess.getEnded())
 				.withContext(ReadingContext.TransactionEnd)
 				.withLocation(Location.Outlet)
 				.withMeasurand(Measurand.EnergyActiveImportRegister)
@@ -224,7 +222,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 		GeneralNodeDatum d = new GeneralNodeDatum();
 		populateProperty(d, reading.getMeasurand(), reading.getUnit(), reading.getValue());
 		if ( d.getSamples() != null && !d.getSamples().isEmpty() ) {
-			d.setCreated(new Date(sess.getCreated().toEpochMilli()));
+			d.setCreated(new Date(reading.getTimestamp().toEpochMilli()));
 			d.setSourceId(sourceId(sess.getChargePointId(), sess.getConnectorId(), reading.getLocation(),
 					reading.getPhase()));
 			d.putStatusSampleValue(SESSION_ID_PROPERTY, sess.getId().toString());
@@ -242,7 +240,6 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void addChargingSessionReadings(Iterable<SampledValue> readings) {
-
 		Map<UUID, Set<SampledValue>> currentReadings = new HashMap<>(2);
 		Map<UUID, ChargeSession> sessions = new HashMap<>(2);
 		List<SampledValue> newReadings = new ArrayList<>();

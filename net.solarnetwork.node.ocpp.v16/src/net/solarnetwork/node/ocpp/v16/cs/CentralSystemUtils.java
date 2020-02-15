@@ -121,6 +121,9 @@ public final class CentralSystemUtils {
 	 * @return the phase, never {@literal null}
 	 */
 	public static Phase phase(ocpp.v16.cs.Phase phase) {
+		if ( phase == null ) {
+			return null;
+		}
 		try {
 			return Phase.valueOf(phase.value().replace("-", ""));
 		} catch ( IllegalArgumentException | NullPointerException e ) {

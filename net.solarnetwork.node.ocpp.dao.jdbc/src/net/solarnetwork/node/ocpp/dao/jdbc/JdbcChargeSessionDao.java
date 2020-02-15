@@ -135,7 +135,10 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 									: ReadingContext.Unknown.codeValue());
 							ps.setInt(7, v.getMeasurand() != null ? v.getMeasurand().codeValue()
 									: Measurand.Unknown.codeValue());
-							ps.setObject(8, v.getPhase());
+							ps.setObject(8,
+									v.getPhase() != null && v.getPhase() != Phase.Unknown
+											? v.getPhase().codeValue()
+											: null);
 							ps.setString(9, v.getValue());
 							ps.executeUpdate();
 						}

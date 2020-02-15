@@ -140,6 +140,9 @@ public class StopTransactionProcessor
 	}
 
 	private static ChargeSessionEndReason reason(Reason reason) {
+		if ( reason == null ) {
+			return ChargeSessionEndReason.Local;
+		}
 		try {
 			return ChargeSessionEndReason.valueOf(reason.value());
 		} catch ( IllegalArgumentException e ) {
