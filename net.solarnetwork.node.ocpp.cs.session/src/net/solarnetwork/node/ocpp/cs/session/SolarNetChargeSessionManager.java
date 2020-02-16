@@ -185,7 +185,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 				if ( purgeHours > 0 ) {
 					log.info("Scheduling OCPP posted charge session purge task at {} hours.",
 							purgeHours);
-					long purgeMs = TimeUnit.HOURS.toMillis(purgeHours);
+					long purgeMs = TimeUnit.HOURS.toMillis(purgeHours) / 4;
 					purgePostedFuture = scheduler.scheduleWithFixedDelay(purgePostedTask,
 							new Date(System.currentTimeMillis() + purgeMs), purgeMs);
 				}

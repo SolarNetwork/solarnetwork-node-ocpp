@@ -129,7 +129,7 @@ public class SolarNetChargeSessionManagerTests {
 		expect(taskScheduler.schedule(capture(startupTaskCaptor), anyObject(Date.class)))
 				.andReturn((ScheduledFuture) startupTaskFuture);
 
-		long taskDelay = TimeUnit.HOURS.toMillis(expireHours);
+		long taskDelay = TimeUnit.HOURS.toMillis(expireHours) / 4;
 		ScheduledFuture<Object> purgePostedTaskFuture = createMock(ScheduledFuture.class);
 		Capture<Runnable> purgeTaskCaptor = new Capture<>();
 		expect(taskScheduler.scheduleWithFixedDelay(capture(purgeTaskCaptor), anyObject(),
