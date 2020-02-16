@@ -23,15 +23,13 @@
 package net.solarnetwork.node.ocpp.service;
 
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import net.solarnetwork.node.ocpp.domain.ActionMessage;
 import ocpp.domain.Action;
 
 /**
- * FIXME
- * 
- * <p>
- * TODO
- * </p>
+ * An abstract base implementation of {@link ActionMessageProcessor}.
  * 
  * @param <T>
  *        the message type
@@ -45,6 +43,9 @@ public abstract class BaseActionMessageProcessor<T, R> implements ActionMessageP
 	private final Class<T> messageType;
 	private final Class<R> resultType;
 	private final Set<Action> supportedActions;
+
+	/** A class-level logger. */
+	protected Logger log = LoggerFactory.getLogger(getClass());
 
 	/**
 	 * Constructor.
