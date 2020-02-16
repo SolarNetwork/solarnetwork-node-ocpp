@@ -1,5 +1,5 @@
 /* ==================================================================
- * DataTransferProcessor.java - 16/02/2020 7:00:56 pm
+ * FirmwareStatusNotificationProcessor.java - 17/02/2020 6:41:10 am
  * 
  * Copyright 2020 SolarNetwork.net Dev Team
  * 
@@ -29,44 +29,36 @@ import net.solarnetwork.node.ocpp.service.ActionMessageResultHandler;
 import net.solarnetwork.node.ocpp.service.BaseActionMessageProcessor;
 import ocpp.domain.Action;
 import ocpp.v16.CentralSystemAction;
-import ocpp.v16.cs.DataTransferRequest;
-import ocpp.v16.cs.DataTransferResponse;
-import ocpp.v16.cs.DataTransferStatus;
+import ocpp.v16.cs.FirmwareStatusNotificationRequest;
+import ocpp.v16.cs.FirmwareStatusNotificationResponse;
 
 /**
- * Process {@link DataTransferRequest} action messages.
- * 
- * <p>
- * This handler does not perform any function itself, other than respond with a
- * {@link DataTransferStatus#REJECTED} status.
- * </p>
+ * Process {@link FirmwareStatusNotificationRequest} action messages.
  * 
  * @author matt
  * @version 1.0
  */
-public class DataTransferProcessor
-		extends BaseActionMessageProcessor<DataTransferRequest, DataTransferResponse> {
+public class FirmwareStatusNotificationProcessor extends
+		BaseActionMessageProcessor<FirmwareStatusNotificationRequest, FirmwareStatusNotificationResponse> {
 
 	/** The supported actions of this processor. */
 	public static final Set<Action> SUPPORTED_ACTIONS = Collections
-			.singleton(CentralSystemAction.DataTransfer);
+			.singleton(CentralSystemAction.FirmwareStatusNotification);
 
 	/**
 	 * Constructor.
 	 */
-	public DataTransferProcessor() {
-		super(DataTransferRequest.class, DataTransferResponse.class, SUPPORTED_ACTIONS);
+	public FirmwareStatusNotificationProcessor() {
+		super(FirmwareStatusNotificationRequest.class, FirmwareStatusNotificationResponse.class,
+				SUPPORTED_ACTIONS);
 	}
 
 	@Override
-	public void processActionMessage(ActionMessage<DataTransferRequest> message,
-			ActionMessageResultHandler<DataTransferRequest, DataTransferResponse> resultHandler) {
-		DataTransferRequest req = message.getMessage();
-		log.info("OCPP DataTransfer received from {}; message ID = {}; vendor ID = {}; data = {}",
-				message.getClientId(), req.getMessageId(), req.getVendorId(), req.getData());
-		DataTransferResponse res = new DataTransferResponse();
-		res.setStatus(DataTransferStatus.REJECTED);
-		resultHandler.handleActionMessageResult(message, res, null);
+	public void processActionMessage(ActionMessage<FirmwareStatusNotificationRequest> message,
+			ActionMessageResultHandler<FirmwareStatusNotificationRequest, FirmwareStatusNotificationResponse> resultHandler) {
+		log.info("OCPP FirmwareStatusNotification received from {}: {}", message.getClientId(),
+				message.getMessage().getStatus());
+		resultHandler.handleActionMessageResult(message, new FirmwareStatusNotificationResponse(), null);
 	}
 
 }

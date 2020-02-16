@@ -27,8 +27,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import net.solarnetwork.node.ocpp.domain.ActionMessage;
 import net.solarnetwork.node.ocpp.domain.ChargeSession;
 import net.solarnetwork.node.ocpp.domain.SampledValue;
@@ -58,8 +56,6 @@ public class MeterValuesProcessor
 			.singleton(CentralSystemAction.MeterValues);
 
 	private final ChargeSessionManager chargeSessionManager;
-
-	private final Logger log = LoggerFactory.getLogger(getClass());
 
 	/**
 	 * Constructor.

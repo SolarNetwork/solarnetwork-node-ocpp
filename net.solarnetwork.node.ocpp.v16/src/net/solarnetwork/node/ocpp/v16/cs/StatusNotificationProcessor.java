@@ -25,8 +25,6 @@ package net.solarnetwork.node.ocpp.v16.cs;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Set;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import net.solarnetwork.node.ocpp.dao.ChargePointConnectorDao;
 import net.solarnetwork.node.ocpp.domain.ActionMessage;
 import net.solarnetwork.node.ocpp.domain.ChargePointErrorCode;
@@ -56,8 +54,6 @@ public class StatusNotificationProcessor
 			.singleton(CentralSystemAction.StatusNotification);
 
 	private final ChargePointConnectorDao chargePointConnectorDao;
-
-	private final Logger log = LoggerFactory.getLogger(getClass());
 
 	/**
 	 * Constructor.

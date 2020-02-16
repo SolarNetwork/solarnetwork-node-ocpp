@@ -25,8 +25,6 @@ package net.solarnetwork.node.ocpp.v16.cs;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Set;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import net.solarnetwork.node.ocpp.domain.ActionMessage;
 import net.solarnetwork.node.ocpp.domain.ChargeSession;
 import net.solarnetwork.node.ocpp.domain.ChargeSessionStartInfo;
@@ -58,8 +56,6 @@ public class StartTransactionProcessor
 			.singleton(CentralSystemAction.StartTransaction);
 
 	private final ChargeSessionManager chargeSessionManager;
-
-	private final Logger log = LoggerFactory.getLogger(getClass());
 
 	/**
 	 * Constructor.

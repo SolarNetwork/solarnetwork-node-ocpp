@@ -72,9 +72,23 @@
 			<entry key="action" value="DataTransfer"/>
 			<entry key="role" value="cs"/>
 		</service-properties>
-		<bean class="net.solarnetwork.node.ocpp.v16.cs.DataTransferProcessor">
-			<argument ref="controller"/>
-		</bean>
+		<bean class="net.solarnetwork.node.ocpp.v16.cs.DataTransferProcessor"/>
+	</service>
+	
+	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
+		<service-properties>
+			<entry key="action" value="DiagnosticsStatusNotification"/>
+			<entry key="role" value="cs"/>
+		</service-properties>
+		<bean class="net.solarnetwork.node.ocpp.v16.cs.DiagnosticsStatusNotificationProcessor"/>
+	</service>
+	
+	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
+		<service-properties>
+			<entry key="action" value="FirmwareStatusNotification"/>
+			<entry key="role" value="cs"/>
+		</service-properties>
+		<bean class="net.solarnetwork.node.ocpp.v16.cs.FirmwareStatusNotificationProcessor"/>
 	</service>
 	
 	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
