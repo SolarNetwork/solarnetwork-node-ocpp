@@ -69,6 +69,16 @@
 	
 	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
 		<service-properties>
+			<entry key="action" value="DataTransfer"/>
+			<entry key="role" value="cs"/>
+		</service-properties>
+		<bean class="net.solarnetwork.node.ocpp.v16.cs.DataTransferProcessor">
+			<argument ref="controller"/>
+		</bean>
+	</service>
+	
+	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
+		<service-properties>
 			<entry key="action" value="Heartbeat"/>
 			<entry key="role" value="cs"/>
 		</service-properties>
