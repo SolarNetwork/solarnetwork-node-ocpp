@@ -754,9 +754,11 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 				}
 				return true;
 			};
+			boolean processed = false;
 			for ( ActionMessageProcessor<Object, Object> p : procs ) {
 				try {
 					if ( p.isMessageSupported(message) ) {
+						processed = true;
 						p.processActionMessage(message, handler);
 					}
 				} catch ( Throwable t ) {
@@ -765,6 +767,11 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 								"Error handling action.", null);
 					}
 				}
+			}
+			if ( !processed ) {
+				sendCallError(session, clientId, messageId, ActionErrorCode.NotImplemented,
+						"Action not supported.", null);
+				handled.set(true);
 			}
 		} finally {
 			if ( handled.get() ) {
