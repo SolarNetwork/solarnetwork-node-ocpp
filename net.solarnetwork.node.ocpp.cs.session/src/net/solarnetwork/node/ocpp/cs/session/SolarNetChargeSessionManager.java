@@ -26,6 +26,7 @@ import static java.util.Collections.singleton;
 import static net.solarnetwork.node.domain.Datum.REVERSE_ACCUMULATING_SUFFIX_KEY;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -37,6 +38,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -277,6 +280,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 		sess.setEndAuthId(info.getAuthorizationId());
 		sess.setEnded(info.getTimestampEnd());
 		sess.setEndReason(info.getReason());
+		sess.setPosted(Instant.now());
 		chargeSessionDao.save(sess);
 
 		// generate reading from end meter value
@@ -292,14 +296,18 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 				.withValue(String.valueOf(info.getMeterEnd()))
 				.build();
 		// @formatter:on
-		chargeSessionDao.addReadings(singleton(reading));
-		DatumDao<GeneralNodeDatum> dao = datumDao.service();
-		if ( dao != null ) {
-			GeneralNodeDatum d = datum(sess, reading);
-			if ( d != null ) {
-				dao.storeDatum(d);
+
+		// add all provided readings, plus our final TransactionEnd reading
+		List<SampledValue> readings = new ArrayList<>();
+		if ( info.getTransactionData() != null ) {
+			for ( SampledValue v : info.getTransactionData() ) {
+				readings.add(v);
 			}
 		}
+		readings.add(reading);
+		Map<UUID, ChargeSession> sessions = new HashMap<>(2);
+		sessions.put(sess.getId(), sess);
+		addReadings(readings, sessions);
 
 		return new AuthorizationInfo(info.getAuthorizationId(), AuthorizationStatus.Accepted, null,
 				null);
@@ -327,18 +335,29 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void addChargingSessionReadings(Iterable<SampledValue> readings) {
+		addReadings(readings, new HashMap<>(2));
+	}
+
+	private void addReadings(Iterable<SampledValue> readings, Map<UUID, ChargeSession> sessions) {
+		if ( readings == null ) {
+			return;
+		}
 		Map<UUID, Set<SampledValue>> currentReadings = new HashMap<>(2);
-		Map<UUID, ChargeSession> sessions = new HashMap<>(2);
+		List<SampledValue> sorted = StreamSupport.stream(readings.spliterator(), false).sorted()
+				.collect(Collectors.toList());
 		List<SampledValue> newReadings = new ArrayList<>();
-		for ( SampledValue r : readings ) {
+		for ( SampledValue r : sorted ) {
 			Set<SampledValue> current = currentReadings.get(r.getSessionId());
 			if ( current == null ) {
-				ChargeSession sess = chargeSessionDao.get(r.getSessionId());
+				ChargeSession sess = sessions.get(r.getSessionId());
 				if ( sess == null ) {
-					throw new AuthorizationException("No active charging session found.",
-							new AuthorizationInfo(null, AuthorizationStatus.Invalid, null, null));
+					sess = chargeSessionDao.get(r.getSessionId());
+					if ( sess == null ) {
+						throw new AuthorizationException("No active charging session found.",
+								new AuthorizationInfo(null, AuthorizationStatus.Invalid, null, null));
+					}
+					sessions.put(r.getSessionId(), sess);
 				}
-				sessions.put(r.getSessionId(), sess);
 				current = new HashSet<>(getChargingSessionReadings(r.getSessionId()));
 				currentReadings.put(r.getSessionId(), current);
 			}
@@ -350,11 +369,23 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 			chargeSessionDao.addReadings(newReadings);
 			DatumDao<GeneralNodeDatum> dao = datumDao.service();
 			if ( dao != null ) {
+				// group readings by timestamp into Datum
+				GeneralNodeDatum d = null;
 				for ( SampledValue reading : newReadings ) {
-					GeneralNodeDatum d = datum(sessions.get(reading.getSessionId()), reading);
-					if ( d != null ) {
-						dao.storeDatum(d);
+					if ( d == null
+							|| d.getCreated().getTime() != reading.getTimestamp().toEpochMilli() ) {
+						if ( d != null ) {
+							dao.storeDatum(d);
+							d = null;
+						}
+						d = datum(sessions.get(reading.getSessionId()), reading);
+					} else {
+						populateProperty(d, reading.getMeasurand(), reading.getUnit(),
+								reading.getValue());
 					}
+				}
+				if ( d != null ) {
+					dao.storeDatum(d);
 				}
 			}
 		}
@@ -394,6 +425,9 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 	}
 
 	private BigDecimal normalizedUnit(BigDecimal num, UnitOfMeasure unit) {
+		if ( unit == null ) {
+			return num;
+		}
 		switch (unit) {
 			case Fahrenheit: {
 				// convert to C

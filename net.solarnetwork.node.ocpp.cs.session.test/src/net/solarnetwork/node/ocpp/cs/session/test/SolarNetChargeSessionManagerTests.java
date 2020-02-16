@@ -22,19 +22,27 @@
 
 package net.solarnetwork.node.ocpp.cs.session.test;
 
+import static java.util.Arrays.asList;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.verify;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -43,6 +51,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.easymock.Capture;
+import org.easymock.CaptureType;
 import org.easymock.EasyMock;
 import org.easymock.IAnswer;
 import org.junit.After;
@@ -58,6 +67,8 @@ import net.solarnetwork.node.ocpp.dao.PurgePostedChargeSessionsTask;
 import net.solarnetwork.node.ocpp.domain.AuthorizationInfo;
 import net.solarnetwork.node.ocpp.domain.AuthorizationStatus;
 import net.solarnetwork.node.ocpp.domain.ChargeSession;
+import net.solarnetwork.node.ocpp.domain.ChargeSessionEndInfo;
+import net.solarnetwork.node.ocpp.domain.ChargeSessionEndReason;
 import net.solarnetwork.node.ocpp.domain.ChargeSessionStartInfo;
 import net.solarnetwork.node.ocpp.domain.Location;
 import net.solarnetwork.node.ocpp.domain.Measurand;
@@ -104,6 +115,38 @@ public class SolarNetChargeSessionManagerTests {
 		if ( mocks != null ) {
 			EasyMock.replay(mocks);
 		}
+	}
+
+	@Test
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public void startup() {
+		// given
+		int expireHours = 2;
+		manager.setPurgePostedChargeSessionsExpirationHours(expireHours);
+
+		Capture<Runnable> startupTaskCaptor = new Capture<>();
+		ScheduledFuture<Object> startupTaskFuture = createMock(ScheduledFuture.class);
+		expect(taskScheduler.schedule(capture(startupTaskCaptor), anyObject(Date.class)))
+				.andReturn((ScheduledFuture) startupTaskFuture);
+
+		long taskDelay = TimeUnit.HOURS.toMillis(expireHours);
+		ScheduledFuture<Object> purgePostedTaskFuture = createMock(ScheduledFuture.class);
+		Capture<Runnable> purgeTaskCaptor = new Capture<>();
+		expect(taskScheduler.scheduleWithFixedDelay(capture(purgeTaskCaptor), anyObject(),
+				eq(taskDelay))).andReturn((ScheduledFuture) purgePostedTaskFuture);
+
+		// when
+		replayAll(startupTaskFuture, purgePostedTaskFuture);
+
+		manager.startup();
+
+		Runnable startupTask = startupTaskCaptor.getValue();
+		startupTask.run();
+
+		// then
+		assertThat("Purge posted task scheduled", purgeTaskCaptor.getValue(),
+				instanceOf(PurgePostedChargeSessionsTask.class));
+		verify(startupTaskFuture, purgePostedTaskFuture);
 	}
 
 	@Test
@@ -261,34 +304,219 @@ public class SolarNetChargeSessionManagerTests {
 	}
 
 	@Test
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public void startup() {
+	public void endSession_ok() {
 		// given
-		int expireHours = 2;
-		manager.setPurgePostedChargeSessionsExpirationHours(expireHours);
+		String idTag = "tester";
+		String chargePointId = UUID.randomUUID().toString().substring(0, 20);
+		int connectorId = 1;
+		int transactionId = 123;
 
-		Capture<Runnable> startupTaskCaptor = new Capture<>();
-		ScheduledFuture<Object> startupTaskFuture = createMock(ScheduledFuture.class);
-		expect(taskScheduler.schedule(capture(startupTaskCaptor), anyObject(Date.class)))
-				.andReturn((ScheduledFuture) startupTaskFuture);
+		ChargeSession sess = new ChargeSession(UUID.randomUUID(), Instant.now(), idTag, chargePointId,
+				connectorId, transactionId);
+		expect(chargeSessionDao.getIncompleteChargeSessionForTransaction(chargePointId, transactionId))
+				.andReturn(sess);
 
-		long taskDelay = TimeUnit.HOURS.toMillis(expireHours);
-		ScheduledFuture<Object> purgePostedTaskFuture = createMock(ScheduledFuture.class);
-		Capture<Runnable> purgeTaskCaptor = new Capture<>();
-		expect(taskScheduler.scheduleWithFixedDelay(capture(purgeTaskCaptor), anyObject(),
-				eq(taskDelay))).andReturn((ScheduledFuture) purgePostedTaskFuture);
+		Capture<ChargeSession> updatedCaptor = new Capture<>();
+		expect(chargeSessionDao.save(capture(updatedCaptor))).andReturn(sess.getId());
 
+		// @formatter:off
+		SampledValue startReading = SampledValue.builder()
+				.withTimestamp(sess.getCreated())
+				.withSessionId(sess.getId())
+				.withContext(ReadingContext.TransactionBegin)
+				.withLocation(Location.Outlet)
+				.withMeasurand(Measurand.EnergyActiveImportRegister)
+				.build();
+		SampledValue middleReading = SampledValue.builder()
+				.withTimestamp(sess.getCreated().plusSeconds(10))
+				.withSessionId(sess.getId())
+				.withContext(ReadingContext.SamplePeriodic)
+				.withLocation(Location.Outlet)
+				.withMeasurand(Measurand.EnergyActiveImportRegister)
+				.build();
+		// @formatter:on
+		expect(chargeSessionDao.findReadingsForSession(sess.getId()))
+				.andReturn(Arrays.asList(startReading, middleReading));
+
+		Capture<Iterable<SampledValue>> newReadingsCapture = new Capture<>();
+		chargeSessionDao.addReadings(capture(newReadingsCapture));
+
+		// generate datum from initial reading
+		Capture<GeneralNodeDatum> datumCaptor = new Capture<>();
+		datumDao.storeDatum(capture(datumCaptor));
 		// when
-		replayAll(startupTaskFuture, purgePostedTaskFuture);
+		replayAll();
 
-		manager.startup();
-
-		Runnable startupTask = startupTaskCaptor.getValue();
-		startupTask.run();
+		// @formatter:off
+		ChargeSessionEndInfo info = ChargeSessionEndInfo.builder()
+				.withTimestampEnd(Instant.now())
+				.withAuthorizationId(idTag)
+				.withChargePointId(chargePointId)
+				.withTransactionId(transactionId)
+				.withMeterEnd(54321)
+				.withReason(ChargeSessionEndReason.Local)
+				.build();
+		// @formatter:on
+		manager.endChargingSession(info);
 
 		// then
-		assertThat("Purge posted task scheduled", purgeTaskCaptor.getValue(),
-				instanceOf(PurgePostedChargeSessionsTask.class));
-		verify(startupTaskFuture, purgePostedTaskFuture);
+
+		// @formatter:off
+		SampledValue endReading = SampledValue.builder()
+				.withTimestamp(info.getTimestampEnd())
+				.withSessionId(sess.getId())
+				.withContext(ReadingContext.TransactionEnd)
+				.withLocation(Location.Outlet)
+				.withMeasurand(Measurand.EnergyActiveImportRegister)
+				.build();
+		// @formatter:on
+
+		List<SampledValue> samples = StreamSupport
+				.stream(newReadingsCapture.getValue().spliterator(), false).collect(Collectors.toList());
+		assertThat("One reading saved", samples, hasSize(1));
+		assertThat("Initial reading core properties", samples.get(0), equalTo(endReading));
+		assertThat("Initial reading unit", samples.get(0).getUnit(), equalTo(UnitOfMeasure.Wh));
+		assertThat("Initial reading value", samples.get(0).getValue(),
+				equalTo(String.valueOf(info.getMeterEnd())));
+
+		// session should be update with end/posted dates
+		ChargeSession updated = updatedCaptor.getValue();
+		assertThat("Session ID same", updated.getId(), equalTo(sess.getId()));
+		assertThat("End date set", updated.getEnded(), equalTo(info.getTimestampEnd()));
+		assertThat("End auth ID set", updated.getAuthId(), equalTo(info.getAuthorizationId()));
+		assertThat("Posted date set", updated.getPosted(), notNullValue());
+
+		GeneralNodeDatum datum = datumCaptor.getValue();
+		assertThat("Datum generated", datum, notNullValue());
+		assertThat("Datum date", datum.getCreated().getTime(),
+				equalTo(info.getTimestampEnd().toEpochMilli()));
+		assertThat("Datum source ID", datum.getSourceId(), equalTo(
+				String.format("/ocpp/cp/%s/%d/%s", chargePointId, connectorId, Location.Outlet)));
+		assertThat("Energy prop", datum.getAccumulatingSampleLong(ACEnergyDatum.WATT_HOUR_READING_KEY),
+				equalTo(info.getMeterEnd()));
+		assertThat("Datum prop session ID",
+				datum.getStatusSampleString(SolarNetChargeSessionManager.SESSION_ID_PROPERTY),
+				equalTo(sess.getId().toString()));
 	}
+
+	@Test
+	public void addReadings_consolidate() {
+		// given
+		String idTag = "tester";
+		String chargePointId = UUID.randomUUID().toString().substring(0, 20);
+		int connectorId = 1;
+		int transactionId = 123;
+
+		// get current session
+		ChargeSession sess = new ChargeSession(UUID.randomUUID(), Instant.now(), idTag, chargePointId,
+				connectorId, transactionId);
+		expect(chargeSessionDao.get(sess.getId())).andReturn(sess);
+
+		// get current readings for session
+		expect(chargeSessionDao.findReadingsForSession(sess.getId())).andReturn(Collections.emptyList());
+
+		// save readings
+		Capture<Iterable<SampledValue>> readingsCaptor = new Capture<>();
+		chargeSessionDao.addReadings(capture(readingsCaptor));
+
+		Capture<GeneralNodeDatum> datumCaptor = new Capture<>(CaptureType.ALL);
+		datumDao.storeDatum(capture(datumCaptor));
+		expectLastCall().times(3);
+
+		// when
+		replayAll();
+
+		// @formatter:off
+		SampledValue r1 = SampledValue.builder()
+				.withTimestamp(sess.getCreated())
+				.withSessionId(sess.getId())
+				.withContext(ReadingContext.TransactionBegin)
+				.withLocation(Location.Outlet)
+				.withMeasurand(Measurand.EnergyActiveImportRegister)
+				.withUnit(UnitOfMeasure.Wh)
+				.withValue("1234")
+				.build();
+		SampledValue r2 = SampledValue.builder()
+				.withTimestamp(sess.getCreated())
+				.withSessionId(sess.getId())
+				.withContext(ReadingContext.TransactionBegin)
+				.withLocation(Location.Outlet)
+				.withMeasurand(Measurand.PowerActiveImport)
+				.withUnit(UnitOfMeasure.W)
+				.withValue("500")
+				.build();
+		SampledValue r3 = SampledValue.builder()
+				.withTimestamp(sess.getCreated().plusSeconds(60))
+				.withSessionId(sess.getId())
+				.withContext(ReadingContext.SamplePeriodic)
+				.withLocation(Location.Outlet)
+				.withMeasurand(Measurand.EnergyActiveImportRegister)
+				.withUnit(UnitOfMeasure.Wh)
+				.withValue("2345")
+				.build();
+		SampledValue r4 = SampledValue.builder()
+				.withTimestamp(sess.getCreated().plusSeconds(60))
+				.withSessionId(sess.getId())
+				.withContext(ReadingContext.SamplePeriodic)
+				.withLocation(Location.Outlet)
+				.withMeasurand(Measurand.PowerActiveImport)
+				.withUnit(UnitOfMeasure.W)
+				.withValue("400")
+				.build();
+		SampledValue r5 = SampledValue.builder()
+				.withTimestamp(sess.getCreated().plusSeconds(60))
+				.withSessionId(sess.getId())
+				.withContext(ReadingContext.SamplePeriodic)
+				.withLocation(Location.Outlet)
+				.withMeasurand(Measurand.Frequency)
+				.withValue("59.89")
+				.build();
+		SampledValue r6 = SampledValue.builder()
+				.withTimestamp(sess.getCreated().plusSeconds(90))
+				.withSessionId(sess.getId())
+				.withContext(ReadingContext.TransactionEnd)
+				.withLocation(Location.Outlet)
+				.withMeasurand(Measurand.EnergyActiveImportRegister)
+				.withValue("3456")
+				.build();
+		// @formatter:on
+		manager.addChargingSessionReadings(asList(r1, r2, r3, r4, r5, r6));
+
+		// then
+		assertThat("Persisted readings same as passed in", readingsCaptor.getValue(),
+				contains(r1, r2, r3, r4, r5, r6));
+
+		List<GeneralNodeDatum> persistedDatum = datumCaptor.getValues();
+		assertThat("Consolidated readings into 3 datum based on date", persistedDatum, hasSize(3));
+
+		for ( int i = 0; i < persistedDatum.size(); i++ ) {
+			GeneralNodeDatum d = persistedDatum.get(i);
+			assertThat("Datum source ID " + i, d.getSourceId(),
+					equalTo("/ocpp/cp/" + chargePointId + "/" + connectorId + "/Outlet"));
+			assertThat("Datum session ID " + i, d.getStatusSampleString("sessionId"),
+					equalTo(sess.getId().toString()));
+		}
+
+		GeneralNodeDatum d = persistedDatum.get(0);
+		assertThat("Datum 1 @ transaction start", d.getCreated().getTime(),
+				equalTo(r1.getTimestamp().toEpochMilli()));
+		assertThat("Datum 1 consolidated properties", d.getSampleData(),
+				allOf(hasEntry("wattHours", new BigDecimal(r1.getValue())),
+						hasEntry("watts", new BigDecimal(r2.getValue()))));
+
+		d = persistedDatum.get(1);
+		assertThat("Datum 2 @ middle", d.getCreated().getTime(),
+				equalTo(r3.getTimestamp().toEpochMilli()));
+		assertThat("Datum 2 consolidated properties", d.getSampleData(),
+				allOf(hasEntry("wattHours", new BigDecimal(r3.getValue())),
+						hasEntry("watts", new BigDecimal(r4.getValue())),
+						hasEntry("frequency", new BigDecimal(r5.getValue()))));
+
+		d = persistedDatum.get(2);
+		assertThat("Datum 2 @ transaction end", d.getCreated().getTime(),
+				equalTo(r6.getTimestamp().toEpochMilli()));
+		assertThat("Datum 2 consolidated properties", d.getSampleData(),
+				hasEntry("wattHours", new BigDecimal(r6.getValue())));
+	}
+
 }
