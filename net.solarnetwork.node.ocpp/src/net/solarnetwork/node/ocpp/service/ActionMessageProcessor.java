@@ -46,6 +46,17 @@ public interface ActionMessageProcessor<T, R> {
 	Set<Action> getSupportedActions();
 
 	/**
+	 * Test if a specific message is supported by this processor.
+	 * 
+	 * @param message
+	 *        the message
+	 * @return {@literal true} if
+	 *         {@link #processActionMessage(ActionMessage, ActionMessageResultHandler)}
+	 *         can handle the given message
+	 */
+	boolean isMessageSupported(ActionMessage<?> message);
+
+	/**
 	 * Process an {@link ActionMessage} and provide the result to an
 	 * {@link ActionMessageResultHandler}.
 	 * 

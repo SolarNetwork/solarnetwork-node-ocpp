@@ -36,9 +36,9 @@ import net.solarnetwork.node.ocpp.domain.ChargeSession;
 import net.solarnetwork.node.ocpp.domain.ChargeSessionEndInfo;
 import net.solarnetwork.node.ocpp.domain.ChargeSessionEndReason;
 import net.solarnetwork.node.ocpp.domain.SampledValue;
-import net.solarnetwork.node.ocpp.service.ActionMessageProcessor;
 import net.solarnetwork.node.ocpp.service.ActionMessageResultHandler;
 import net.solarnetwork.node.ocpp.service.AuthorizationException;
+import net.solarnetwork.node.ocpp.service.BaseActionMessageProcessor;
 import net.solarnetwork.node.ocpp.service.cs.ChargeSessionManager;
 import ocpp.domain.Action;
 import ocpp.domain.ErrorCodeException;
@@ -58,7 +58,7 @@ import ocpp.xml.support.XmlDateUtils;
  * @version 1.0
  */
 public class StopTransactionProcessor
-		implements ActionMessageProcessor<StopTransactionRequest, StopTransactionResponse> {
+		extends BaseActionMessageProcessor<StopTransactionRequest, StopTransactionResponse> {
 
 	/** The supported actions of this processor. */
 	public static final Set<Action> SUPPORTED_ACTIONS = Collections
@@ -77,16 +77,11 @@ public class StopTransactionProcessor
 	 *         if any parameter is {@literal null}
 	 */
 	public StopTransactionProcessor(ChargeSessionManager chargeSessionManager) {
-		super();
+		super(StopTransactionRequest.class, StopTransactionResponse.class, SUPPORTED_ACTIONS);
 		if ( chargeSessionManager == null ) {
 			throw new IllegalArgumentException("The chargeSessionManager parameter must not be null.");
 		}
 		this.chargeSessionManager = chargeSessionManager;
-	}
-
-	@Override
-	public Set<Action> getSupportedActions() {
-		return SUPPORTED_ACTIONS;
 	}
 
 	@Override

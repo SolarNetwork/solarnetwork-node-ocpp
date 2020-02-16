@@ -756,7 +756,9 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 			};
 			for ( ActionMessageProcessor<Object, Object> p : procs ) {
 				try {
-					p.processActionMessage(message, handler);
+					if ( p.isMessageSupported(message) ) {
+						p.processActionMessage(message, handler);
+					}
 				} catch ( Throwable t ) {
 					if ( handled.compareAndSet(false, true) ) {
 						sendCallError(session, clientId, messageId, ActionErrorCode.InternalError,

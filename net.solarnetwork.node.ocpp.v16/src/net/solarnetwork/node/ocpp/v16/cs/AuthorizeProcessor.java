@@ -26,9 +26,9 @@ import java.util.Collections;
 import java.util.Set;
 import net.solarnetwork.node.ocpp.domain.ActionMessage;
 import net.solarnetwork.node.ocpp.domain.AuthorizationInfo;
-import net.solarnetwork.node.ocpp.service.ActionMessageProcessor;
 import net.solarnetwork.node.ocpp.service.ActionMessageResultHandler;
 import net.solarnetwork.node.ocpp.service.AuthorizationService;
+import net.solarnetwork.node.ocpp.service.BaseActionMessageProcessor;
 import ocpp.domain.Action;
 import ocpp.domain.ErrorCodeException;
 import ocpp.v16.ActionErrorCode;
@@ -45,7 +45,7 @@ import ocpp.xml.support.XmlDateUtils;
  * @version 1.0
  */
 public class AuthorizeProcessor
-		implements ActionMessageProcessor<ocpp.v16.cs.AuthorizeRequest, AuthorizeResponse> {
+		extends BaseActionMessageProcessor<ocpp.v16.cs.AuthorizeRequest, AuthorizeResponse> {
 
 	/** The supported actions of this processor. */
 	public static final Set<Action> SUPPORTED_ACTIONS = Collections
@@ -60,13 +60,8 @@ public class AuthorizeProcessor
 	 *        the authorization service to use
 	 */
 	public AuthorizeProcessor(AuthorizationService authService) {
-		super();
+		super(AuthorizeRequest.class, AuthorizeResponse.class, SUPPORTED_ACTIONS);
 		this.authService = authService;
-	}
-
-	@Override
-	public Set<Action> getSupportedActions() {
-		return SUPPORTED_ACTIONS;
 	}
 
 	@Override

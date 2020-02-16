@@ -25,8 +25,8 @@ package net.solarnetwork.node.ocpp.v16.cs;
 import java.util.Collections;
 import java.util.Set;
 import net.solarnetwork.node.ocpp.domain.ActionMessage;
-import net.solarnetwork.node.ocpp.service.ActionMessageProcessor;
 import net.solarnetwork.node.ocpp.service.ActionMessageResultHandler;
+import net.solarnetwork.node.ocpp.service.BaseActionMessageProcessor;
 import ocpp.domain.Action;
 import ocpp.v16.CentralSystemAction;
 import ocpp.v16.cs.HeartbeatRequest;
@@ -44,8 +44,7 @@ import ocpp.xml.support.XmlDateUtils;
  * @author matt
  * @version 1.0
  */
-public class HeartbeatProcessor
-		implements ActionMessageProcessor<HeartbeatRequest, HeartbeatResponse> {
+public class HeartbeatProcessor extends BaseActionMessageProcessor<HeartbeatRequest, HeartbeatResponse> {
 
 	/** The supported actions of this processor. */
 	public static final Set<Action> SUPPORTED_ACTIONS = Collections
@@ -55,12 +54,7 @@ public class HeartbeatProcessor
 	 * Constructor.
 	 */
 	public HeartbeatProcessor() {
-		super();
-	}
-
-	@Override
-	public Set<Action> getSupportedActions() {
-		return SUPPORTED_ACTIONS;
+		super(HeartbeatRequest.class, HeartbeatResponse.class, SUPPORTED_ACTIONS);
 	}
 
 	@Override

@@ -27,8 +27,8 @@ import java.util.Set;
 import net.solarnetwork.node.ocpp.domain.ActionMessage;
 import net.solarnetwork.node.ocpp.domain.ChargePoint;
 import net.solarnetwork.node.ocpp.domain.ChargePointInfo;
-import net.solarnetwork.node.ocpp.service.ActionMessageProcessor;
 import net.solarnetwork.node.ocpp.service.ActionMessageResultHandler;
+import net.solarnetwork.node.ocpp.service.BaseActionMessageProcessor;
 import net.solarnetwork.node.ocpp.service.cs.ChargePointManager;
 import ocpp.domain.Action;
 import ocpp.domain.ErrorCodeException;
@@ -46,7 +46,7 @@ import ocpp.xml.support.XmlDateUtils;
  * @version 1.0
  */
 public class BootNotificationProcessor
-		implements ActionMessageProcessor<BootNotificationRequest, BootNotificationResponse> {
+		extends BaseActionMessageProcessor<BootNotificationRequest, BootNotificationResponse> {
 
 	/** The supported actions of this processor. */
 	public static final Set<Action> SUPPORTED_ACTIONS = Collections
@@ -67,16 +67,11 @@ public class BootNotificationProcessor
 	 *         if {@code chargePointManager} is {@literal null}
 	 */
 	public BootNotificationProcessor(ChargePointManager chargePointManager) {
-		super();
+		super(BootNotificationRequest.class, BootNotificationResponse.class, SUPPORTED_ACTIONS);
 		if ( chargePointManager == null ) {
 			throw new IllegalArgumentException("The chargePointManager parameter must not be null.");
 		}
 		this.chargePointManager = chargePointManager;
-	}
-
-	@Override
-	public Set<Action> getSupportedActions() {
-		return SUPPORTED_ACTIONS;
 	}
 
 	@Override

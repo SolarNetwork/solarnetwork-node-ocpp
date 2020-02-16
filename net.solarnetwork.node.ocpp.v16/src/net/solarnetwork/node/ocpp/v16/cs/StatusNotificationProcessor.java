@@ -32,8 +32,8 @@ import net.solarnetwork.node.ocpp.domain.ActionMessage;
 import net.solarnetwork.node.ocpp.domain.ChargePointErrorCode;
 import net.solarnetwork.node.ocpp.domain.ChargePointStatus;
 import net.solarnetwork.node.ocpp.domain.StatusNotification;
-import net.solarnetwork.node.ocpp.service.ActionMessageProcessor;
 import net.solarnetwork.node.ocpp.service.ActionMessageResultHandler;
+import net.solarnetwork.node.ocpp.service.BaseActionMessageProcessor;
 import ocpp.domain.Action;
 import ocpp.domain.ErrorCodeException;
 import ocpp.v16.ActionErrorCode;
@@ -49,7 +49,7 @@ import ocpp.xml.support.XmlDateUtils;
  * @version 1.0
  */
 public class StatusNotificationProcessor
-		implements ActionMessageProcessor<StatusNotificationRequest, StatusNotificationResponse> {
+		extends BaseActionMessageProcessor<StatusNotificationRequest, StatusNotificationResponse> {
 
 	/** The supported actions of this processor. */
 	public static final Set<Action> SUPPORTED_ACTIONS = Collections
@@ -68,17 +68,12 @@ public class StatusNotificationProcessor
 	 *         if {@code chargePointConnectorDao} is {@literal null}
 	 */
 	public StatusNotificationProcessor(ChargePointConnectorDao chargePointConnectorDao) {
-		super();
+		super(StatusNotificationRequest.class, StatusNotificationResponse.class, SUPPORTED_ACTIONS);
 		if ( chargePointConnectorDao == null ) {
 			throw new IllegalArgumentException(
 					"The chargePointConnectorDao parameter must not be null.");
 		}
 		this.chargePointConnectorDao = chargePointConnectorDao;
-	}
-
-	@Override
-	public Set<Action> getSupportedActions() {
-		return SUPPORTED_ACTIONS;
 	}
 
 	@Override
