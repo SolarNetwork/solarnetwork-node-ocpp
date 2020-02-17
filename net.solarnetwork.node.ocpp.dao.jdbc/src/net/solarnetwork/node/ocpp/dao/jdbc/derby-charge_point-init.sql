@@ -6,6 +6,7 @@ CREATE TABLE solarnode.ocpp_charge_point (
 	vendor				VARCHAR(20) NOT NULL,
 	model				VARCHAR(20) NOT NULL,
 	serial_num			VARCHAR(25),
+	box_serial_num		VARCHAR(25),
 	fw_vers				VARCHAR(50),
 	iccid				VARCHAR(20),
 	imsi				VARCHAR(20),

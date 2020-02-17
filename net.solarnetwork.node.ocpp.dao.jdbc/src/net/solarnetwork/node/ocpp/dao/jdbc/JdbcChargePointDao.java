@@ -67,7 +67,7 @@ public class JdbcChargePointDao extends BaseJdbcGenericDao<ChargePoint, String>
 	@Override
 	protected void setUpdateStatementValues(ChargePoint obj, PreparedStatement ps) throws SQLException {
 		setUpdateStatementValues(obj, ps, 0);
-		ps.setString(12, obj.getId());
+		ps.setString(13, obj.getId());
 	}
 
 	protected void setUpdateStatementValues(ChargePoint obj, PreparedStatement ps, int offset)
@@ -80,13 +80,14 @@ public class JdbcChargePointDao extends BaseJdbcGenericDao<ChargePoint, String>
 		ChargePointInfo info = obj.getInfo() != null ? obj.getInfo() : new ChargePointInfo();
 		ps.setString(3 + offset, info.getChargePointVendor());
 		ps.setString(4 + offset, info.getChargePointModel());
-		ps.setString(5 + offset, info.getChargeBoxSerialNumber());
-		ps.setString(6 + offset, info.getFirmwareVersion());
-		ps.setString(7 + offset, info.getIccid());
-		ps.setString(8 + offset, info.getImsi());
-		ps.setString(9 + offset, info.getMeterType());
-		ps.setString(10 + offset, info.getMeterSerialNumber());
-		ps.setInt(11 + offset, obj.getConnectorCount());
+		ps.setString(5 + offset, info.getChargePointSerialNumber());
+		ps.setString(6 + offset, info.getChargeBoxSerialNumber());
+		ps.setString(7 + offset, info.getFirmwareVersion());
+		ps.setString(8 + offset, info.getIccid());
+		ps.setString(9 + offset, info.getImsi());
+		ps.setString(10 + offset, info.getMeterType());
+		ps.setString(11 + offset, info.getMeterSerialNumber());
+		ps.setInt(12 + offset, obj.getConnectorCount());
 	}
 
 	/**
@@ -106,14 +107,15 @@ public class JdbcChargePointDao extends BaseJdbcGenericDao<ChargePoint, String>
 			ChargePointInfo info = new ChargePointInfo(id);
 			info.setChargePointVendor(rs.getString(5));
 			info.setChargePointModel(rs.getString(6));
-			info.setChargeBoxSerialNumber(rs.getString(7));
-			info.setFirmwareVersion(rs.getString(8));
-			info.setIccid(rs.getString(9));
-			info.setImsi(rs.getString(10));
-			info.setMeterType(rs.getString(11));
-			info.setMeterSerialNumber(rs.getString(12));
+			info.setChargePointSerialNumber(rs.getString(7));
+			info.setChargeBoxSerialNumber(rs.getString(8));
+			info.setFirmwareVersion(rs.getString(9));
+			info.setIccid(rs.getString(10));
+			info.setImsi(rs.getString(11));
+			info.setMeterType(rs.getString(12));
+			info.setMeterSerialNumber(rs.getString(13));
 			obj.setInfo(info);
-			obj.setConnectorCount(rs.getInt(13));
+			obj.setConnectorCount(rs.getInt(14));
 
 			return obj;
 		}

@@ -5,6 +5,7 @@ SET
 	,vendor = ?
 	,model = ?
 	,serial_num = ?
+	,box_serial_num = ?
 	,fw_vers = ?
 	,iccid = ?
 	,imsi = ?
