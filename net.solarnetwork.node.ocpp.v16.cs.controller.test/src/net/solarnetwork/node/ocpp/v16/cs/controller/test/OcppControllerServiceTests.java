@@ -273,6 +273,10 @@ public class OcppControllerServiceTests {
 			assertThat("Connector ID charge point ID " + i, conn.getId().getChargePointId(),
 					equalTo(chargePointId));
 			assertThat("Connector ID index " + i, conn.getId().getConnectorId(), equalTo(i + 1));
+			assertThat("Connector info ID matches index " + i, conn.getInfo().getConnectorId(),
+					equalTo(i + 1));
+			assertThat("Connector info timestamp not null " + i, conn.getInfo().getTimestamp(),
+					notNullValue());
 		}
 	}
 

@@ -58,6 +58,7 @@ import net.solarnetwork.node.ocpp.domain.ChargePointConnectorKey;
 import net.solarnetwork.node.ocpp.domain.ChargePointInfo;
 import net.solarnetwork.node.ocpp.domain.ChargePointStatus;
 import net.solarnetwork.node.ocpp.domain.RegistrationStatus;
+import net.solarnetwork.node.ocpp.domain.StatusNotification;
 import net.solarnetwork.node.ocpp.service.ActionMessageResultHandler;
 import net.solarnetwork.node.ocpp.service.AuthorizationService;
 import net.solarnetwork.node.ocpp.service.ChargePointBroker;
@@ -245,6 +246,10 @@ public class OcppControllerService extends BaseIdentifiable
 							if ( !existing.containsKey(i) ) {
 								ChargePointConnector conn = new ChargePointConnector(
 										new ChargePointConnectorKey(cp.getId(), i), Instant.now());
+								conn.setInfo(StatusNotification.builder().withConnectorId(i)
+										.withTimestamp(conn.getCreated()).build());
+								log.info("Creating ChargePointConnector {} for Charge Point {}", i,
+										cp.getId());
 								chargePointConnectorDao.save(conn);
 							}
 						}
@@ -253,6 +258,8 @@ public class OcppControllerService extends BaseIdentifiable
 							Entry<Integer, ChargePointConnector> e = itr.next();
 							int connId = e.getKey().intValue();
 							if ( connId < 1 || connId > cp.getConnectorCount() ) {
+								log.info("Deleting excess ChargePointConnector {} from Charge Point {}",
+										connId, cp.getId());
 								chargePointConnectorDao.delete(e.getValue());
 								itr.remove();
 							}
