@@ -72,7 +72,7 @@ public final class CentralSystemUtils {
 	}
 
 	/**
-	 * Convert a {@link ocpp.v16.cs.SampledValue} into a {@link SampleValue}.
+	 * Convert a {@link ocpp.v16.cs.SampledValue} into a {@link SampledValue}.
 	 * 
 	 * @param chargeSessionId
 	 *        the charge session ID associated with the sample

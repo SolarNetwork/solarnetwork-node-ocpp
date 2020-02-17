@@ -33,7 +33,7 @@ import ocpp.v16.cs.DiagnosticsStatusNotificationRequest;
 import ocpp.v16.cs.DiagnosticsStatusNotificationResponse;
 
 /**
- * Process {@link DiagnosticsStatusNotification} action messages.
+ * Process {@link DiagnosticsStatusNotificationRequest} action messages.
  * 
  * @author matt
  * @version 1.0

@@ -17,6 +17,7 @@
     	<dependency org="net.solarnetwork.external" name="net.solarnetwork.external.ocpp" rev="[1.0,2.0)"/>
     	<dependency org="net.solarnetwork.node" name="net.solarnetwork.node" rev="[1.73,2.0)"/>
     	<dependency org="net.solarnetwork.node" name="net.solarnetwork.node.ocpp" rev="[2.0,3.0)"/>
+    	<dependency org="net.solarnetwork.node" name="net.solarnetwork.node.ocpp.v16" rev="[0.1,1.0)"/>
     	<dependency org="org.slf4j" name="slf4j-api" rev="1.7.21"/>
 	</dependencies>
 </ivy-module>
