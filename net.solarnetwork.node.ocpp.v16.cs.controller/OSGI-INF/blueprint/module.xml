@@ -141,6 +141,7 @@
 	
 	<service ref="controller">
 		<interfaces>
+			<value>net.solarnetwork.node.settings.SettingSpecifierProvider</value>
 			<value>net.solarnetwork.node.ocpp.service.AuthorizationService</value>
 			<value>net.solarnetwork.node.ocpp.service.cs.ChargePointManager</value>
 		</interfaces>
@@ -184,6 +185,11 @@
 		<argument ref="chargePointDao"/>
 		<argument ref="chargePointConnectorDao"/>
 		<property name="transactionTemplate" ref="transactionTemplate"/>
+			<property name="messageSource">
+				<bean class="org.springframework.context.support.ResourceBundleMessageSource">
+					<property name="basename" value="net.solarnetwork.node.ocpp.v16.cs.controller.OcppControllerService"/>
+				</bean>
+			</property>
 	</bean>
 	
 	<bean id="transactionTemplate" class="org.springframework.transaction.support.TransactionTemplate">

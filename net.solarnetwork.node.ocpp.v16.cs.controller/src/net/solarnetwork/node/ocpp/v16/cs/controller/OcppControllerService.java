@@ -23,6 +23,11 @@
 package net.solarnetwork.node.ocpp.v16.cs.controller;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -53,6 +58,10 @@ import net.solarnetwork.node.ocpp.service.AuthorizationService;
 import net.solarnetwork.node.ocpp.service.ChargePointBroker;
 import net.solarnetwork.node.ocpp.service.ChargePointRouter;
 import net.solarnetwork.node.ocpp.service.cs.ChargePointManager;
+import net.solarnetwork.node.settings.SettingSpecifier;
+import net.solarnetwork.node.settings.SettingSpecifierProvider;
+import net.solarnetwork.node.settings.support.BasicGroupSettingSpecifier;
+import net.solarnetwork.node.settings.support.BasicTitleSettingSpecifier;
 import net.solarnetwork.node.support.BaseIdentifiable;
 import ocpp.domain.Action;
 import ocpp.domain.ErrorCodeException;
@@ -74,7 +83,7 @@ import ocpp.v16.cp.KeyValue;
  * @version 1.0
  */
 public class OcppControllerService extends BaseIdentifiable
-		implements ChargePointManager, AuthorizationService {
+		implements ChargePointManager, AuthorizationService, SettingSpecifierProvider {
 
 	/** The default {@code initialRegistrationStatus} value. */
 	public static final RegistrationStatus DEFAULT_INITIAL_REGISTRATION_STATUS = RegistrationStatus.Pending;
@@ -286,7 +295,6 @@ public class OcppControllerService extends BaseIdentifiable
 			} else {
 				result.withStatus(AuthorizationStatus.Accepted);
 			}
-			// TODO: handle ConcurrentTx
 		} else {
 			result.withStatus(AuthorizationStatus.Invalid);
 		}
@@ -318,6 +326,58 @@ public class OcppControllerService extends BaseIdentifiable
 			handler.handleActionMessageResult(msg, null,
 					new ErrorCodeException(ActionErrorCode.GenericError, "Client not available."));
 		});
+	}
+
+	@Override
+	public String getSettingUID() {
+		return "net.solarnetwork.node.ocpp.v16.cs.controller";
+	}
+
+	@Override
+	public List<SettingSpecifier> getSettingSpecifiers() {
+		List<SettingSpecifier> results = new ArrayList<SettingSpecifier>(8);
+
+		Set<String> availableChargePointIds;
+		try {
+			availableChargePointIds = availableChargePointsIds();
+		} catch ( Exception e ) {
+			availableChargePointIds = Collections.emptySet();
+		}
+
+		Collection<ChargePoint> chargePoints;
+		try {
+			chargePoints = chargePointDao.getAll(null);
+		} catch ( Exception e ) {
+			chargePoints = Collections.emptyList();
+		}
+
+		List<SettingSpecifier> cpSettings = new ArrayList<>(chargePoints.size());
+		for ( ChargePoint cp : chargePoints ) {
+			cpSettings.add(new BasicTitleSettingSpecifier(cp.getId(),
+					chargePointStatus(cp, availableChargePointIds), true));
+		}
+		results.add(new BasicGroupSettingSpecifier("chargePoints", cpSettings));
+
+		return results;
+	}
+
+	private String chargePointStatus(ChargePoint cp, Set<String> availableChargePointIds) {
+		StringBuilder buf = new StringBuilder();
+		buf.append(availableChargePointIds.contains(cp.getId())
+				? getMessageSource().getMessage("connected.label", null, "Connected",
+						Locale.getDefault())
+				: getMessageSource().getMessage("disconnected.label", null, "Not connected",
+						Locale.getDefault()));
+		buf.append("; ").append(getMessageSource().getMessage("registrationStatus.label", null,
+				"Registration status", Locale.getDefault())).append(": ");
+		RegistrationStatus regStatus = cp.getRegistrationStatus();
+		if ( regStatus == null ) {
+			regStatus = RegistrationStatus.Unknown;
+		}
+		buf.append(getMessageSource().getMessage("registrationStatus." + regStatus.name(), null,
+				regStatus.toString(), Locale.getDefault()));
+
+		return buf.toString();
 	}
 
 	/**
