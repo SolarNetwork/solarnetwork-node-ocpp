@@ -26,12 +26,16 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.TransactionStatus;
@@ -50,6 +54,7 @@ import net.solarnetwork.node.ocpp.domain.AuthorizationStatus;
 import net.solarnetwork.node.ocpp.domain.BasicActionMessage;
 import net.solarnetwork.node.ocpp.domain.ChargePoint;
 import net.solarnetwork.node.ocpp.domain.ChargePointConnector;
+import net.solarnetwork.node.ocpp.domain.ChargePointConnectorKey;
 import net.solarnetwork.node.ocpp.domain.ChargePointInfo;
 import net.solarnetwork.node.ocpp.domain.ChargePointStatus;
 import net.solarnetwork.node.ocpp.domain.RegistrationStatus;
@@ -229,6 +234,28 @@ public class OcppControllerService extends BaseIdentifiable
 						if ( !cp.isSameAs(orig) ) {
 							chargePointDao.save(cp);
 							log.info("Saved configuration changes to Charge Point {}", cp.getId());
+						}
+
+						// add missing ChargePointConnector entities; remove excess
+						Collection<ChargePointConnector> connectors = chargePointConnectorDao
+								.findByIdChargePointId(cp.getId());
+						Map<Integer, ChargePointConnector> existing = connectors.stream().collect(
+								Collectors.toMap(cpc -> cpc.getId().getConnectorId(), cpc -> cpc));
+						for ( int i = 1; i <= cp.getConnectorCount(); i++ ) {
+							if ( !existing.containsKey(i) ) {
+								ChargePointConnector conn = new ChargePointConnector(
+										new ChargePointConnectorKey(cp.getId(), i), Instant.now());
+								chargePointConnectorDao.save(conn);
+							}
+						}
+						for ( Iterator<Entry<Integer, ChargePointConnector>> itr = existing.entrySet()
+								.iterator(); itr.hasNext(); ) {
+							Entry<Integer, ChargePointConnector> e = itr.next();
+							int connId = e.getKey().intValue();
+							if ( connId < 1 || connId > cp.getConnectorCount() ) {
+								chargePointConnectorDao.delete(e.getValue());
+								itr.remove();
+							}
 						}
 					}
 				});
