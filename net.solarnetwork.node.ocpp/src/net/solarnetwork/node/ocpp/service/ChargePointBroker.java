@@ -72,6 +72,10 @@ public interface ChargePointBroker {
 	 * Send an {@link ActionMessage} to a Charge Point and provide the result to
 	 * an {@link ActionMessageResultHandler}.
 	 * 
+	 * @param <T>
+	 *        the message type
+	 * @param <R>
+	 *        the result type
 	 * @param message
 	 *        the message to process, never {@literal null}
 	 * @param resultHandler

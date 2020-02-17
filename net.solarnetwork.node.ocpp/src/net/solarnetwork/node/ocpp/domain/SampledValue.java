@@ -143,11 +143,6 @@ public class SampledValue implements Comparable<SampledValue> {
 	/**
 	 * Get the sampled value.
 	 * 
-	 * <p>
-	 * This is treated as a string because it will be a digitally signed value
-	 * if {@link #getFormat()} is {@link ValueFormat#SignedData}.
-	 * </p>
-	 * 
 	 * @return the value the value
 	 */
 	public String getValue() {

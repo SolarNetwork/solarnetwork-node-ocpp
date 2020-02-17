@@ -90,8 +90,8 @@ public enum UnitOfMeasure {
 	 * 
 	 * @param code
 	 *        the code
-	 * @return the status, never {@literal null} and set to {@link #Raw} if not
-	 *         any other valid code
+	 * @return the status, never {@literal null} and set to {@link #Unknown} if
+	 *         not any other valid code
 	 */
 	public static UnitOfMeasure forCode(int code) {
 		final byte c = (byte) code;

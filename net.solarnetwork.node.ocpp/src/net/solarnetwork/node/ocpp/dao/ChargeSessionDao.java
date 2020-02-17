@@ -34,8 +34,9 @@ import net.solarnetwork.node.ocpp.domain.SampledValue;
  * Data Access Object API for {@link ChargeSession} entities.
  * 
  * <p>
- * <b>Note:</b> the {@link #save(ChargeSession)} method is expected to generate
- * a unique {@link ChargeSession#getTransactionId()} value.
+ * <b>Note:</b> the {@link GenericDao#save(net.solarnetwork.dao.Entity)} method
+ * is expected to generate a unique {@link ChargeSession#getTransactionId()}
+ * value.
  * </p>
  * 
  * @author matt
@@ -47,6 +48,8 @@ public interface ChargeSessionDao extends GenericDao<ChargeSession, UUID> {
 	 * Get an <em>incomplete</em> charge session for a given transaction ID. An
 	 * <em>incomplete</em> session is one that has no {@code ended} date.
 	 * 
+	 * @param chargePointId
+	 *        the charge point ID to look for
 	 * @param transactionId
 	 *        the transaction ID to look for
 	 * @return the first available incomplete charge session, or {@literal null}
@@ -58,6 +61,8 @@ public interface ChargeSessionDao extends GenericDao<ChargeSession, UUID> {
 	 * Get an <em>incomplete</em> charge session for a given connector ID. An
 	 * <em>incomplete</em> session is one that has no {@code ended} date.
 	 * 
+	 * @param chargePointId
+	 *        the charge point ID to look for
 	 * @param connectorId
 	 *        the connectorId ID to look for
 	 * @return the first available incomplete charge session, or {@literal null}

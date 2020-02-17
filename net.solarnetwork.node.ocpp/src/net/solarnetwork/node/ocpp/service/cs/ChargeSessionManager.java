@@ -83,7 +83,7 @@ public interface ChargeSessionManager extends Identifiable {
 	 * @param chargePointId
 	 *        the charge point ID to get sessions for, or {@literal null} for
 	 *        all sessions for all charge points
-	 * @return the active sessions, never {@litearl null}
+	 * @return the active sessions, never {@literal null}
 	 */
 	Collection<ChargeSession> getActiveChargingSessions(String chargePointId);
 
