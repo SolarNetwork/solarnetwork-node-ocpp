@@ -63,7 +63,8 @@ public class JdbcChargePointDaoTests extends AbstractNodeTransactionalTest {
 	}
 
 	private ChargePoint createTestChargePoint(String vendor, String model) {
-		ChargePoint cp = new ChargePoint(UUID.randomUUID().toString(), Instant.now());
+		ChargePoint cp = new ChargePoint(UUID.randomUUID().toString(),
+				Instant.ofEpochMilli(System.currentTimeMillis()));
 		cp.setEnabled(true);
 		cp.setRegistrationStatus(RegistrationStatus.Unknown);
 

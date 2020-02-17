@@ -85,7 +85,8 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 	}
 
 	private ChargePoint createTestChargePoint(String vendor, String model) {
-		ChargePoint cp = new ChargePoint(UUID.randomUUID().toString(), Instant.now());
+		ChargePoint cp = new ChargePoint(UUID.randomUUID().toString(),
+				Instant.ofEpochMilli(System.currentTimeMillis()));
 		cp.setEnabled(true);
 		cp.setRegistrationStatus(RegistrationStatus.Accepted);
 
@@ -98,7 +99,8 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 	}
 
 	private ChargeSession createTestChargeSession(String chargePointId) {
-		ChargeSession sess = new ChargeSession(UUID.randomUUID(), Instant.now(),
+		ChargeSession sess = new ChargeSession(UUID.randomUUID(),
+				Instant.ofEpochMilli(System.currentTimeMillis()),
 				UUID.randomUUID().toString().substring(0, 20), chargePointId, 1, 0);
 		return sess;
 	}
@@ -160,7 +162,7 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 		insert();
 
 		ChargeSession s = dao.get(last.getId());
-		s.setEnded(Instant.now());
+		s.setEnded(Instant.ofEpochMilli(System.currentTimeMillis()));
 		dao.save(s);
 
 		ChargeSession sess = dao.getIncompleteChargeSessionForTransaction(s.getChargePointId(),
@@ -196,8 +198,9 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 		ChargePoint cp2 = createTestChargePoint("vendor 2", "model 2");
 		chargePointDao.save(cp2);
 		ChargeSession s = dao.get(last.getId());
-		ChargeSession two = new ChargeSession(UUID.randomUUID(), Instant.now(), s.getAuthId(),
-				cp2.getId(), s.getConnectorId() + 1, s.getTransactionId() + 1);
+		ChargeSession two = new ChargeSession(UUID.randomUUID(),
+				Instant.ofEpochMilli(System.currentTimeMillis()), s.getAuthId(), cp2.getId(),
+				s.getConnectorId() + 1, s.getTransactionId() + 1);
 		dao.save(two);
 
 		Collection<ChargeSession> sess = dao
@@ -211,9 +214,10 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 
 		// add another for same charge point, but complete
 		ChargeSession s = dao.get(last.getId());
-		ChargeSession two = new ChargeSession(UUID.randomUUID(), Instant.now(), s.getAuthId(),
-				s.getChargePointId(), s.getConnectorId() + 1, s.getTransactionId() + 1);
-		two.setEnded(Instant.now());
+		ChargeSession two = new ChargeSession(UUID.randomUUID(),
+				Instant.ofEpochMilli(System.currentTimeMillis()), s.getAuthId(), s.getChargePointId(),
+				s.getConnectorId() + 1, s.getTransactionId() + 1);
+		two.setEnded(Instant.ofEpochMilli(System.currentTimeMillis()));
 		dao.save(two);
 
 		Collection<ChargeSession> sess = dao
@@ -239,7 +243,7 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 	private List<SampledValue> createTestReadings() {
 		// @formatter:off
 		SampledValue v1 = SampledValue.builder().withSessionId(last.getId())
-				.withTimestamp(Instant.now().minusSeconds(60))
+				.withTimestamp(Instant.ofEpochMilli(System.currentTimeMillis()).minusSeconds(60))
 				.withContext(ReadingContext.TransactionBegin)
 				.withLocation(Location.Outlet)
 				.withMeasurand(Measurand.EnergyActiveImportRegister)
@@ -247,7 +251,7 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 				.withValue("1234")
 				.build();
 		SampledValue v2 = SampledValue.builder().withSessionId(last.getId())
-				.withTimestamp(Instant.now())
+				.withTimestamp(Instant.ofEpochMilli(System.currentTimeMillis()))
 				.withContext(ReadingContext.TransactionEnd)
 				.withLocation(Location.Outlet)
 				.withMeasurand(Measurand.EnergyActiveImportRegister)
@@ -287,7 +291,7 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 		insert();
 
 		ChargeSession s = dao.get(last.getId());
-		s.setPosted(Instant.now());
+		s.setPosted(Instant.ofEpochMilli(System.currentTimeMillis()));
 		dao.save(s);
 
 		int result = dao.deletePostedChargeSessions(s.getPosted().plusSeconds(1));
@@ -301,7 +305,7 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 		insert();
 
 		ChargeSession s = dao.get(last.getId());
-		s.setPosted(Instant.now());
+		s.setPosted(Instant.ofEpochMilli(System.currentTimeMillis()));
 		dao.save(s);
 
 		ChargeSession two = new ChargeSession(UUID.randomUUID(), s.getCreated(), s.getAuthId(),
@@ -325,7 +329,8 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 				s.getChargePointId(), s.getConnectorId() + 1, s.getTransactionId() + 1);
 		dao.save(two);
 
-		int result = dao.deletePostedChargeSessions(Instant.now().plusSeconds(1));
+		int result = dao.deletePostedChargeSessions(
+				Instant.ofEpochMilli(System.currentTimeMillis()).plusSeconds(1));
 		assertThat("Deleted posted", result, equalTo(0));
 		assertThat("Remaining sessions", dao.getAll(null), contains(s, two));
 	}

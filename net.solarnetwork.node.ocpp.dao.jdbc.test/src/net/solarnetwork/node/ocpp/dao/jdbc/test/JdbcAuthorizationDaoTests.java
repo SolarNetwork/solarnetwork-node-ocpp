@@ -64,7 +64,8 @@ public class JdbcAuthorizationDaoTests extends AbstractNodeTransactionalTest {
 
 	private Authorization createTestAuthorization(String vendor, String model) {
 		Authorization auth = new Authorization(UUID.randomUUID().toString().substring(0, 20),
-				Instant.now());
+				// note NOT Instant.ofEpochMilli(System.currentTimeMillis()) because database might not store nanoseconds
+				Instant.ofEpochMilli(System.currentTimeMillis()));
 		auth.setEnabled(true);
 		auth.setExpiryDate(auth.getCreated().plus(1, ChronoUnit.HOURS));
 		auth.setParentId(UUID.randomUUID().toString().substring(0, 20));

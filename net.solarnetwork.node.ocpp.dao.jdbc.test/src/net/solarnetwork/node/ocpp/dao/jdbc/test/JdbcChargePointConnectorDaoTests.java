@@ -89,7 +89,8 @@ public class JdbcChargePointConnectorDaoTests extends AbstractNodeTransactionalT
 	}
 
 	private ChargePoint createTestChargePoint(String vendor, String model) {
-		ChargePoint cp = new ChargePoint(UUID.randomUUID().toString(), Instant.now());
+		ChargePoint cp = new ChargePoint(UUID.randomUUID().toString(),
+				Instant.ofEpochMilli(System.currentTimeMillis()));
 		cp.setEnabled(true);
 		cp.setRegistrationStatus(RegistrationStatus.Accepted);
 
@@ -107,13 +108,13 @@ public class JdbcChargePointConnectorDaoTests extends AbstractNodeTransactionalT
 		chargePointDao.save(cp);
 
 		ChargePointConnector cpc = new ChargePointConnector(new ChargePointConnectorKey(cp.getId(), 1),
-				Instant.now());
+				Instant.ofEpochMilli(System.currentTimeMillis()));
 		// @formatter:off
 		cpc.setInfo(StatusNotification.builder()
 				.withConnectorId(cpc.getId().getConnectorId())
 				.withStatus(ChargePointStatus.Available)
 				.withErrorCode(ChargePointErrorCode.NoError)
-				.withTimestamp(Instant.now()).build());
+				.withTimestamp(Instant.ofEpochMilli(System.currentTimeMillis())).build());
 		// @formatter:on
 		ChargePointConnectorKey pk = dao.save(cpc);
 		assertThat("PK preserved", pk, equalTo(cpc.getId()));
@@ -153,14 +154,15 @@ public class JdbcChargePointConnectorDaoTests extends AbstractNodeTransactionalT
 
 		// add another for same charge point
 		ChargePointConnector cpc = new ChargePointConnector(
-				new ChargePointConnectorKey(last.getId().getChargePointId(), 2), Instant.now());
+				new ChargePointConnectorKey(last.getId().getChargePointId(), 2),
+				Instant.ofEpochMilli(System.currentTimeMillis()));
 		expectedKeys.add(cpc.getId());
 		// @formatter:off
 		cpc.setInfo(StatusNotification.builder()
 				.withConnectorId(cpc.getId().getConnectorId())
 				.withStatus(ChargePointStatus.Available)
 				.withErrorCode(ChargePointErrorCode.NoError)
-				.withTimestamp(Instant.now()).build());
+				.withTimestamp(Instant.ofEpochMilli(System.currentTimeMillis())).build());
 		// @formatter:on
 		dao.save(cpc);
 
@@ -185,14 +187,15 @@ public class JdbcChargePointConnectorDaoTests extends AbstractNodeTransactionalT
 
 		// add another for same charge point
 		ChargePointConnector cpc = new ChargePointConnector(
-				new ChargePointConnectorKey(last.getId().getChargePointId(), 2), Instant.now());
+				new ChargePointConnectorKey(last.getId().getChargePointId(), 2),
+				Instant.ofEpochMilli(System.currentTimeMillis()));
 		expectedKeys.add(cpc.getId());
 		// @formatter:off
 		cpc.setInfo(StatusNotification.builder()
 				.withConnectorId(cpc.getId().getConnectorId())
 				.withStatus(ChargePointStatus.Available)
 				.withErrorCode(ChargePointErrorCode.NoError)
-				.withTimestamp(Instant.now()).build());
+				.withTimestamp(Instant.ofEpochMilli(System.currentTimeMillis())).build());
 		// @formatter:on
 		dao.save(cpc);
 
@@ -287,14 +290,15 @@ public class JdbcChargePointConnectorDaoTests extends AbstractNodeTransactionalT
 
 		// add another for same charge point
 		ChargePointConnector cpc = new ChargePointConnector(
-				new ChargePointConnectorKey(last.getId().getChargePointId(), 2), Instant.now());
+				new ChargePointConnectorKey(last.getId().getChargePointId(), 2),
+				Instant.ofEpochMilli(System.currentTimeMillis()));
 
 		// @formatter:off
 		cpc.setInfo(StatusNotification.builder()
 				.withConnectorId(cpc.getId().getConnectorId())
 				.withStatus(ChargePointStatus.Available)
 				.withErrorCode(ChargePointErrorCode.NoError)
-				.withTimestamp(Instant.now()).build());
+				.withTimestamp(Instant.ofEpochMilli(System.currentTimeMillis())).build());
 		// @formatter:on
 		dao.save(cpc);
 
