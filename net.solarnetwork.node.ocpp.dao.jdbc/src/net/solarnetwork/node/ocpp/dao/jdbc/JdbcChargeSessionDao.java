@@ -86,7 +86,7 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 		FindReadingBySession("find-reading-for-session"),
 
 		/** Insert a sampled value reading. */
-		InsertReading("insert-reading"),;
+		InsertReading("insert-reading");
 
 		private final String resource;
 
