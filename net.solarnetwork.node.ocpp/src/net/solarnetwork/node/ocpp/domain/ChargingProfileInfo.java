@@ -23,8 +23,11 @@
 package net.solarnetwork.node.ocpp.domain;
 
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Objects;
 import net.solarnetwork.domain.Differentiable;
+import net.solarnetwork.util.DateUtils;
 
 /**
  * Information about a charging profile.
@@ -191,6 +194,25 @@ public class ChargingProfileInfo implements Differentiable<ChargingProfileInfo> 
 	}
 
 	/**
+	 * Get the purpose as a code value.
+	 * 
+	 * @return the purpose code
+	 */
+	public int getPurposeCode() {
+		return getPurpose().codeValue();
+	}
+
+	/**
+	 * Set the purpose as a code value.
+	 * 
+	 * @param code
+	 *        the purpose code
+	 */
+	public void setPurposeCode(int code) {
+		setPurpose(ChargingProfilePurpose.forCode(code));
+	}
+
+	/**
 	 * Get the profile kind.
 	 * 
 	 * @return the kind; never {@literal null}
@@ -215,6 +237,25 @@ public class ChargingProfileInfo implements Differentiable<ChargingProfileInfo> 
 	}
 
 	/**
+	 * Get the profile kind as a code value.
+	 * 
+	 * @return the kind code
+	 */
+	public int getKindCode() {
+		return getKind().codeValue();
+	}
+
+	/**
+	 * Set the profile kind as a code value.
+	 * 
+	 * @param code
+	 *        the kind code
+	 */
+	public void setKindCode(int code) {
+		setKind(ChargingProfileKind.forCode(code));
+	}
+
+	/**
 	 * Get the recurrency.
 	 * 
 	 * @return the recurrency
@@ -231,6 +272,29 @@ public class ChargingProfileInfo implements Differentiable<ChargingProfileInfo> 
 	 */
 	public void setRecurrency(ChargingScheduleRecurrency recurrency) {
 		this.recurrency = recurrency;
+	}
+
+	/**
+	 * Get the recurrency as a code value.
+	 * 
+	 * @return the recurrency code
+	 */
+	public int getRecurrencyCode() {
+		ChargingScheduleRecurrency r = getRecurrency();
+		if ( r == null ) {
+			r = ChargingScheduleRecurrency.Unknown;
+		}
+		return r.codeValue();
+	}
+
+	/**
+	 * Set the recurrency as a code value.
+	 * 
+	 * @param code
+	 *        the recurrency code
+	 */
+	public void setRecurrencyCode(int code) {
+		setRecurrency(ChargingScheduleRecurrency.forCode(code));
 	}
 
 	/**
@@ -253,6 +317,33 @@ public class ChargingProfileInfo implements Differentiable<ChargingProfileInfo> 
 	}
 
 	/**
+	 * Get the valid from date as a formatted instant.
+	 * 
+	 * @return the date, as an ISO 8601 formatted string
+	 */
+	public String getValidFromValue() {
+		Instant ts = getValidFrom();
+		return (ts != null ? DateUtils.ISO_DATE_OPT_TIME_ALT_LOCAL.format(ts) : null);
+	}
+
+	/**
+	 * Set the valid from date as an ISO 8601 formatted timestamp.
+	 * 
+	 * @param value
+	 *        the date string
+	 */
+	public void setValidFromValue(String value) {
+		Instant ts = null;
+		if ( value != null ) {
+			ZonedDateTime date = DateUtils.parseIsoAltTimestamp(value, ZoneId.systemDefault());
+			if ( date != null ) {
+				ts = date.toInstant();
+			}
+		}
+		setValidFrom(ts);
+	}
+
+	/**
 	 * Get the valid to date.
 	 * 
 	 * @return the date
@@ -269,6 +360,33 @@ public class ChargingProfileInfo implements Differentiable<ChargingProfileInfo> 
 	 */
 	public void setValidTo(Instant validTo) {
 		this.validTo = validTo;
+	}
+
+	/**
+	 * Get the valid to date as a formatted instant.
+	 * 
+	 * @return the date, as an ISO 8601 formatted string
+	 */
+	public String getValidToValue() {
+		Instant ts = getValidTo();
+		return (ts != null ? DateUtils.ISO_DATE_OPT_TIME_ALT_LOCAL.format(ts) : null);
+	}
+
+	/**
+	 * Set the valid to date as an ISO 8601 formatted timestamp.
+	 * 
+	 * @param value
+	 *        the date string
+	 */
+	public void setValidToValue(String value) {
+		Instant ts = null;
+		if ( value != null ) {
+			ZonedDateTime date = DateUtils.parseIsoAltTimestamp(value, ZoneId.systemDefault());
+			if ( date != null ) {
+				ts = date.toInstant();
+			}
+		}
+		setValidTo(ts);
 	}
 
 	/**

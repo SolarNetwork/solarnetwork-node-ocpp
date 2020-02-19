@@ -25,10 +25,13 @@ package net.solarnetwork.node.ocpp.domain;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import net.solarnetwork.domain.Differentiable;
+import net.solarnetwork.util.DateUtils;
 
 /**
  * Information about a charging schedule.
@@ -120,6 +123,8 @@ public class ChargingScheduleInfo implements Differentiable<ChargingScheduleInfo
 	}
 
 	/**
+	 * Get the duration.
+	 * 
 	 * @return the duration
 	 */
 	public Duration getDuration() {
@@ -127,6 +132,8 @@ public class ChargingScheduleInfo implements Differentiable<ChargingScheduleInfo
 	}
 
 	/**
+	 * Set the duration.
+	 * 
 	 * @param duration
 	 *        the duration to set
 	 */
@@ -135,6 +142,28 @@ public class ChargingScheduleInfo implements Differentiable<ChargingScheduleInfo
 	}
 
 	/**
+	 * Get the duration, as seconds.
+	 * 
+	 * @return the duration seconds
+	 */
+	public int getDurationSeconds() {
+		Duration d = getDuration();
+		return (d != null ? (int) d.getSeconds() : 0);
+	}
+
+	/**
+	 * Set the duration, as seconds.
+	 * 
+	 * @param seconds
+	 *        the duration
+	 */
+	public void setDurationSeconds(int seconds) {
+		setDuration(Duration.ofSeconds(seconds));
+	}
+
+	/**
+	 * Get the start time.
+	 * 
 	 * @return the start
 	 */
 	public Instant getStart() {
@@ -142,11 +171,40 @@ public class ChargingScheduleInfo implements Differentiable<ChargingScheduleInfo
 	}
 
 	/**
+	 * Set the start time.
+	 * 
 	 * @param start
 	 *        the start to set
 	 */
 	public void setStart(Instant start) {
 		this.start = start;
+	}
+
+	/**
+	 * Get the start date as a formatted instant.
+	 * 
+	 * @return the date, as an ISO 8601 formatted string
+	 */
+	public String getStartValue() {
+		Instant ts = getStart();
+		return (ts != null ? DateUtils.ISO_DATE_OPT_TIME_ALT_LOCAL.format(ts) : null);
+	}
+
+	/**
+	 * Set the start date as an ISO 8601 formatted timestamp.
+	 * 
+	 * @param value
+	 *        the date string
+	 */
+	public void setStartValue(String value) {
+		Instant ts = null;
+		if ( value != null ) {
+			ZonedDateTime date = DateUtils.parseIsoAltTimestamp(value, ZoneId.systemDefault());
+			if ( date != null ) {
+				ts = date.toInstant();
+			}
+		}
+		setStart(ts);
 	}
 
 	/**
@@ -173,6 +231,25 @@ public class ChargingScheduleInfo implements Differentiable<ChargingScheduleInfo
 			throw new IllegalArgumentException("The rateUnit parameter must not be null.");
 		}
 		this.rateUnit = rateUnit;
+	}
+
+	/**
+	 * Get the charging rate unit, as a code value.
+	 * 
+	 * @return the rate code
+	 */
+	public int getRateUnitCode() {
+		return getRateUnit().codeValue();
+	}
+
+	/**
+	 * Set the rate unit as a code value.
+	 * 
+	 * @param code
+	 *        the code value
+	 */
+	public void setRateUnitCode(int code) {
+		setRateUnit(UnitOfMeasure.forCode(code));
 	}
 
 	/**

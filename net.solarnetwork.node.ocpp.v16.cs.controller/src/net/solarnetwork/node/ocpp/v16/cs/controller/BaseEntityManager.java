@@ -101,7 +101,7 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 		if ( properties == null || properties.isEmpty() ) {
 			return;
 		}
-		Map<K, T> auths = dao.getAll(SORT_BY_CREATED_ASCENDING).stream()
+		Map<K, T> all = dao.getAll(SORT_BY_CREATED_ASCENDING).stream()
 				.collect(Collectors.toMap(e -> e.getId(), e -> e));
 		List<C> configs = getEntities();
 		Iterator<C> confItr = (configs != null ? configs.iterator() : Collections.emptyIterator());
@@ -110,18 +110,18 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 			if ( conf.getId() == null ) {
 				continue;
 			}
-			T auth = auths.remove(conf.getId());
-			if ( auth == null ) {
-				auth = createNewEntity(conf);
+			T one = all.remove(conf.getId());
+			if ( one == null ) {
+				one = createNewEntity(conf);
 			}
-			T orig = cloneEntity(auth);
-			applyConfiguration(conf, auth);
-			if ( auth.differsFrom(orig) ) {
-				log.info("Saving updated entity: {}", auth);
-				dao.save(auth);
+			T orig = cloneEntity(one);
+			applyConfiguration(conf, one);
+			if ( one.differsFrom(orig) ) {
+				log.info("Saving updated entity: {}", one);
+				dao.save(one);
 			}
 		}
-		for ( T old : auths.values() ) {
+		for ( T old : all.values() ) {
 			log.info("Deleting entity: {}", old);
 			dao.delete(old);
 		}
