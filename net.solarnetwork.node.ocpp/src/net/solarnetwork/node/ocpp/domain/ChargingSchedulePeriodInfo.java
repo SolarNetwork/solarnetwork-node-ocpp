@@ -23,6 +23,7 @@
 package net.solarnetwork.node.ocpp.domain;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.util.Objects;
 import net.solarnetwork.domain.Differentiable;
@@ -159,7 +160,7 @@ public class ChargingSchedulePeriodInfo implements Differentiable<ChargingSchedu
 	}
 
 	/**
-	 * Get the start period.
+	 * Get the start offset.
 	 * 
 	 * @return the offset from the start of the schedule; never {@literal null}
 	 */
@@ -168,7 +169,7 @@ public class ChargingSchedulePeriodInfo implements Differentiable<ChargingSchedu
 	}
 
 	/**
-	 * Set the start period.
+	 * Set the start offset.
 	 * 
 	 * @param startOffset
 	 *        the offset from the start of the schedule to set
@@ -177,6 +178,25 @@ public class ChargingSchedulePeriodInfo implements Differentiable<ChargingSchedu
 	 */
 	public void setStartOffset(Duration startOffset) {
 		this.startOffset = startOffset;
+	}
+
+	/**
+	 * Get the start offset, in seconds.
+	 * 
+	 * @return the offset from the start of the schedule
+	 */
+	public int getStartOffsetSeconds() {
+		return (int) getStartOffset().getSeconds();
+	}
+
+	/**
+	 * Set the start offset, in seconds.
+	 * 
+	 * @param seconds
+	 *        the seconds
+	 */
+	public void setStartOffsetSeconds(int seconds) {
+		setStartOffset(Duration.ofSeconds(seconds));
 	}
 
 	/**
@@ -199,6 +219,9 @@ public class ChargingSchedulePeriodInfo implements Differentiable<ChargingSchedu
 	public void setRateLimit(BigDecimal rateLimit) {
 		if ( rateLimit == null ) {
 			throw new IllegalArgumentException("The rateLimit parameter must not be null.");
+		}
+		if ( rateLimit.scale() != 1 ) {
+			rateLimit = rateLimit.setScale(1, RoundingMode.HALF_UP);
 		}
 		this.rateLimit = rateLimit;
 	}

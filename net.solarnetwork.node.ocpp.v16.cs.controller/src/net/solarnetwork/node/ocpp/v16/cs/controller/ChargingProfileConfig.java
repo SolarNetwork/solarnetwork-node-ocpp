@@ -23,6 +23,9 @@
 package net.solarnetwork.node.ocpp.v16.cs.controller;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -35,12 +38,15 @@ import net.solarnetwork.node.ocpp.domain.ChargingProfileInfo;
 import net.solarnetwork.node.ocpp.domain.ChargingProfileKind;
 import net.solarnetwork.node.ocpp.domain.ChargingProfilePurpose;
 import net.solarnetwork.node.ocpp.domain.ChargingScheduleInfo;
+import net.solarnetwork.node.ocpp.domain.ChargingSchedulePeriodInfo;
 import net.solarnetwork.node.ocpp.domain.ChargingScheduleRecurrency;
 import net.solarnetwork.node.ocpp.domain.UnitOfMeasure;
 import net.solarnetwork.node.settings.SettingSpecifier;
+import net.solarnetwork.node.settings.support.BasicGroupSettingSpecifier;
 import net.solarnetwork.node.settings.support.BasicMultiValueSettingSpecifier;
 import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
 import net.solarnetwork.node.settings.support.BasicTitleSettingSpecifier;
+import net.solarnetwork.node.settings.support.SettingsUtil;
 
 /**
  * Configuration for an
@@ -62,6 +68,7 @@ public class ChargingProfileConfig implements Identity<UUID> {
 		id = UUID.randomUUID();
 		info = new ChargingProfileInfo(ChargingProfilePurpose.Unknown, ChargingProfileKind.Unknown,
 				new ChargingScheduleInfo(UnitOfMeasure.Unknown));
+		info.setRecurrency(ChargingScheduleRecurrency.Unknown);
 	}
 
 	/**
@@ -95,7 +102,7 @@ public class ChargingProfileConfig implements Identity<UUID> {
 		if ( prefix == null ) {
 			prefix = "";
 		}
-		List<SettingSpecifier> results = new ArrayList<>(4);
+		List<SettingSpecifier> results = new ArrayList<>(32);
 		results.add(new BasicTitleSettingSpecifier(prefix + "id", id.toString(), true));
 
 		// drop-down menu for purpose
@@ -115,7 +122,7 @@ public class ChargingProfileConfig implements Identity<UUID> {
 		// drop-down menu for kind
 		BasicMultiValueSettingSpecifier kindSpec = new BasicMultiValueSettingSpecifier(
 				prefix + "info.kindCode", String.valueOf(info.getKindCode()));
-		Map<String, String> kindTitles = new LinkedHashMap<String, String>(2);
+		Map<String, String> kindTitles = new LinkedHashMap<String, String>(3);
 		for ( ChargingProfileKind e : ChargingProfileKind.values() ) {
 			kindTitles.put(String.valueOf(e.codeValue()), messageSource
 					.getMessage("ChargingProfileKind." + e.name(), null, e.toString(), locale));
@@ -138,8 +145,52 @@ public class ChargingProfileConfig implements Identity<UUID> {
 				info.getValidFromValue()));
 		results.add(new BasicTextFieldSettingSpecifier(prefix + "info.validToValue",
 				info.getValidToValue()));
+		results.add(new BasicTextFieldSettingSpecifier(prefix + "info.schedule.durationSeconds",
+				String.valueOf(info.getSchedule().getDurationSeconds())));
+		results.add(new BasicTextFieldSettingSpecifier(prefix + "info.schedule.startValue",
+				info.getSchedule().getStartValue()));
 
-		// TODO
+		// drop-down menu for rate unit
+		BasicMultiValueSettingSpecifier rateUnitSpec = new BasicMultiValueSettingSpecifier(
+				prefix + "info.schedule.rateUnitCode",
+				String.valueOf(info.getSchedule().getRateUnitCode()));
+		Map<String, String> rateUnitTitles = new LinkedHashMap<String, String>(4);
+		for ( UnitOfMeasure e : Arrays.asList(UnitOfMeasure.Unknown, UnitOfMeasure.W,
+				UnitOfMeasure.A) ) {
+			rateUnitTitles.put(String.valueOf(e.codeValue()),
+					messageSource.getMessage("UnitOfMeasure." + e.name(), null, e.toString(), locale));
+		}
+		rateUnitSpec.setValueTitles(rateUnitTitles);
+		results.add(rateUnitSpec);
+
+		results.add(new BasicTextFieldSettingSpecifier(prefix + "info.schedule.minRate",
+				info.getSchedule().getMinRate() != null ? info.getSchedule().getMinRate().toPlainString()
+						: ""));
+
+		// charging periods list
+		List<ChargingSchedulePeriodInfo> periods = info.getSchedule().getPeriods();
+		results.add(SettingsUtil.dynamicListSettingSpecifier(prefix + "info.schedule.periods", periods,
+				new SettingsUtil.KeyedListCallback<ChargingSchedulePeriodInfo>() {
+
+					@Override
+					public Collection<SettingSpecifier> mapListSettingKey(
+							ChargingSchedulePeriodInfo value, int index, String key) {
+						return Collections.singletonList(
+								new BasicGroupSettingSpecifier(settings(value, index, key + ".")));
+					}
+				}));
+
+		return results;
+	}
+
+	private List<SettingSpecifier> settings(ChargingSchedulePeriodInfo info, int index, String prefix) {
+		List<SettingSpecifier> results = new ArrayList<>(3);
+		results.add(new BasicTextFieldSettingSpecifier(prefix + "startOffsetSeconds",
+				String.valueOf(info.getStartOffsetSeconds())));
+		results.add(new BasicTextFieldSettingSpecifier(prefix + "rateLimit",
+				info.getRateLimit() != null ? info.getRateLimit().toPlainString() : ""));
+		results.add(new BasicTextFieldSettingSpecifier(prefix + "numPhases",
+				info.getNumPhases() != null ? info.getNumPhases().toString() : ""));
 		return results;
 	}
 

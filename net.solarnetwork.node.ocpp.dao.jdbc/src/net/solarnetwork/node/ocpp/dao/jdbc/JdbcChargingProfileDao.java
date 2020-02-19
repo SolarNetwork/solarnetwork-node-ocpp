@@ -143,7 +143,7 @@ public class JdbcChargingProfileDao extends BaseJdbcGenericDao<ChargingProfile, 
 
 	private void setUpdateStatementValues(ChargingSchedulePeriodInfo obj, PreparedStatement ps,
 			int offset) throws SQLException {
-		ps.setInt(1 + offset, (int) obj.getStartOffset().getSeconds());
+		ps.setInt(1 + offset, obj.getStartOffsetSeconds());
 		ps.setBigDecimal(2 + offset, obj.getRateLimit());
 		ps.setObject(3 + offset, obj.getNumPhases());
 	}
@@ -284,7 +284,7 @@ public class JdbcChargingProfileDao extends BaseJdbcGenericDao<ChargingProfile, 
 
 			ChargingScheduleInfo schedInfo = new ChargingScheduleInfo(
 					UnitOfMeasure.forCode(rs.getInt(11)));
-			schedInfo.setDuration(Duration.ofSeconds(rs.getInt(9)));
+			schedInfo.setDurationSeconds(rs.getInt(9));
 			schedInfo.setStart(getInstantColumn(rs, 10));
 			schedInfo.setMinRate(rs.getBigDecimal(12));
 

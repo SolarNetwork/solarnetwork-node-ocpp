@@ -132,6 +132,23 @@ public class ChargingProfile extends BasicUuidEntity implements Differentiable<C
 		return !isSameAs(other);
 	}
 
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("ChargingProfile{");
+		if ( getId() != null ) {
+			builder.append("id=");
+			builder.append(getId());
+		}
+		if ( info != null ) {
+			builder.append("info=");
+			builder.append(info);
+			builder.append(", ");
+		}
+		builder.append("}");
+		return builder.toString();
+	}
+
 	/**
 	 * Get the charging profile info.
 	 * 

@@ -23,6 +23,7 @@
 package net.solarnetwork.node.ocpp.domain;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -122,6 +123,38 @@ public class ChargingScheduleInfo implements Differentiable<ChargingScheduleInfo
 		return !isSameAs(other);
 	}
 
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("ChargingScheduleInfo{");
+		if ( duration != null ) {
+			builder.append("duration=");
+			builder.append(duration);
+			builder.append(", ");
+		}
+		if ( start != null ) {
+			builder.append("start=");
+			builder.append(start);
+			builder.append(", ");
+		}
+		if ( rateUnit != null ) {
+			builder.append("rateUnit=");
+			builder.append(rateUnit);
+			builder.append(", ");
+		}
+		if ( minRate != null ) {
+			builder.append("minRate=");
+			builder.append(minRate);
+			builder.append(", ");
+		}
+		if ( periods != null ) {
+			builder.append("periods=");
+			builder.append(periods);
+		}
+		builder.append("}");
+		return builder.toString();
+	}
+
 	/**
 	 * Get the duration.
 	 * 
@@ -154,11 +187,16 @@ public class ChargingScheduleInfo implements Differentiable<ChargingScheduleInfo
 	/**
 	 * Set the duration, as seconds.
 	 * 
+	 * <p>
+	 * If {@code seconds} is less than {@literal 1} then a {@literal null}
+	 * {@link Duration} will be set.
+	 * </p>
+	 * 
 	 * @param seconds
 	 *        the duration
 	 */
 	public void setDurationSeconds(int seconds) {
-		setDuration(Duration.ofSeconds(seconds));
+		setDuration(seconds > 0 ? Duration.ofSeconds(seconds) : null);
 	}
 
 	/**
@@ -264,6 +302,9 @@ public class ChargingScheduleInfo implements Differentiable<ChargingScheduleInfo
 	 *        the minRate to set
 	 */
 	public void setMinRate(BigDecimal minRate) {
+		if ( minRate != null && minRate.scale() != 1 ) {
+			minRate = minRate.setScale(1, RoundingMode.HALF_UP);
+		}
 		this.minRate = minRate;
 	}
 
@@ -301,4 +342,43 @@ public class ChargingScheduleInfo implements Differentiable<ChargingScheduleInfo
 		this.periods = periods;
 	}
 
+	/**
+	 * Get the count of entity entities.
+	 * 
+	 * @return the configuration count
+	 */
+	public synchronized int getPeriodsCount() {
+		List<ChargingSchedulePeriodInfo> periods = getPeriods();
+		return (periods != null ? periods.size() : 0);
+	}
+
+	/**
+	 * Adjust the number of configured entity entities.
+	 * 
+	 * <p>
+	 * Any newly added element values will be set to
+	 * {@link #createNewConfiguration()} instances.
+	 * </p>
+	 * 
+	 * @param count
+	 *        the desired number of elements
+	 */
+	public void setPeriodsCount(int count) {
+		List<ChargingSchedulePeriodInfo> infos = getPeriods();
+		int currCount = (infos != null ? infos.size() : 0);
+		if ( currCount == count ) {
+			return;
+		}
+		while ( currCount < count ) {
+			if ( infos == null ) {
+				infos = new ArrayList<>(count);
+				setPeriods(infos);
+			}
+			infos.add(new ChargingSchedulePeriodInfo());
+			currCount++;
+		}
+		while ( currCount > count ) {
+			infos.remove(--currCount);
+		}
+	}
 }

@@ -72,7 +72,7 @@ public class OcppChargingProfileManager
 
 	@Override
 	protected void applyConfiguration(ChargingProfileConfig conf, ChargingProfile entity) {
-		// TODO
+		entity.setInfo(conf.getInfo());
 	}
 
 	@Override
