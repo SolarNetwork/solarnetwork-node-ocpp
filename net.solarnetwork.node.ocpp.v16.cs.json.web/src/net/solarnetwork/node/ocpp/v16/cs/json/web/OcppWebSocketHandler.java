@@ -37,6 +37,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -231,9 +232,11 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 			return;
 		}
 		if ( pendingTimeoutChore == null ) {
+			long freq = Math.max(1000, pendingMessageTimeout / 10);
 			pendingTimeoutChore = taskScheduler.scheduleWithFixedDelay(new PendingTimeoutChore(),
-					new Date(System.currentTimeMillis() + pendingMessageTimeout), pendingMessageTimeout);
-			log.info("Scheduled pending timeout cleaner task at rate {}s", pendingMessageTimeout / 1000);
+					new Date(System.currentTimeMillis() + pendingMessageTimeout), freq);
+			log.info("Scheduled pending timeout cleaner task at rate {}s with timeout {}s", freq / 1000,
+					pendingMessageTimeout / 1000);
 		}
 	}
 
@@ -278,6 +281,13 @@ public class OcppWebSocketHandler extends AbstractWebSocketHandler
 					synchronized ( q ) {
 						q.removeFirstOccurrence(msg);
 						processNext = true;
+					}
+					// let handler know we've timed out
+					try {
+						msg.getHandler().handleActionMessageResult(msg.getMessage(), null,
+								new TimeoutException("Message not handled within configured timeout."));
+					} catch ( Throwable t ) {
+						// ignore
 					}
 				}
 				if ( processNext ) {
