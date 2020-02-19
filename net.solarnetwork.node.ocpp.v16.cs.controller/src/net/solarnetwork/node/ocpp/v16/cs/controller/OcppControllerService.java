@@ -266,6 +266,9 @@ public class OcppControllerService extends BaseIdentifiable
 						}
 					}
 				});
+			} else if ( err != null ) {
+				log.warn("Error requesting configuration from charge point {}: {}", chargePointId,
+						err.getMessage());
 			}
 			return true;
 		};
