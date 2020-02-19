@@ -256,19 +256,19 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 	 *        the desired number of elements
 	 */
 	public void setEntitiesCount(int count) {
-		List<C> auths = getEntities();
+		List<C> confs = getEntities();
 		this.entitiesCount = count;
 
-		int currCount = (auths != null ? auths.size() : 0);
+		int currCount = (confs != null ? confs.size() : 0);
 		if ( currCount == count ) {
 			return;
 		}
 		while ( currCount < count ) {
-			auths.add(createNewConfiguration());
+			confs.add(createNewConfiguration());
 			currCount++;
 		}
 		while ( currCount > count ) {
-			auths.remove(--currCount);
+			confs.remove(--currCount);
 		}
 	}
 
