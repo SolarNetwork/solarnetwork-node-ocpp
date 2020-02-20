@@ -274,7 +274,6 @@ public class JdbcChargingProfileDao extends BaseJdbcGenericDao<ChargingProfile, 
 	/**
 	 * A {@link RowMapper} for charging profiles.
 	 */
-
 	public static final class ChargingProfileRowMapper implements RowMapper<ChargingProfile> {
 
 		@Override
