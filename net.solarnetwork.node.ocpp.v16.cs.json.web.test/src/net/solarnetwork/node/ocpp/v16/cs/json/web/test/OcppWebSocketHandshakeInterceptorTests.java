@@ -28,6 +28,9 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertThat;
 import java.net.URI;
+import java.nio.charset.Charset;
+import java.time.Instant;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -42,7 +45,10 @@ import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.socket.SubProtocolCapable;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketHttpHeaders;
+import net.solarnetwork.node.ocpp.dao.SystemUserDao;
+import net.solarnetwork.node.ocpp.domain.SystemUser;
 import net.solarnetwork.node.ocpp.v16.cs.json.web.OcppWebSocketHandshakeInterceptor;
+import net.solarnetwork.support.PasswordEncoder;
 import ocpp.json.WebSocketSubProtocol;
 
 /**
@@ -60,22 +66,26 @@ public class OcppWebSocketHandshakeInterceptorTests {
 
 	private ServerHttpRequest req;
 	private ServerHttpResponse res;
+	private SystemUserDao systemUserDao;
+	private PasswordEncoder passwordEncoder;
 	private WebSocketHandlerAndSubProtocolCapable handler;
 
 	@Before
 	public void setup() {
 		req = EasyMock.createMock(ServerHttpRequest.class);
 		res = EasyMock.createMock(ServerHttpResponse.class);
+		systemUserDao = EasyMock.createMock(SystemUserDao.class);
+		passwordEncoder = EasyMock.createMock(PasswordEncoder.class);
 		handler = EasyMock.createMock(WebSocketHandlerAndSubProtocolCapable.class);
 	}
 
 	@After
 	public void teardown() {
-		EasyMock.verify(req, res, handler);
+		EasyMock.verify(req, res, handler, systemUserDao, passwordEncoder);
 	}
 
 	private void replayAll() {
-		EasyMock.replay(req, res, handler);
+		EasyMock.replay(req, res, handler, systemUserDao, passwordEncoder);
 	}
 
 	@Test
@@ -85,7 +95,8 @@ public class OcppWebSocketHandshakeInterceptorTests {
 		expect(req.getURI()).andReturn(uri);
 		res.setStatusCode(HttpStatus.NOT_FOUND);
 
-		OcppWebSocketHandshakeInterceptor hi = new OcppWebSocketHandshakeInterceptor();
+		OcppWebSocketHandshakeInterceptor hi = new OcppWebSocketHandshakeInterceptor(systemUserDao,
+				passwordEncoder);
 
 		// when
 		replayAll();
@@ -94,6 +105,18 @@ public class OcppWebSocketHandshakeInterceptorTests {
 
 		assertThat("Result failed from lack of client ID", result, equalTo(false));
 		assertThat("No attributes populated", attributes.keySet(), hasSize(0));
+	}
+
+	private void addBasicAuth(HttpHeaders h) {
+		h.add(HttpHeaders.AUTHORIZATION, "Basic "
+				+ Base64.getEncoder().encodeToString("foo:bar".getBytes(Charset.forName("UTF-8"))));
+	}
+
+	private SystemUser testUser() {
+		SystemUser user = new SystemUser(1L, Instant.now());
+		user.setUsername("foo");
+		user.setPassword("bar");
+		return user;
 	}
 
 	@Test
@@ -106,9 +129,15 @@ public class OcppWebSocketHandshakeInterceptorTests {
 
 		HttpHeaders h = new HttpHeaders();
 		h.add(WebSocketHttpHeaders.SEC_WEBSOCKET_PROTOCOL, WebSocketSubProtocol.OCPP_V16.getValue());
+		addBasicAuth(h);
 		expect(req.getHeaders()).andReturn(h).anyTimes();
 
-		OcppWebSocketHandshakeInterceptor hi = new OcppWebSocketHandshakeInterceptor();
+		SystemUser user = testUser();
+		expect(systemUserDao.getForUsername("foo")).andReturn(user);
+		expect(passwordEncoder.matches("bar", "bar")).andReturn(true);
+
+		OcppWebSocketHandshakeInterceptor hi = new OcppWebSocketHandshakeInterceptor(systemUserDao,
+				passwordEncoder);
 
 		// when
 		replayAll();
@@ -133,7 +162,8 @@ public class OcppWebSocketHandshakeInterceptorTests {
 
 		res.setStatusCode(HttpStatus.BAD_REQUEST);
 
-		OcppWebSocketHandshakeInterceptor hi = new OcppWebSocketHandshakeInterceptor();
+		OcppWebSocketHandshakeInterceptor hi = new OcppWebSocketHandshakeInterceptor(systemUserDao,
+				passwordEncoder);
 
 		// when
 		replayAll();
@@ -159,7 +189,8 @@ public class OcppWebSocketHandshakeInterceptorTests {
 
 		res.setStatusCode(HttpStatus.BAD_REQUEST);
 
-		OcppWebSocketHandshakeInterceptor hi = new OcppWebSocketHandshakeInterceptor();
+		OcppWebSocketHandshakeInterceptor hi = new OcppWebSocketHandshakeInterceptor(systemUserDao,
+				passwordEncoder);
 
 		// when
 		replayAll();
@@ -170,4 +201,167 @@ public class OcppWebSocketHandshakeInterceptorTests {
 		assertThat("Client ID attribute populated", attributes,
 				hasEntry(OcppWebSocketHandshakeInterceptor.CLIENT_ID_ATTR, "foobar"));
 	}
+
+	@Test
+	public void userNotFound() throws Exception {
+		// given
+		URI uri = URI.create("http://example.com/ocpp/v16/cs/json/foobar");
+		expect(req.getURI()).andReturn(uri);
+		expect(handler.getSubProtocols())
+				.andReturn(Collections.singletonList(WebSocketSubProtocol.OCPP_V16.getValue()));
+
+		HttpHeaders h = new HttpHeaders();
+		h.add(WebSocketHttpHeaders.SEC_WEBSOCKET_PROTOCOL, WebSocketSubProtocol.OCPP_V16.getValue());
+		addBasicAuth(h);
+		expect(req.getHeaders()).andReturn(h).anyTimes();
+
+		expect(systemUserDao.getForUsername("foo")).andReturn(null);
+
+		res.setStatusCode(HttpStatus.FORBIDDEN);
+
+		OcppWebSocketHandshakeInterceptor hi = new OcppWebSocketHandshakeInterceptor(systemUserDao,
+				passwordEncoder);
+
+		// when
+		replayAll();
+		Map<String, Object> attributes = new LinkedHashMap<>(4);
+		boolean result = hi.beforeHandshake(req, res, handler, attributes);
+
+		assertThat("Result failed from missing user", result, equalTo(false));
+	}
+
+	@Test
+	public void badPassword() throws Exception {
+		// given
+		URI uri = URI.create("http://example.com/ocpp/v16/cs/json/foobar");
+		expect(req.getURI()).andReturn(uri);
+		expect(handler.getSubProtocols())
+				.andReturn(Collections.singletonList(WebSocketSubProtocol.OCPP_V16.getValue()));
+
+		HttpHeaders h = new HttpHeaders();
+		h.add(WebSocketHttpHeaders.SEC_WEBSOCKET_PROTOCOL, WebSocketSubProtocol.OCPP_V16.getValue());
+		addBasicAuth(h);
+		expect(req.getHeaders()).andReturn(h).anyTimes();
+
+		SystemUser user = testUser();
+		expect(systemUserDao.getForUsername("foo")).andReturn(user);
+		expect(passwordEncoder.matches("bar", "bar")).andReturn(false);
+
+		res.setStatusCode(HttpStatus.FORBIDDEN);
+
+		OcppWebSocketHandshakeInterceptor hi = new OcppWebSocketHandshakeInterceptor(systemUserDao,
+				passwordEncoder);
+
+		// when
+		replayAll();
+		Map<String, Object> attributes = new LinkedHashMap<>(4);
+		boolean result = hi.beforeHandshake(req, res, handler, attributes);
+
+		assertThat("Result failed from bad password", result, equalTo(false));
+	}
+
+	@Test
+	public void noAuth() throws Exception {
+		// given
+		URI uri = URI.create("http://example.com/ocpp/v16/cs/json/foobar");
+		expect(req.getURI()).andReturn(uri);
+		expect(handler.getSubProtocols())
+				.andReturn(Collections.singletonList(WebSocketSubProtocol.OCPP_V16.getValue()));
+
+		HttpHeaders h = new HttpHeaders();
+		h.add(WebSocketHttpHeaders.SEC_WEBSOCKET_PROTOCOL, WebSocketSubProtocol.OCPP_V16.getValue());
+		expect(req.getHeaders()).andReturn(h).anyTimes();
+
+		res.setStatusCode(HttpStatus.FORBIDDEN);
+
+		OcppWebSocketHandshakeInterceptor hi = new OcppWebSocketHandshakeInterceptor(systemUserDao,
+				passwordEncoder);
+
+		// when
+		replayAll();
+		Map<String, Object> attributes = new LinkedHashMap<>(4);
+		boolean result = hi.beforeHandshake(req, res, handler, attributes);
+
+		assertThat("Result failed from no Authorization header", result, equalTo(false));
+	}
+
+	@Test
+	public void notBasicAuth() throws Exception {
+		// given
+		URI uri = URI.create("http://example.com/ocpp/v16/cs/json/foobar");
+		expect(req.getURI()).andReturn(uri);
+		expect(handler.getSubProtocols())
+				.andReturn(Collections.singletonList(WebSocketSubProtocol.OCPP_V16.getValue()));
+
+		HttpHeaders h = new HttpHeaders();
+		h.add(WebSocketHttpHeaders.SEC_WEBSOCKET_PROTOCOL, WebSocketSubProtocol.OCPP_V16.getValue());
+		h.add(HttpHeaders.AUTHORIZATION, "Diddly Squat");
+		expect(req.getHeaders()).andReturn(h).anyTimes();
+
+		res.setStatusCode(HttpStatus.FORBIDDEN);
+
+		OcppWebSocketHandshakeInterceptor hi = new OcppWebSocketHandshakeInterceptor(systemUserDao,
+				passwordEncoder);
+
+		// when
+		replayAll();
+		Map<String, Object> attributes = new LinkedHashMap<>(4);
+		boolean result = hi.beforeHandshake(req, res, handler, attributes);
+
+		assertThat("Result failed from non-Basic auth header", result, equalTo(false));
+	}
+
+	@Test
+	public void malformedBasicAuth_notBase64() throws Exception {
+		// given
+		URI uri = URI.create("http://example.com/ocpp/v16/cs/json/foobar");
+		expect(req.getURI()).andReturn(uri);
+		expect(handler.getSubProtocols())
+				.andReturn(Collections.singletonList(WebSocketSubProtocol.OCPP_V16.getValue()));
+
+		HttpHeaders h = new HttpHeaders();
+		h.add(WebSocketHttpHeaders.SEC_WEBSOCKET_PROTOCOL, WebSocketSubProtocol.OCPP_V16.getValue());
+		h.add(HttpHeaders.AUTHORIZATION, "Basic Oh:no");
+		expect(req.getHeaders()).andReturn(h).anyTimes();
+
+		res.setStatusCode(HttpStatus.FORBIDDEN);
+
+		OcppWebSocketHandshakeInterceptor hi = new OcppWebSocketHandshakeInterceptor(systemUserDao,
+				passwordEncoder);
+
+		// when
+		replayAll();
+		Map<String, Object> attributes = new LinkedHashMap<>(4);
+		boolean result = hi.beforeHandshake(req, res, handler, attributes);
+
+		assertThat("Result failed from malformed-Basic auth header", result, equalTo(false));
+	}
+
+	@Test
+	public void malformedBasicAuth_noComponents() throws Exception {
+		// given
+		URI uri = URI.create("http://example.com/ocpp/v16/cs/json/foobar");
+		expect(req.getURI()).andReturn(uri);
+		expect(handler.getSubProtocols())
+				.andReturn(Collections.singletonList(WebSocketSubProtocol.OCPP_V16.getValue()));
+
+		HttpHeaders h = new HttpHeaders();
+		h.add(WebSocketHttpHeaders.SEC_WEBSOCKET_PROTOCOL, WebSocketSubProtocol.OCPP_V16.getValue());
+		h.add(HttpHeaders.AUTHORIZATION, "Basic " + Base64.getEncoder()
+				.encodeToString("user but no pass".getBytes(Charset.forName("UTF-8"))));
+		expect(req.getHeaders()).andReturn(h).anyTimes();
+
+		res.setStatusCode(HttpStatus.FORBIDDEN);
+
+		OcppWebSocketHandshakeInterceptor hi = new OcppWebSocketHandshakeInterceptor(systemUserDao,
+				passwordEncoder);
+
+		// when
+		replayAll();
+		Map<String, Object> attributes = new LinkedHashMap<>(4);
+		boolean result = hi.beforeHandshake(req, res, handler, attributes);
+
+		assertThat("Result failed from malformed-Basic auth header", result, equalTo(false));
+	}
+
 }

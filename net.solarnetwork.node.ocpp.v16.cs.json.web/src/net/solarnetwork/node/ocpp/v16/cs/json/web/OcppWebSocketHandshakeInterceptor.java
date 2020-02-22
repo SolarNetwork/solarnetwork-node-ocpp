@@ -23,12 +23,14 @@
 package net.solarnetwork.node.ocpp.v16.cs.json.web;
 
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
@@ -37,6 +39,9 @@ import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketHttpHeaders;
 import org.springframework.web.socket.handler.WebSocketHandlerDecorator;
 import org.springframework.web.socket.server.HandshakeInterceptor;
+import net.solarnetwork.node.ocpp.dao.SystemUserDao;
+import net.solarnetwork.node.ocpp.domain.SystemUser;
+import net.solarnetwork.support.PasswordEncoder;
 
 /**
  * Intercept the OCPP Charge Point web socket handshake.
@@ -63,13 +68,23 @@ public class OcppWebSocketHandshakeInterceptor implements HandshakeInterceptor {
 
 	private static final Logger log = LoggerFactory.getLogger(OcppWebSocketHandshakeInterceptor.class);
 
+	private final SystemUserDao systemUserDao;
+	private final PasswordEncoder passwordEncoder;
 	private Pattern clientIdUriPattern;
 
 	/**
 	 * Constructor.
+	 * 
+	 * @param systemUserDao
+	 *        the DAO to authenticate clients with
+	 * @param passwordEncoder
+	 *        the password encoder to use
 	 */
-	public OcppWebSocketHandshakeInterceptor() {
+	public OcppWebSocketHandshakeInterceptor(SystemUserDao systemUserDao,
+			PasswordEncoder passwordEncoder) {
 		super();
+		this.systemUserDao = systemUserDao;
+		this.passwordEncoder = passwordEncoder;
 		setClientIdUriPattern(Pattern.compile(DEFAULT_CLIENT_ID_URI_PATTERN));
 	}
 
@@ -84,7 +99,9 @@ public class OcppWebSocketHandshakeInterceptor implements HandshakeInterceptor {
 			response.setStatusCode(HttpStatus.NOT_FOUND);
 			return false;
 		}
-		attributes.putIfAbsent(CLIENT_ID_ATTR, m.group(1));
+
+		final String chargePointId = m.group(1);
+		attributes.putIfAbsent(CLIENT_ID_ATTR, chargePointId);
 
 		// enforce sub-protocol, as required by OCPP spec
 		WebSocketHandler handler = WebSocketHandlerDecorator.unwrap(wsHandler);
@@ -112,7 +129,72 @@ public class OcppWebSocketHandshakeInterceptor implements HandshakeInterceptor {
 			}
 		}
 
+		// enforce system user authentication
+		if ( systemUserDao != null ) {
+			String httpAuth = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+			if ( httpAuth == null ) {
+				log.warn("OCPP handshake request rejected for {}, Authorization header not provided.",
+						chargePointId);
+				response.setStatusCode(HttpStatus.FORBIDDEN);
+				return false;
+			}
+			String[] httpAuthComponents = decodeBasicAuthorizationHeader(httpAuth);
+			if ( httpAuthComponents == null ) {
+				log.warn(
+						"OCPP handshake request rejected for {}, invalid Basic Authorization header provided: [{}]",
+						chargePointId, httpAuth);
+				response.setStatusCode(HttpStatus.FORBIDDEN);
+				return false;
+			}
+
+			final String username = httpAuthComponents[0];
+			final String password = httpAuthComponents[1];
+
+			SystemUser user = systemUserDao.getForUsername(username);
+			if ( user == null ) {
+				log.warn("OCPP handshake request rejected for {}, system user {} not found.",
+						chargePointId, username);
+				response.setStatusCode(HttpStatus.FORBIDDEN);
+				return false;
+			}
+			if ( user.getAllowedChargePoints() != null && !user.getAllowedChargePoints().isEmpty()
+					&& !user.getAllowedChargePoints().contains(chargePointId) ) {
+				log.warn(
+						"OCPP handshake request rejected for {}, system user {} does not allow this charge point.",
+						chargePointId, username);
+				response.setStatusCode(HttpStatus.FORBIDDEN);
+				return false;
+			}
+			if ( user.getPassword() != null ) {
+				if ( !((passwordEncoder != null && passwordEncoder.matches(password, user.getPassword()))
+						|| user.getPassword().equals(password)) ) {
+					log.warn(
+							"OCPP handshake request rejected for {}, system user {} password does not match.",
+							chargePointId, username);
+					response.setStatusCode(HttpStatus.FORBIDDEN);
+					return false;
+				}
+			}
+		}
+
 		return true;
+	}
+
+	private String[] decodeBasicAuthorizationHeader(String header) {
+		Charset utf8 = Charset.forName("UTF-8");
+		byte[] base64Token = header.substring(6).getBytes(utf8);
+		byte[] decoded;
+		try {
+			decoded = java.util.Base64.getDecoder().decode(base64Token);
+		} catch ( IllegalArgumentException e ) {
+			return null;
+		}
+		String token = new String(decoded, utf8);
+		int delim = token.indexOf(":");
+		if ( delim == -1 ) {
+			return null;
+		}
+		return new String[] { token.substring(0, delim), token.substring(delim + 1) };
 	}
 
 	@Override

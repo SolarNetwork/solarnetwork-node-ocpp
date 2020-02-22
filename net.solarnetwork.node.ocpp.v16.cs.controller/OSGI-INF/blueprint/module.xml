@@ -198,6 +198,7 @@
 			<osgix:managed-properties persistent-id="net.solarnetwork.node.ocpp.v16.cs.controller.OcppSystemUserManager" 
 					autowire-on-update="true" update-method="configurationChanged"/>
 			<argument ref="systemUserDao"/>
+			<argument ref="passwordEncoder"/>
 			<property name="messageSource">
 				<bean class="org.springframework.context.support.ResourceBundleMessageSource">
 					<property name="basename" value="net.solarnetwork.node.ocpp.v16.cs.controller.OcppSystemUserManager"/>
@@ -206,7 +207,15 @@
 		</bean>
 	</service>
 
+	<service interface="net.solarnetwork.support.PasswordEncoder" ref="passwordEncoder" >
+		<service-properties>
+			<entry key="function" value="ocpp"/>
+		</service-properties>
+	</service>
+
 	<!-- Supporting services -->
+	
+	<bean id="passwordEncoder" class="net.solarnetwork.pki.bc.BCPBKDF2PasswordEncoder"/>
 
 	<bean id="controller" class="net.solarnetwork.node.ocpp.v16.cs.controller.OcppControllerService">
 		<argument ref="executor"/>

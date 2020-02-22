@@ -30,6 +30,7 @@ import java.util.function.Function;
 import net.solarnetwork.node.ocpp.dao.SystemUserDao;
 import net.solarnetwork.node.ocpp.domain.SystemUser;
 import net.solarnetwork.node.settings.SettingSpecifier;
+import net.solarnetwork.support.PasswordEncoder;
 
 /**
  * Manager for system users.
@@ -40,14 +41,19 @@ import net.solarnetwork.node.settings.SettingSpecifier;
 public class OcppSystemUserManager
 		extends BaseEntityManager<SystemUserDao, SystemUser, Long, SystemUserConfig> {
 
+	private final PasswordEncoder passwordEncoder;
+
 	/**
 	 * Constructor.
 	 * 
 	 * @param dao
 	 *        the DAO to use
+	 * @param passwordEncoder
+	 *        the password encoder to use
 	 */
-	public OcppSystemUserManager(SystemUserDao dao) {
+	public OcppSystemUserManager(SystemUserDao dao, PasswordEncoder passwordEncoder) {
 		super(dao);
+		this.passwordEncoder = passwordEncoder;
 		setFindAllSorts(null); // assume default DAO sorts by created,id,idx
 	}
 
@@ -75,7 +81,11 @@ public class OcppSystemUserManager
 	protected void applyConfiguration(SystemUserConfig conf, SystemUser entity) {
 		entity.setUsername(conf.getUsername());
 		if ( conf.getPassword() != null && !conf.getPassword().isEmpty() ) {
-			entity.setPassword(conf.getPassword());
+			String pw = conf.getPassword();
+			if ( passwordEncoder != null ) {
+				pw = passwordEncoder.encode(pw);
+			}
+			entity.setPassword(pw);
 		}
 		Set<String> allowed = null;
 		if ( conf.getAllowedChargePoints() != null ) {

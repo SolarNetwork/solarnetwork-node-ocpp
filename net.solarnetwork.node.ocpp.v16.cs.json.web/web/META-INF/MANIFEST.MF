@@ -17,6 +17,7 @@ Import-Package:
  com.sun.xml.bind.v2,
  javax.xml.bind,
  javax.xml.bind.annotation,
+ net.solarnetwork.node.ocpp.dao;version="[1.0,2.0)",
  net.solarnetwork.node.ocpp.domain;version="[1.0,2.0)",
  net.solarnetwork.node.ocpp.service;version="[1.0,2.0)",
  net.solarnetwork.settings;version="[1.2,2.0)",
