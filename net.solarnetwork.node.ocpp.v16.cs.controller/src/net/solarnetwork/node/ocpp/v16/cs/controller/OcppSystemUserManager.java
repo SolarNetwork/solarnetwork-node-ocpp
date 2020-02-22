@@ -82,7 +82,7 @@ public class OcppSystemUserManager
 		entity.setUsername(conf.getUsername());
 		if ( conf.getPassword() != null && !conf.getPassword().isEmpty() ) {
 			String pw = conf.getPassword();
-			if ( passwordEncoder != null ) {
+			if ( passwordEncoder != null && !passwordEncoder.isPasswordEncrypted(pw) ) {
 				pw = passwordEncoder.encode(pw);
 			}
 			entity.setPassword(pw);

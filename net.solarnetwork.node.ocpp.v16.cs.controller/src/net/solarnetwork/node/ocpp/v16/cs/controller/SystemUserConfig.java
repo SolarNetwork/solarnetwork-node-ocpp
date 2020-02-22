@@ -86,7 +86,11 @@ public class SystemUserConfig implements Identity<Long> {
 		}
 		List<SettingSpecifier> results = new ArrayList<>(4);
 		results.add(new BasicTextFieldSettingSpecifier(prefix + "username", username));
-		results.add(new BasicTextFieldSettingSpecifier(prefix + "password", "", true));
+
+		BasicTextFieldSettingSpecifier pw = new BasicTextFieldSettingSpecifier(prefix + "password", "",
+				true);
+		pw.setTransient(true); // don't store raw password value in settings
+		results.add(pw);
 
 		// charging periods list
 		List<String> allowed = getAllowedChargePoints();
