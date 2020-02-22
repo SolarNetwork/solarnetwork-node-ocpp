@@ -48,6 +48,7 @@ public class OcppChargingProfileManager
 	 */
 	public OcppChargingProfileManager(ChargingProfileDao chargingProfileDao) {
 		super(chargingProfileDao);
+		setFindAllSorts(null); // assume default DAO sorts by created,id,idx
 	}
 
 	@Override

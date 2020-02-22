@@ -39,6 +39,8 @@
 	
 	<reference id="chargePointConnectorDao" interface="net.solarnetwork.node.ocpp.dao.ChargePointConnectorDao"/>
 	
+	<reference id="systemUserDao" interface="net.solarnetwork.node.ocpp.dao.SystemUserDao"/>
+	
 	<reference id="chargePointRouter" interface="net.solarnetwork.node.ocpp.service.ChargePointRouter"/>
 
 	<reference id="chargeSessionManager" interface="net.solarnetwork.node.ocpp.service.cs.ChargeSessionManager" availability="optional" />
@@ -186,6 +188,19 @@
 			<property name="messageSource">
 				<bean class="org.springframework.context.support.ResourceBundleMessageSource">
 					<property name="basename" value="net.solarnetwork.node.ocpp.v16.cs.controller.OcppRegistrationManager"/>
+				</bean>
+			</property>
+		</bean>
+	</service>
+	
+	<service interface="net.solarnetwork.node.settings.SettingSpecifierProvider">
+		<bean class="net.solarnetwork.node.ocpp.v16.cs.controller.OcppSystemUserManager">
+			<osgix:managed-properties persistent-id="net.solarnetwork.node.ocpp.v16.cs.controller.OcppSystemUserManager" 
+					autowire-on-update="true" update-method="configurationChanged"/>
+			<argument ref="systemUserDao"/>
+			<property name="messageSource">
+				<bean class="org.springframework.context.support.ResourceBundleMessageSource">
+					<property name="basename" value="net.solarnetwork.node.ocpp.v16.cs.controller.OcppSystemUserManager"/>
 				</bean>
 			</property>
 		</bean>

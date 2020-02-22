@@ -55,6 +55,11 @@
 		<property name="eventAdmin" ref="txEventAdmin"/>
 	</bean>
 	
+	<bean id="systemUserDao" class="net.solarnetwork.node.ocpp.dao.jdbc.JdbcSystemUserDao" init-method="init">
+		<property name="dataSource" ref="dataSource"/>
+		<property name="eventAdmin" ref="txEventAdmin"/>
+	</bean>
+	
 	<bean id="txEventAdmin" class="net.solarnetwork.util.StaticOptionalService">
 		<argument>
 			<bean class="net.solarnetwork.support.TransactionSynchronizationEventAdminAdapter">
@@ -100,6 +105,13 @@
 		</interfaces>		
 	</service>
 	
+	<service ref="systemUserDao">
+		<interfaces>
+			<value>net.solarnetwork.node.dao.jdbc.JdbcDao</value>
+			<value>net.solarnetwork.node.ocpp.dao.SystemUserDao</value>
+		</interfaces>		
+	</service>
+	
 	<service interface="net.solarnetwork.node.backup.BackupResourceProvider">
 		<bean class="net.solarnetwork.node.dao.jdbc.JdbcTableBackupResourceProvider">
 			<argument>
@@ -121,6 +133,8 @@
 					<value>SOLARNODE.OCPP_CHARGE_PROF_PERIOD</value>
 					<value>SOLARNODE.OCPP_CHARGE_SESS</value>
 					<value>SOLARNODE.OCPP_CHARGE_SESS_READING</value>
+					<value>SOLARNODE.OCPP_SYSTEM_USER</value>
+					<value>SOLARNODE.OCPP_SYSTEM_USER_CP</value>
 				</list>
 			</property>
 			<property name="messageSource">

@@ -38,6 +38,7 @@ import net.solarnetwork.dao.Entity;
 import net.solarnetwork.dao.GenericDao;
 import net.solarnetwork.domain.Differentiable;
 import net.solarnetwork.domain.Identity;
+import net.solarnetwork.domain.SortDescriptor;
 import net.solarnetwork.node.settings.SettingSpecifier;
 import net.solarnetwork.node.settings.SettingSpecifierProvider;
 import net.solarnetwork.node.settings.support.BasicGroupSettingSpecifier;
@@ -59,6 +60,7 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 	private List<C> entities;
 	private MessageSource messageSource;
 	private int entitiesCount = -1;
+	private List<SortDescriptor> findAllSorts;
 
 	/** A class-level logger. */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
@@ -66,6 +68,7 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 	public BaseEntityManager(D dao) {
 		super();
 		this.dao = dao;
+		this.findAllSorts = SORT_BY_CREATED_ASCENDING;
 	}
 
 	/**
@@ -101,13 +104,13 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 		if ( properties == null || properties.isEmpty() ) {
 			return;
 		}
-		Map<K, T> all = dao.getAll(SORT_BY_CREATED_ASCENDING).stream()
+		Map<K, T> all = dao.getAll(this.findAllSorts).stream()
 				.collect(Collectors.toMap(e -> e.getId(), e -> e));
 		List<C> configs = getEntities();
 		Iterator<C> confItr = (configs != null ? configs.iterator() : Collections.emptyIterator());
 		while ( confItr.hasNext() ) {
 			C conf = confItr.next();
-			if ( conf.getId() == null ) {
+			if ( shouldIgnoreConfiguration(conf) ) {
 				continue;
 			}
 			T one = all.remove(conf.getId());
@@ -117,8 +120,7 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 			T orig = cloneEntity(one);
 			applyConfiguration(conf, one);
 			if ( one.differsFrom(orig) ) {
-				log.info("Saving updated entity: {}", one);
-				dao.save(one);
+				saveConfiguration(conf, one);
 			}
 		}
 		for ( T old : all.values() ) {
@@ -128,9 +130,35 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 	}
 
 	/**
+	 * Test if a configuration should be ignored when looking to persist the
+	 * changes to an entity.
+	 * 
+	 * @param conf
+	 *        the configuration
+	 * @return {@literal true} if the configuration should be ignored
+	 */
+	protected boolean shouldIgnoreConfiguration(C conf) {
+		return conf == null || conf.getId() == null;
+	}
+
+	/**
+	 * Called to save an entity.
+	 * 
+	 * @param conf
+	 *        the configuration that has been applied
+	 * @param entity
+	 *        the entity to save
+	 * @return the resulting primary key
+	 */
+	protected K saveConfiguration(C conf, T entity) {
+		log.info("Saving updated entity: {}", entity);
+		return dao.save(entity);
+	}
+
+	/**
 	 * Generate a list of settings for a single entity configuration.
 	 * 
-	 * @param entity
+	 * @param conf
 	 *        the entity configuration
 	 * @param index
 	 *        the configuration index
@@ -138,7 +166,7 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 	 *        a setting key prefix to use
 	 * @return the list of settings, never {@literal null}
 	 */
-	protected abstract List<SettingSpecifier> settingsForConfiguration(C entity, int index,
+	protected abstract List<SettingSpecifier> settingsForConfiguration(C conf, int index,
 			String keyPrefix);
 
 	@Override
@@ -168,7 +196,7 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 	protected abstract Function<? super T, ? extends C> mapToConfiguration();
 
 	private List<C> loadEntities() {
-		Collection<T> result = dao.getAll(SORT_BY_CREATED_ASCENDING);
+		Collection<T> result = dao.getAll(this.findAllSorts);
 		List<C> configs = (result != null
 				? result.stream().map(mapToConfiguration()).collect(Collectors.toList())
 				: new ArrayList<>());
@@ -270,6 +298,25 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 		while ( currCount > count ) {
 			confs.remove(--currCount);
 		}
+	}
+
+	/**
+	 * Get the configured query sort orders.
+	 * 
+	 * @return the sort orders
+	 */
+	public List<SortDescriptor> getFindAllSorts() {
+		return findAllSorts;
+	}
+
+	/**
+	 * Set the "find all" query sort orders.
+	 * 
+	 * @param findAllSorts
+	 *        the sorts to set
+	 */
+	public void setFindAllSorts(List<SortDescriptor> findAllSorts) {
+		this.findAllSorts = findAllSorts;
 	}
 
 }

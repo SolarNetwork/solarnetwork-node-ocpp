@@ -23,6 +23,7 @@
 package net.solarnetwork.node.ocpp.domain;
 
 import java.time.Instant;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 import net.solarnetwork.dao.BasicLongEntity;
@@ -81,6 +82,22 @@ public class SystemUser extends BasicLongEntity implements Differentiable<System
 	}
 
 	/**
+	 * Copy constructor.
+	 * 
+	 * @param other
+	 *        the other system
+	 */
+	public SystemUser(SystemUser other) {
+		super(other.getId(), other.getCreated());
+		setUsername(other.getUsername());
+		setPassword(other.getPassword());
+		Set<String> allowed = other.getAllowedChargePoints();
+		if ( allowed != null ) {
+			setAllowedChargePoints(new LinkedHashSet<>(allowed));
+		}
+	}
+
+	/**
 	 * Test if the properties of another entity are the same as in this
 	 * instance.
 	 * 
@@ -98,10 +115,12 @@ public class SystemUser extends BasicLongEntity implements Differentiable<System
 		if ( other == null ) {
 			return false;
 		}
+		int myCpSize = allowedChargePoints != null ? allowedChargePoints.size() : 0;
+		int oCpSize = other.allowedChargePoints != null ? other.allowedChargePoints.size() : 0;
 		// @formatter:off
 		return Objects.equals(username, other.username)
 				&& Objects.equals(password, other.password)
-				&& Objects.equals(allowedChargePoints, other.allowedChargePoints);
+				&& ((myCpSize == 0 && oCpSize == 0) || Objects.equals(allowedChargePoints, other.allowedChargePoints));
 		// @formatter:on
 	}
 
