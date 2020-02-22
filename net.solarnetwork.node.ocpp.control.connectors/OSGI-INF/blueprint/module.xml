@@ -22,10 +22,10 @@
 
 	<bean id="chargePointManagers" class="net.solarnetwork.util.DynamicServiceTracker">
 		<property name="bundleContext" ref="bundleContext"/>
-		<property name="serviceClassName" value="net.solarnetwork.node.ocpp.service.cs.ChargePointManager"/>
+		<property name="serviceClassName" value="net.solarnetwork.ocpp.service.cs.ChargePointManager"/>
 	</bean>
 
-	<reference id="chargePointConnectorDao" interface="net.solarnetwork.node.ocpp.dao.ChargePointConnectorDao"/>
+	<reference id="chargePointConnectorDao" interface="net.solarnetwork.ocpp.dao.ChargePointConnectorDao"/>
 
 	<!-- Published Services -->
 	

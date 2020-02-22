@@ -34,8 +34,8 @@ import org.junit.Before;
 import org.junit.Test;
 import net.solarnetwork.node.dao.jdbc.DatabaseSetup;
 import net.solarnetwork.node.ocpp.dao.jdbc.JdbcAuthorizationDao;
-import net.solarnetwork.node.ocpp.domain.Authorization;
 import net.solarnetwork.node.test.AbstractNodeTransactionalTest;
+import net.solarnetwork.ocpp.domain.Authorization;
 
 /**
  * Test cases for the {@link JdbcAuthorizationDao} class.

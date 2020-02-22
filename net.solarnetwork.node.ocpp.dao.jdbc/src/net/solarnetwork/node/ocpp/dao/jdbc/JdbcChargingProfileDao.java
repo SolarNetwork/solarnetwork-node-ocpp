@@ -44,15 +44,15 @@ import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowMapper;
 import net.solarnetwork.domain.SortDescriptor;
 import net.solarnetwork.node.dao.jdbc.BaseJdbcGenericDao;
-import net.solarnetwork.node.ocpp.dao.ChargingProfileDao;
-import net.solarnetwork.node.ocpp.domain.ChargingProfile;
-import net.solarnetwork.node.ocpp.domain.ChargingProfileInfo;
-import net.solarnetwork.node.ocpp.domain.ChargingProfileKind;
-import net.solarnetwork.node.ocpp.domain.ChargingProfilePurpose;
-import net.solarnetwork.node.ocpp.domain.ChargingScheduleInfo;
-import net.solarnetwork.node.ocpp.domain.ChargingSchedulePeriodInfo;
-import net.solarnetwork.node.ocpp.domain.ChargingScheduleRecurrency;
-import net.solarnetwork.node.ocpp.domain.UnitOfMeasure;
+import net.solarnetwork.ocpp.dao.ChargingProfileDao;
+import net.solarnetwork.ocpp.domain.ChargingProfile;
+import net.solarnetwork.ocpp.domain.ChargingProfileInfo;
+import net.solarnetwork.ocpp.domain.ChargingProfileKind;
+import net.solarnetwork.ocpp.domain.ChargingProfilePurpose;
+import net.solarnetwork.ocpp.domain.ChargingScheduleInfo;
+import net.solarnetwork.ocpp.domain.ChargingSchedulePeriodInfo;
+import net.solarnetwork.ocpp.domain.ChargingScheduleRecurrency;
+import net.solarnetwork.ocpp.domain.UnitOfMeasure;
 
 /**
  * JDBC implementation of {@link ChargingProfileDao}.

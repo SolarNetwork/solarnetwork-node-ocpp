@@ -33,14 +33,14 @@ import java.util.Locale;
 import java.util.Map;
 import org.springframework.context.MessageSource;
 import net.solarnetwork.domain.Identity;
-import net.solarnetwork.node.ocpp.domain.ChargePoint;
-import net.solarnetwork.node.ocpp.domain.ChargePointInfo;
-import net.solarnetwork.node.ocpp.domain.RegistrationStatus;
 import net.solarnetwork.node.settings.SettingSpecifier;
 import net.solarnetwork.node.settings.support.BasicMultiValueSettingSpecifier;
 import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
 import net.solarnetwork.node.settings.support.BasicTitleSettingSpecifier;
 import net.solarnetwork.node.settings.support.BasicToggleSettingSpecifier;
+import net.solarnetwork.ocpp.domain.ChargePoint;
+import net.solarnetwork.ocpp.domain.ChargePointInfo;
+import net.solarnetwork.ocpp.domain.RegistrationStatus;
 
 /**
  * Configuration object for {@link ChargePoint} entities.

@@ -43,8 +43,8 @@ import org.springframework.dao.DuplicateKeyException;
 import net.solarnetwork.dao.GenericDao;
 import net.solarnetwork.node.dao.jdbc.DatabaseSetup;
 import net.solarnetwork.node.ocpp.dao.jdbc.JdbcSystemUserDao;
-import net.solarnetwork.node.ocpp.domain.SystemUser;
 import net.solarnetwork.node.test.AbstractNodeTransactionalTest;
+import net.solarnetwork.ocpp.domain.SystemUser;
 
 /**
  * Test cases for the {@link JdbcSystemUserDao} class.
@@ -72,7 +72,7 @@ public class JdbcSystemUserDaoTests extends AbstractNodeTransactionalTest {
 	}
 
 	private SystemUser createTestSystemUser() {
-		SystemUser user = new SystemUser(null, Instant.now());
+		SystemUser user = new SystemUser(null, Instant.ofEpochMilli(System.currentTimeMillis()));
 		user.setUsername("foobar");
 		user.setPassword("secret");
 		return user;

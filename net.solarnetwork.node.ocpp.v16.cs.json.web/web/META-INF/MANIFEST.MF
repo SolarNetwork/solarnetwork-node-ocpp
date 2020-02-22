@@ -9,17 +9,16 @@ Bundle-Vendor: SolarNetwork
 Automatic-Module-Name: net.solarnetwork.node.ocpp.v16.cs.json.web
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Bundle-ClassPath: WEB-INF/classes/
-Export-Package: 
- net.solarnetwork.node.ocpp.v16.cs.json.web;version="0.1.0"
 Import-Package: 
  com.fasterxml.jackson.annotation;version="[2.10,3.0)",
  com.fasterxml.jackson.module.jaxb;version="[2.10,3.0)",
  com.sun.xml.bind.v2,
  javax.xml.bind,
  javax.xml.bind.annotation,
- net.solarnetwork.node.ocpp.dao;version="[1.0,2.0)",
- net.solarnetwork.node.ocpp.domain;version="[1.0,2.0)",
- net.solarnetwork.node.ocpp.service;version="[1.0,2.0)",
+ net.solarnetwork.ocpp.dao;version="[1.0,2.0)",
+ net.solarnetwork.ocpp.domain;version="[1.0,2.0)",
+ net.solarnetwork.ocpp.service;version="[1.0,2.0)",
+ net.solarnetwork.ocpp.web.json;version="[1.0,2.0)",
  net.solarnetwork.settings;version="[1.2,2.0)",
  ocpp.domain;version="[1.0,2.0)",
  ocpp.json;version="[1.0,2.0)",

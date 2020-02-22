@@ -29,10 +29,10 @@ import java.sql.SQLException;
 import java.time.Instant;
 import org.springframework.jdbc.core.RowMapper;
 import net.solarnetwork.node.dao.jdbc.BaseJdbcGenericDao;
-import net.solarnetwork.node.ocpp.dao.ChargePointDao;
-import net.solarnetwork.node.ocpp.domain.ChargePoint;
-import net.solarnetwork.node.ocpp.domain.ChargePointInfo;
-import net.solarnetwork.node.ocpp.domain.RegistrationStatus;
+import net.solarnetwork.ocpp.dao.ChargePointDao;
+import net.solarnetwork.ocpp.domain.ChargePoint;
+import net.solarnetwork.ocpp.domain.ChargePointInfo;
+import net.solarnetwork.ocpp.domain.RegistrationStatus;
 
 /**
  * JDBC based implementation of {@link ChargePointDao}.

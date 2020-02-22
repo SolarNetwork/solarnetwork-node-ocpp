@@ -41,17 +41,17 @@ import org.junit.Test;
 import net.solarnetwork.node.dao.jdbc.DatabaseSetup;
 import net.solarnetwork.node.ocpp.dao.jdbc.JdbcChargePointDao;
 import net.solarnetwork.node.ocpp.dao.jdbc.JdbcChargeSessionDao;
-import net.solarnetwork.node.ocpp.domain.ChargePoint;
-import net.solarnetwork.node.ocpp.domain.ChargePointInfo;
-import net.solarnetwork.node.ocpp.domain.ChargeSession;
-import net.solarnetwork.node.ocpp.domain.ChargeSessionEndReason;
-import net.solarnetwork.node.ocpp.domain.Location;
-import net.solarnetwork.node.ocpp.domain.Measurand;
-import net.solarnetwork.node.ocpp.domain.ReadingContext;
-import net.solarnetwork.node.ocpp.domain.RegistrationStatus;
-import net.solarnetwork.node.ocpp.domain.SampledValue;
-import net.solarnetwork.node.ocpp.domain.UnitOfMeasure;
 import net.solarnetwork.node.test.AbstractNodeTransactionalTest;
+import net.solarnetwork.ocpp.domain.ChargePoint;
+import net.solarnetwork.ocpp.domain.ChargePointInfo;
+import net.solarnetwork.ocpp.domain.ChargeSession;
+import net.solarnetwork.ocpp.domain.ChargeSessionEndReason;
+import net.solarnetwork.ocpp.domain.Location;
+import net.solarnetwork.ocpp.domain.Measurand;
+import net.solarnetwork.ocpp.domain.ReadingContext;
+import net.solarnetwork.ocpp.domain.RegistrationStatus;
+import net.solarnetwork.ocpp.domain.SampledValue;
+import net.solarnetwork.ocpp.domain.UnitOfMeasure;
 
 /**
  * Test cases for the {@link JdbcChargeSessionDao}.

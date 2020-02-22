@@ -31,114 +31,114 @@
 
 	<reference id="transactionManager" interface="org.springframework.transaction.PlatformTransactionManager"/>
 
-	<reference id="authorizationDao" interface="net.solarnetwork.node.ocpp.dao.AuthorizationDao"/>
+	<reference id="authorizationDao" interface="net.solarnetwork.ocpp.dao.AuthorizationDao"/>
 	
-	<reference id="chargePointDao" interface="net.solarnetwork.node.ocpp.dao.ChargePointDao"/>
+	<reference id="chargePointDao" interface="net.solarnetwork.ocpp.dao.ChargePointDao"/>
 	
-	<reference id="chargingProfileDao" interface="net.solarnetwork.node.ocpp.dao.ChargingProfileDao"/>
+	<reference id="chargingProfileDao" interface="net.solarnetwork.ocpp.dao.ChargingProfileDao"/>
 	
-	<reference id="chargePointConnectorDao" interface="net.solarnetwork.node.ocpp.dao.ChargePointConnectorDao"/>
+	<reference id="chargePointConnectorDao" interface="net.solarnetwork.ocpp.dao.ChargePointConnectorDao"/>
 	
-	<reference id="systemUserDao" interface="net.solarnetwork.node.ocpp.dao.SystemUserDao"/>
+	<reference id="systemUserDao" interface="net.solarnetwork.ocpp.dao.SystemUserDao"/>
 	
-	<reference id="chargePointRouter" interface="net.solarnetwork.node.ocpp.service.ChargePointRouter"/>
+	<reference id="chargePointRouter" interface="net.solarnetwork.ocpp.service.ChargePointRouter"/>
 
-	<reference id="chargeSessionManager" interface="net.solarnetwork.node.ocpp.service.cs.ChargeSessionManager" availability="optional" />
+	<reference id="chargeSessionManager" interface="net.solarnetwork.ocpp.service.cs.ChargeSessionManager" availability="optional" />
 	
 	<!-- Use Java @Transactional annotations to declare transactions. -->
 	<tx:annotation-driven transaction-manager="transactionManager"/>
 	
 	<!-- Published Services -->
 
-	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
+	<service interface="net.solarnetwork.ocpp.service.ActionMessageProcessor">
 		<service-properties>
 			<entry key="action" value="Authorize"/>
 			<entry key="role" value="cs"/>
 		</service-properties>
-		<bean class="net.solarnetwork.node.ocpp.v16.cs.AuthorizeProcessor">
+		<bean class="net.solarnetwork.ocpp.v16.cs.AuthorizeProcessor">
 			<argument ref="controller"/>
 		</bean>
 	</service>
 	
-	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
+	<service interface="net.solarnetwork.ocpp.service.ActionMessageProcessor">
 		<service-properties>
 			<entry key="action" value="BootNotification"/>
 			<entry key="role" value="cs"/>
 		</service-properties>
-		<bean class="net.solarnetwork.node.ocpp.v16.cs.BootNotificationProcessor">
+		<bean class="net.solarnetwork.ocpp.v16.cs.BootNotificationProcessor">
 			<argument ref="controller"/>
 			<property name="heartbeatIntervalSeconds" value="${heartbeatIntervalSeconds}"/>
 		</bean>
 	</service>
 	
-	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
+	<service interface="net.solarnetwork.ocpp.service.ActionMessageProcessor">
 		<service-properties>
 			<entry key="action" value="DataTransfer"/>
 			<entry key="role" value="cs"/>
 		</service-properties>
-		<bean class="net.solarnetwork.node.ocpp.v16.cs.DataTransferProcessor"/>
+		<bean class="net.solarnetwork.ocpp.v16.cs.DataTransferProcessor"/>
 	</service>
 	
-	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
+	<service interface="net.solarnetwork.ocpp.service.ActionMessageProcessor">
 		<service-properties>
 			<entry key="action" value="DiagnosticsStatusNotification"/>
 			<entry key="role" value="cs"/>
 		</service-properties>
-		<bean class="net.solarnetwork.node.ocpp.v16.cs.DiagnosticsStatusNotificationProcessor"/>
+		<bean class="net.solarnetwork.ocpp.v16.cs.DiagnosticsStatusNotificationProcessor"/>
 	</service>
 	
-	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
+	<service interface="net.solarnetwork.ocpp.service.ActionMessageProcessor">
 		<service-properties>
 			<entry key="action" value="FirmwareStatusNotification"/>
 			<entry key="role" value="cs"/>
 		</service-properties>
-		<bean class="net.solarnetwork.node.ocpp.v16.cs.FirmwareStatusNotificationProcessor"/>
+		<bean class="net.solarnetwork.ocpp.v16.cs.FirmwareStatusNotificationProcessor"/>
 	</service>
 	
-	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
+	<service interface="net.solarnetwork.ocpp.service.ActionMessageProcessor">
 		<service-properties>
 			<entry key="action" value="Heartbeat"/>
 			<entry key="role" value="cs"/>
 		</service-properties>
-		<bean class="net.solarnetwork.node.ocpp.v16.cs.HeartbeatProcessor"/>
+		<bean class="net.solarnetwork.ocpp.v16.cs.HeartbeatProcessor"/>
 	</service>
 	
-	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
+	<service interface="net.solarnetwork.ocpp.service.ActionMessageProcessor">
 		<service-properties>
 			<entry key="action" value="MeterValues"/>
 			<entry key="role" value="cs"/>
 		</service-properties>
-		<bean class="net.solarnetwork.node.ocpp.v16.cs.MeterValuesProcessor">
+		<bean class="net.solarnetwork.ocpp.v16.cs.MeterValuesProcessor">
 			<argument ref="chargeSessionManager"/>
 		</bean>
 	</service>	
 	
-	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
+	<service interface="net.solarnetwork.ocpp.service.ActionMessageProcessor">
 		<service-properties>
 			<entry key="action" value="StartTransaction"/>
 			<entry key="role" value="cs"/>
 		</service-properties>
-		<bean class="net.solarnetwork.node.ocpp.v16.cs.StartTransactionProcessor">
+		<bean class="net.solarnetwork.ocpp.v16.cs.StartTransactionProcessor">
 			<argument ref="chargeSessionManager"/>
 		</bean>
 	</service>
 	
-	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
+	<service interface="net.solarnetwork.ocpp.service.ActionMessageProcessor">
 		<service-properties>
 			<entry key="action" value="StatusNotification"/>
 			<entry key="role" value="cs"/>
 		</service-properties>
-		<bean class="net.solarnetwork.node.ocpp.v16.cs.StatusNotificationProcessor">
+		<bean class="net.solarnetwork.ocpp.v16.cs.StatusNotificationProcessor">
 			<argument ref="chargePointConnectorDao"/>
 		</bean>
 	</service>
 
-	<service interface="net.solarnetwork.node.ocpp.service.ActionMessageProcessor">
+	<service interface="net.solarnetwork.ocpp.service.ActionMessageProcessor">
 		<service-properties>
 			<entry key="action" value="StopTransaction"/>
 			<entry key="role" value="cs"/>
 		</service-properties>
-		<bean class="net.solarnetwork.node.ocpp.v16.cs.StopTransactionProcessor">
+		<bean class="net.solarnetwork.ocpp.v16.cs.StopTransactionProcessor">
 			<argument ref="chargeSessionManager"/>
 		</bean>
 	</service>
@@ -146,8 +146,8 @@
 	<service ref="controller">
 		<interfaces>
 			<value>net.solarnetwork.node.settings.SettingSpecifierProvider</value>
-			<value>net.solarnetwork.node.ocpp.service.AuthorizationService</value>
-			<value>net.solarnetwork.node.ocpp.service.cs.ChargePointManager</value>
+			<value>net.solarnetwork.ocpp.service.AuthorizationService</value>
+			<value>net.solarnetwork.ocpp.service.cs.ChargePointManager</value>
 		</interfaces>
 		<service-properties>
 			<entry key="role" value="cs"/><!-- For AuthorizationService -->

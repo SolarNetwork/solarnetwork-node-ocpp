@@ -73,43 +73,61 @@
 	<service ref="authorizationDao">
 		<interfaces>
 			<value>net.solarnetwork.node.dao.jdbc.JdbcDao</value>
-			<value>net.solarnetwork.node.ocpp.dao.AuthorizationDao</value>
-		</interfaces>		
+			<value>net.solarnetwork.ocpp.dao.AuthorizationDao</value>
+		</interfaces>
+		<service-properties>
+			<entry key="function" value="node"/>
+		</service-properties>
 	</service>
 
 	<service ref="chargePointDao">
 		<interfaces>
 			<value>net.solarnetwork.node.dao.jdbc.JdbcDao</value>
-			<value>net.solarnetwork.node.ocpp.dao.ChargePointDao</value>
+			<value>net.solarnetwork.ocpp.dao.ChargePointDao</value>
 		</interfaces>		
+		<service-properties>
+			<entry key="function" value="node"/>
+		</service-properties>
 	</service>
 	
 	<service ref="chargePointConnectorDao">
 		<interfaces>
 			<value>net.solarnetwork.node.dao.jdbc.JdbcDao</value>
-			<value>net.solarnetwork.node.ocpp.dao.ChargePointConnectorDao</value>
-		</interfaces>		
+			<value>net.solarnetwork.ocpp.dao.ChargePointConnectorDao</value>
+		</interfaces>
+		<service-properties>
+			<entry key="function" value="node"/>
+		</service-properties>
 	</service>
 	
 	<service ref="chargeSessionDao">
 		<interfaces>
 			<value>net.solarnetwork.node.dao.jdbc.JdbcDao</value>
-			<value>net.solarnetwork.node.ocpp.dao.ChargeSessionDao</value>
-		</interfaces>		
+			<value>net.solarnetwork.ocpp.dao.ChargeSessionDao</value>
+		</interfaces>
+		<service-properties>
+			<entry key="function" value="node"/>
+		</service-properties>
 	</service>
 	
 	<service ref="chargingProfileDao">
 		<interfaces>
 			<value>net.solarnetwork.node.dao.jdbc.JdbcDao</value>
-			<value>net.solarnetwork.node.ocpp.dao.ChargingProfileDao</value>
-		</interfaces>		
+			<value>net.solarnetwork.ocpp.dao.ChargingProfileDao</value>
+		</interfaces>
+		<service-properties>
+			<entry key="function" value="node"/>
+		</service-properties>
 	</service>
 	
 	<service ref="systemUserDao">
 		<interfaces>
 			<value>net.solarnetwork.node.dao.jdbc.JdbcDao</value>
-			<value>net.solarnetwork.node.ocpp.dao.SystemUserDao</value>
-		</interfaces>		
+			<value>net.solarnetwork.ocpp.dao.SystemUserDao</value>
+		</interfaces>
+		<service-properties>
+			<entry key="function" value="node"/>
+		</service-properties>
 	</service>
 	
 	<service interface="net.solarnetwork.node.backup.BackupResourceProvider">

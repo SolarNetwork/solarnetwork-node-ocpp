@@ -25,9 +25,9 @@ package net.solarnetwork.node.ocpp.v16.cs.controller;
 import java.time.Instant;
 import java.util.List;
 import java.util.function.Function;
-import net.solarnetwork.node.ocpp.dao.AuthorizationDao;
-import net.solarnetwork.node.ocpp.domain.Authorization;
 import net.solarnetwork.node.settings.SettingSpecifier;
+import net.solarnetwork.ocpp.dao.AuthorizationDao;
+import net.solarnetwork.ocpp.domain.Authorization;
 
 /**
  * Manage {@link Authorization} entities via settings.

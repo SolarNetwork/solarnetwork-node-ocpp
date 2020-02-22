@@ -37,11 +37,11 @@ import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import net.solarnetwork.node.ocpp.dao.ChargePointDao;
-import net.solarnetwork.node.ocpp.domain.ChargePoint;
-import net.solarnetwork.node.ocpp.domain.ChargePointInfo;
 import net.solarnetwork.node.ocpp.v16.cs.controller.ChargePointConfig;
 import net.solarnetwork.node.ocpp.v16.cs.controller.OcppRegistrationManager;
+import net.solarnetwork.ocpp.dao.ChargePointDao;
+import net.solarnetwork.ocpp.domain.ChargePoint;
+import net.solarnetwork.ocpp.domain.ChargePointInfo;
 
 /**
  * Test cases for the {@link OcppRegistrationManager} class.

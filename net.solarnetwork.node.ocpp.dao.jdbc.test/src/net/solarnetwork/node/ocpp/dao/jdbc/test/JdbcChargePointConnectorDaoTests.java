@@ -46,15 +46,15 @@ import net.solarnetwork.dao.GenericDao;
 import net.solarnetwork.node.dao.jdbc.DatabaseSetup;
 import net.solarnetwork.node.ocpp.dao.jdbc.JdbcChargePointConnectorDao;
 import net.solarnetwork.node.ocpp.dao.jdbc.JdbcChargePointDao;
-import net.solarnetwork.node.ocpp.domain.ChargePoint;
-import net.solarnetwork.node.ocpp.domain.ChargePointConnector;
-import net.solarnetwork.node.ocpp.domain.ChargePointConnectorKey;
-import net.solarnetwork.node.ocpp.domain.ChargePointErrorCode;
-import net.solarnetwork.node.ocpp.domain.ChargePointInfo;
-import net.solarnetwork.node.ocpp.domain.ChargePointStatus;
-import net.solarnetwork.node.ocpp.domain.RegistrationStatus;
-import net.solarnetwork.node.ocpp.domain.StatusNotification;
 import net.solarnetwork.node.test.AbstractNodeTransactionalTest;
+import net.solarnetwork.ocpp.domain.ChargePoint;
+import net.solarnetwork.ocpp.domain.ChargePointConnector;
+import net.solarnetwork.ocpp.domain.ChargePointConnectorKey;
+import net.solarnetwork.ocpp.domain.ChargePointErrorCode;
+import net.solarnetwork.ocpp.domain.ChargePointInfo;
+import net.solarnetwork.ocpp.domain.ChargePointStatus;
+import net.solarnetwork.ocpp.domain.RegistrationStatus;
+import net.solarnetwork.ocpp.domain.StatusNotification;
 import net.solarnetwork.util.StaticOptionalService;
 
 /**

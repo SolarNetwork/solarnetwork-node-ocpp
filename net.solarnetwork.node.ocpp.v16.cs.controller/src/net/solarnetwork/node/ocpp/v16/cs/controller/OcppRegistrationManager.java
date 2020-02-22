@@ -26,9 +26,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
-import net.solarnetwork.node.ocpp.dao.ChargePointDao;
-import net.solarnetwork.node.ocpp.domain.ChargePoint;
 import net.solarnetwork.node.settings.SettingSpecifier;
+import net.solarnetwork.ocpp.dao.ChargePointDao;
+import net.solarnetwork.ocpp.domain.ChargePoint;
 
 /**
  * Manager for Charge Point registrations.

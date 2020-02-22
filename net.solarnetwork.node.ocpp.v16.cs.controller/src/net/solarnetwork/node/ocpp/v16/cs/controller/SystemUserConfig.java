@@ -28,10 +28,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import net.solarnetwork.domain.Identity;
-import net.solarnetwork.node.ocpp.domain.SystemUser;
 import net.solarnetwork.node.settings.SettingSpecifier;
 import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
 import net.solarnetwork.node.settings.support.SettingsUtil;
+import net.solarnetwork.ocpp.domain.SystemUser;
 
 /**
  * Configuration object for {@link SystemUser}.

@@ -43,8 +43,8 @@ import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowMapper;
 import net.solarnetwork.domain.SortDescriptor;
 import net.solarnetwork.node.dao.jdbc.BaseJdbcGenericDao;
-import net.solarnetwork.node.ocpp.dao.SystemUserDao;
-import net.solarnetwork.node.ocpp.domain.SystemUser;
+import net.solarnetwork.ocpp.dao.SystemUserDao;
+import net.solarnetwork.ocpp.domain.SystemUser;
 
 /**
  * JDBC implementation of {@link SystemUserDao}.

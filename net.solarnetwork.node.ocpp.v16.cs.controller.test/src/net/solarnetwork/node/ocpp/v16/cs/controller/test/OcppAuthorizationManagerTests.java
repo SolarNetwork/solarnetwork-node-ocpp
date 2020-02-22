@@ -37,10 +37,10 @@ import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import net.solarnetwork.node.ocpp.dao.AuthorizationDao;
-import net.solarnetwork.node.ocpp.domain.Authorization;
 import net.solarnetwork.node.ocpp.v16.cs.controller.AuthorizationConfig;
 import net.solarnetwork.node.ocpp.v16.cs.controller.OcppAuthorizationManager;
+import net.solarnetwork.ocpp.dao.AuthorizationDao;
+import net.solarnetwork.ocpp.domain.Authorization;
 
 /**
  * Test cases for the {@link AuthorizationManager} class.

@@ -13,9 +13,9 @@
 
 	<!-- Service references -->
 	
-	<reference id="authService" interface="net.solarnetwork.node.ocpp.service.AuthorizationService"/>
+	<reference id="authService" interface="net.solarnetwork.ocpp.service.AuthorizationService"/>
 
-	<reference id="chargeSessionDao" interface="net.solarnetwork.node.ocpp.dao.ChargeSessionDao"/>
+	<reference id="chargeSessionDao" interface="net.solarnetwork.ocpp.dao.ChargeSessionDao"/>
 
 	<bean id="generalNodeDatumDao" class="net.solarnetwork.util.DynamicServiceTracker">
 		<property name="bundleContext" ref="bundleContext"/>
@@ -36,7 +36,7 @@
 	<service ref="manager">
 		<interfaces>
 			<value>net.solarnetwork.node.settings.SettingSpecifierProvider</value>
-			<value>net.solarnetwork.node.ocpp.service.cs.ChargeSessionManager</value>
+			<value>net.solarnetwork.ocpp.service.cs.ChargeSessionManager</value>
 		</interfaces>
 	</service>
 

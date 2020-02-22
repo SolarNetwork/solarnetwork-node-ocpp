@@ -42,15 +42,15 @@ import org.junit.Test;
 import net.solarnetwork.dao.GenericDao;
 import net.solarnetwork.node.dao.jdbc.DatabaseSetup;
 import net.solarnetwork.node.ocpp.dao.jdbc.JdbcChargingProfileDao;
-import net.solarnetwork.node.ocpp.domain.ChargingProfile;
-import net.solarnetwork.node.ocpp.domain.ChargingProfileInfo;
-import net.solarnetwork.node.ocpp.domain.ChargingProfileKind;
-import net.solarnetwork.node.ocpp.domain.ChargingProfilePurpose;
-import net.solarnetwork.node.ocpp.domain.ChargingScheduleInfo;
-import net.solarnetwork.node.ocpp.domain.ChargingSchedulePeriodInfo;
-import net.solarnetwork.node.ocpp.domain.ChargingScheduleRecurrency;
-import net.solarnetwork.node.ocpp.domain.UnitOfMeasure;
 import net.solarnetwork.node.test.AbstractNodeTransactionalTest;
+import net.solarnetwork.ocpp.domain.ChargingProfile;
+import net.solarnetwork.ocpp.domain.ChargingProfileInfo;
+import net.solarnetwork.ocpp.domain.ChargingProfileKind;
+import net.solarnetwork.ocpp.domain.ChargingProfilePurpose;
+import net.solarnetwork.ocpp.domain.ChargingScheduleInfo;
+import net.solarnetwork.ocpp.domain.ChargingSchedulePeriodInfo;
+import net.solarnetwork.ocpp.domain.ChargingScheduleRecurrency;
+import net.solarnetwork.ocpp.domain.UnitOfMeasure;
 
 /**
  * Test cases for the {@link JdbcChargingProfileDao} class.
@@ -84,7 +84,8 @@ public class JdbcChargingProfileDaoTests extends AbstractNodeTransactionalTest {
 		ChargingProfileInfo info = new ChargingProfileInfo(ChargingProfilePurpose.ChargePointMaxProfile,
 				ChargingProfileKind.Recurring, schedule);
 		info.setRecurrency(ChargingScheduleRecurrency.Daily);
-		ChargingProfile sess = new ChargingProfile(UUID.randomUUID(), Instant.now(), info);
+		ChargingProfile sess = new ChargingProfile(UUID.randomUUID(),
+				Instant.ofEpochMilli(System.currentTimeMillis()), info);
 		return sess;
 	}
 

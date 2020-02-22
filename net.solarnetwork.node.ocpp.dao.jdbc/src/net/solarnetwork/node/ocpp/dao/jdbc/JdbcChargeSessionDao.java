@@ -35,15 +35,15 @@ import org.springframework.jdbc.core.PreparedStatementCallback;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import net.solarnetwork.node.dao.jdbc.BaseJdbcGenericDao;
-import net.solarnetwork.node.ocpp.dao.ChargeSessionDao;
-import net.solarnetwork.node.ocpp.domain.ChargeSession;
-import net.solarnetwork.node.ocpp.domain.ChargeSessionEndReason;
-import net.solarnetwork.node.ocpp.domain.Location;
-import net.solarnetwork.node.ocpp.domain.Measurand;
-import net.solarnetwork.node.ocpp.domain.Phase;
-import net.solarnetwork.node.ocpp.domain.ReadingContext;
-import net.solarnetwork.node.ocpp.domain.SampledValue;
-import net.solarnetwork.node.ocpp.domain.UnitOfMeasure;
+import net.solarnetwork.ocpp.dao.ChargeSessionDao;
+import net.solarnetwork.ocpp.domain.ChargeSession;
+import net.solarnetwork.ocpp.domain.ChargeSessionEndReason;
+import net.solarnetwork.ocpp.domain.Location;
+import net.solarnetwork.ocpp.domain.Measurand;
+import net.solarnetwork.ocpp.domain.Phase;
+import net.solarnetwork.ocpp.domain.ReadingContext;
+import net.solarnetwork.ocpp.domain.SampledValue;
+import net.solarnetwork.ocpp.domain.UnitOfMeasure;
 
 /**
  * JDBC based implementation of {@link ChargeSessionDao}.

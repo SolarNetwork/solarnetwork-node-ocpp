@@ -28,10 +28,10 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import net.solarnetwork.domain.Identity;
-import net.solarnetwork.node.ocpp.domain.Authorization;
 import net.solarnetwork.node.settings.SettingSpecifier;
 import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
 import net.solarnetwork.node.settings.support.BasicToggleSettingSpecifier;
+import net.solarnetwork.ocpp.domain.Authorization;
 import net.solarnetwork.util.DateUtils;
 
 /**

@@ -52,33 +52,34 @@ import net.solarnetwork.node.domain.ACEnergyDatum;
 import net.solarnetwork.node.domain.AtmosphericDatum;
 import net.solarnetwork.node.domain.Datum;
 import net.solarnetwork.node.domain.GeneralNodeDatum;
-import net.solarnetwork.node.ocpp.dao.ChargeSessionDao;
-import net.solarnetwork.node.ocpp.dao.PurgePostedChargeSessionsTask;
-import net.solarnetwork.node.ocpp.domain.AuthorizationInfo;
-import net.solarnetwork.node.ocpp.domain.AuthorizationStatus;
-import net.solarnetwork.node.ocpp.domain.ChargeSession;
-import net.solarnetwork.node.ocpp.domain.ChargeSessionEndInfo;
-import net.solarnetwork.node.ocpp.domain.ChargeSessionStartInfo;
-import net.solarnetwork.node.ocpp.domain.Location;
-import net.solarnetwork.node.ocpp.domain.Measurand;
-import net.solarnetwork.node.ocpp.domain.Phase;
-import net.solarnetwork.node.ocpp.domain.ReadingContext;
-import net.solarnetwork.node.ocpp.domain.SampledValue;
-import net.solarnetwork.node.ocpp.domain.UnitOfMeasure;
-import net.solarnetwork.node.ocpp.service.AuthorizationException;
-import net.solarnetwork.node.ocpp.service.AuthorizationService;
-import net.solarnetwork.node.ocpp.service.cs.ChargeSessionManager;
 import net.solarnetwork.node.settings.SettingSpecifier;
 import net.solarnetwork.node.settings.SettingSpecifierProvider;
 import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
 import net.solarnetwork.node.support.BaseIdentifiable;
+import net.solarnetwork.ocpp.dao.ChargeSessionDao;
+import net.solarnetwork.ocpp.dao.PurgePostedChargeSessionsTask;
+import net.solarnetwork.ocpp.domain.AuthorizationInfo;
+import net.solarnetwork.ocpp.domain.AuthorizationStatus;
+import net.solarnetwork.ocpp.domain.ChargeSession;
+import net.solarnetwork.ocpp.domain.ChargeSessionEndInfo;
+import net.solarnetwork.ocpp.domain.ChargeSessionStartInfo;
+import net.solarnetwork.ocpp.domain.Location;
+import net.solarnetwork.ocpp.domain.Measurand;
+import net.solarnetwork.ocpp.domain.Phase;
+import net.solarnetwork.ocpp.domain.ReadingContext;
+import net.solarnetwork.ocpp.domain.SampledValue;
+import net.solarnetwork.ocpp.domain.UnitOfMeasure;
+import net.solarnetwork.ocpp.service.AuthorizationException;
+import net.solarnetwork.ocpp.service.AuthorizationService;
+import net.solarnetwork.ocpp.service.cs.ChargeSessionManager;
 import net.solarnetwork.settings.SettingsChangeObserver;
 import net.solarnetwork.util.NumberUtils;
 import net.solarnetwork.util.OptionalService;
 import net.solarnetwork.util.StringUtils;
 
 /**
- * A {@link ChargeSessionManager} that generates {@link Datum
+ * A {@link ChargeSessionManager} that generates {@link Datum} from charge
+ * session transaction data.
  * 
  * @author matt
  * @version 1.0

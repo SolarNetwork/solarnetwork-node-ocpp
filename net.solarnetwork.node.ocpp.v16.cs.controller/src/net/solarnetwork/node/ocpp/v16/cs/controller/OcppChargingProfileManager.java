@@ -27,9 +27,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.function.Function;
-import net.solarnetwork.node.ocpp.dao.ChargingProfileDao;
-import net.solarnetwork.node.ocpp.domain.ChargingProfile;
 import net.solarnetwork.node.settings.SettingSpecifier;
+import net.solarnetwork.ocpp.dao.ChargingProfileDao;
+import net.solarnetwork.ocpp.domain.ChargingProfile;
 
 /**
  * Manage {@link ChargingProfile} entities via settings.

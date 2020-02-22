@@ -30,12 +30,12 @@ import java.time.Instant;
 import java.util.Collection;
 import org.springframework.jdbc.core.RowMapper;
 import net.solarnetwork.node.dao.jdbc.BaseJdbcGenericDao;
-import net.solarnetwork.node.ocpp.dao.ChargePointConnectorDao;
-import net.solarnetwork.node.ocpp.domain.ChargePointConnector;
-import net.solarnetwork.node.ocpp.domain.ChargePointConnectorKey;
-import net.solarnetwork.node.ocpp.domain.ChargePointErrorCode;
-import net.solarnetwork.node.ocpp.domain.ChargePointStatus;
-import net.solarnetwork.node.ocpp.domain.StatusNotification;
+import net.solarnetwork.ocpp.dao.ChargePointConnectorDao;
+import net.solarnetwork.ocpp.domain.ChargePointConnector;
+import net.solarnetwork.ocpp.domain.ChargePointConnectorKey;
+import net.solarnetwork.ocpp.domain.ChargePointErrorCode;
+import net.solarnetwork.ocpp.domain.ChargePointStatus;
+import net.solarnetwork.ocpp.domain.StatusNotification;
 
 /**
  * JDBC implementation of {@link ChargePointConnectorDao}.

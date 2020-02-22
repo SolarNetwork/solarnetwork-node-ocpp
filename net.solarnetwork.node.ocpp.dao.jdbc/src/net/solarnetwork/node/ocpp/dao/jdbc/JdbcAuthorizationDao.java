@@ -29,8 +29,8 @@ import java.sql.SQLException;
 import java.time.Instant;
 import org.springframework.jdbc.core.RowMapper;
 import net.solarnetwork.node.dao.jdbc.BaseJdbcGenericDao;
-import net.solarnetwork.node.ocpp.dao.AuthorizationDao;
-import net.solarnetwork.node.ocpp.domain.Authorization;
+import net.solarnetwork.ocpp.dao.AuthorizationDao;
+import net.solarnetwork.ocpp.domain.Authorization;
 
 /**
  * JDBC based implementation of {@link AuthorizationDao}.

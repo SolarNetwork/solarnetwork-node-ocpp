@@ -33,20 +33,20 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.context.MessageSource;
 import net.solarnetwork.domain.Identity;
-import net.solarnetwork.node.ocpp.domain.ChargingProfile;
-import net.solarnetwork.node.ocpp.domain.ChargingProfileInfo;
-import net.solarnetwork.node.ocpp.domain.ChargingProfileKind;
-import net.solarnetwork.node.ocpp.domain.ChargingProfilePurpose;
-import net.solarnetwork.node.ocpp.domain.ChargingScheduleInfo;
-import net.solarnetwork.node.ocpp.domain.ChargingSchedulePeriodInfo;
-import net.solarnetwork.node.ocpp.domain.ChargingScheduleRecurrency;
-import net.solarnetwork.node.ocpp.domain.UnitOfMeasure;
 import net.solarnetwork.node.settings.SettingSpecifier;
 import net.solarnetwork.node.settings.support.BasicGroupSettingSpecifier;
 import net.solarnetwork.node.settings.support.BasicMultiValueSettingSpecifier;
 import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
 import net.solarnetwork.node.settings.support.BasicTitleSettingSpecifier;
 import net.solarnetwork.node.settings.support.SettingsUtil;
+import net.solarnetwork.ocpp.domain.ChargingProfile;
+import net.solarnetwork.ocpp.domain.ChargingProfileInfo;
+import net.solarnetwork.ocpp.domain.ChargingProfileKind;
+import net.solarnetwork.ocpp.domain.ChargingProfilePurpose;
+import net.solarnetwork.ocpp.domain.ChargingScheduleInfo;
+import net.solarnetwork.ocpp.domain.ChargingSchedulePeriodInfo;
+import net.solarnetwork.ocpp.domain.ChargingScheduleRecurrency;
+import net.solarnetwork.ocpp.domain.UnitOfMeasure;
 
 /**
  * Configuration for an

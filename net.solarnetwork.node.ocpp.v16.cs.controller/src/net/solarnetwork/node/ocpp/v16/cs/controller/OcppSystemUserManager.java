@@ -27,9 +27,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
-import net.solarnetwork.node.ocpp.dao.SystemUserDao;
-import net.solarnetwork.node.ocpp.domain.SystemUser;
 import net.solarnetwork.node.settings.SettingSpecifier;
+import net.solarnetwork.ocpp.dao.SystemUserDao;
+import net.solarnetwork.ocpp.domain.SystemUser;
 import net.solarnetwork.support.PasswordEncoder;
 
 /**
