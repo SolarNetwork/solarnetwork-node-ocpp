@@ -85,20 +85,17 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 	}
 
 	private ChargePoint createTestChargePoint(String vendor, String model) {
-		ChargePoint cp = new ChargePoint(UUID.randomUUID().toString(),
-				Instant.ofEpochMilli(System.currentTimeMillis()));
-		cp.setEnabled(true);
-		cp.setRegistrationStatus(RegistrationStatus.Accepted);
-
-		ChargePointInfo info = new ChargePointInfo();
+		ChargePointInfo info = new ChargePointInfo(UUID.randomUUID().toString());
 		info.setChargePointVendor(vendor);
 		info.setChargePointModel(model);
-		cp.setInfo(info);
+		ChargePoint cp = new ChargePoint(null, Instant.ofEpochMilli(System.currentTimeMillis()), info);
+		cp.setEnabled(true);
+		cp.setRegistrationStatus(RegistrationStatus.Accepted);
 		cp.setConnectorCount(2);
 		return cp;
 	}
 
-	private ChargeSession createTestChargeSession(String chargePointId) {
+	private ChargeSession createTestChargeSession(long chargePointId) {
 		ChargeSession sess = new ChargeSession(UUID.randomUUID(),
 				Instant.ofEpochMilli(System.currentTimeMillis()),
 				UUID.randomUUID().toString().substring(0, 20), chargePointId, 1, 0);
@@ -108,7 +105,7 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 	@Test
 	public void insert() {
 		ChargePoint cp = createTestChargePoint("foo", "bar");
-		chargePointDao.save(cp);
+		cp = chargePointDao.get(chargePointDao.save(cp));
 
 		ChargeSession sess = createTestChargeSession(cp.getId());
 		UUID pk = dao.save(sess);
@@ -146,14 +143,15 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 
 	@Test
 	public void findIncomplete_tx_none() {
-		ChargeSession sess = dao.getIncompleteChargeSessionForTransaction("n/a", 1);
+		ChargeSession sess = dao.getIncompleteChargeSessionForTransaction(1L, 1);
 		assertThat("No incomplete session found", sess, nullValue());
 	}
 
 	@Test
 	public void findIncomplete_tx_noMatchingId() {
 		insert();
-		ChargeSession sess = dao.getIncompleteChargeSessionForTransaction("n/a", 1);
+		ChargeSession sess = dao.getIncompleteChargeSessionForTransaction(last.getChargePointId() - 1,
+				1);
 		assertThat("No incomplete session found", sess, nullValue());
 	}
 
@@ -196,7 +194,7 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 
 		// add another for different charge point
 		ChargePoint cp2 = createTestChargePoint("vendor 2", "model 2");
-		chargePointDao.save(cp2);
+		cp2 = chargePointDao.get(chargePointDao.save(cp2));
 		ChargeSession s = dao.get(last.getId());
 		ChargeSession two = new ChargeSession(UUID.randomUUID(),
 				Instant.ofEpochMilli(System.currentTimeMillis()), s.getAuthId(), cp2.getId(),

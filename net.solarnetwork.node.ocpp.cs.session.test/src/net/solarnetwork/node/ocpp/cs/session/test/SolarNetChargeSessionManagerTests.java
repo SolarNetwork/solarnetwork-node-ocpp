@@ -62,10 +62,13 @@ import net.solarnetwork.node.dao.DatumDao;
 import net.solarnetwork.node.domain.ACEnergyDatum;
 import net.solarnetwork.node.domain.GeneralNodeDatum;
 import net.solarnetwork.node.ocpp.cs.session.SolarNetChargeSessionManager;
+import net.solarnetwork.ocpp.dao.ChargePointDao;
 import net.solarnetwork.ocpp.dao.ChargeSessionDao;
 import net.solarnetwork.ocpp.dao.PurgePostedChargeSessionsTask;
 import net.solarnetwork.ocpp.domain.AuthorizationInfo;
 import net.solarnetwork.ocpp.domain.AuthorizationStatus;
+import net.solarnetwork.ocpp.domain.ChargePoint;
+import net.solarnetwork.ocpp.domain.ChargePointInfo;
 import net.solarnetwork.ocpp.domain.ChargeSession;
 import net.solarnetwork.ocpp.domain.ChargeSessionEndInfo;
 import net.solarnetwork.ocpp.domain.ChargeSessionEndReason;
@@ -88,6 +91,7 @@ import net.solarnetwork.util.StaticOptionalService;
 public class SolarNetChargeSessionManagerTests {
 
 	private AuthorizationService authService;
+	private ChargePointDao chargePointDao;
 	private ChargeSessionDao chargeSessionDao;
 	private DatumDao<GeneralNodeDatum> datumDao;
 	private TaskScheduler taskScheduler;
@@ -97,21 +101,22 @@ public class SolarNetChargeSessionManagerTests {
 	@Before
 	public void setup() {
 		authService = createMock(AuthorizationService.class);
+		chargePointDao = createMock(ChargePointDao.class);
 		chargeSessionDao = createMock(ChargeSessionDao.class);
 		datumDao = createMock(DatumDao.class);
 		taskScheduler = createMock(TaskScheduler.class);
-		manager = new SolarNetChargeSessionManager(authService, chargeSessionDao,
+		manager = new SolarNetChargeSessionManager(authService, chargePointDao, chargeSessionDao,
 				new StaticOptionalService<>(datumDao));
 		manager.setTaskScheduler(taskScheduler);
 	}
 
 	@After
 	public void teardown() {
-		EasyMock.verify(authService, chargeSessionDao, datumDao, taskScheduler);
+		EasyMock.verify(authService, chargePointDao, chargeSessionDao, datumDao, taskScheduler);
 	}
 
 	private void replayAll(Object... mocks) {
-		EasyMock.replay(authService, chargeSessionDao, datumDao, taskScheduler);
+		EasyMock.replay(authService, chargePointDao, chargeSessionDao, datumDao, taskScheduler);
 		if ( mocks != null ) {
 			EasyMock.replay(mocks);
 		}
@@ -154,14 +159,19 @@ public class SolarNetChargeSessionManagerTests {
 		// given
 
 		// verify authorization
-		String chargePointId = UUID.randomUUID().toString();
+		String identifier = UUID.randomUUID().toString();
+		ChargePoint cp = new ChargePoint(UUID.randomUUID().getMostSignificantBits(), Instant.now(),
+				new ChargePointInfo(identifier));
 		String idTag = UUID.randomUUID().toString().substring(0, 20);
 		AuthorizationInfo authInfo = new AuthorizationInfo(idTag, AuthorizationStatus.Accepted);
-		expect(authService.authorize(chargePointId, idTag)).andReturn(authInfo);
+		expect(authService.authorize(identifier, idTag)).andReturn(authInfo);
+
+		// get ChargePoint
+		expect(chargePointDao.getForIdentifier(identifier)).andReturn(cp);
 
 		// verify concurrent tx
 		int connectorId = 1;
-		expect(chargeSessionDao.getIncompleteChargeSessionForConnector(chargePointId, connectorId))
+		expect(chargeSessionDao.getIncompleteChargeSessionForConnector(cp.getId(), connectorId))
 				.andReturn(null);
 
 		// create new session
@@ -201,7 +211,7 @@ public class SolarNetChargeSessionManagerTests {
 		// @formatter:off
 		ChargeSessionStartInfo info = ChargeSessionStartInfo.builder()
 				.withTimestampStart(Instant.now())
-				.withChargePointId(chargePointId)
+				.withChargePointId(identifier)
 				.withAuthorizationId(idTag)
 				.withConnectorId(connectorId)
 				.withMeterStart(1234)
@@ -217,7 +227,7 @@ public class SolarNetChargeSessionManagerTests {
 		assertThat("Stored session timestamp ID matches request", sessionCaptor.getValue().getCreated(),
 				equalTo(info.getTimestampStart()));
 		assertThat("Stored session Charge Point ID matches request",
-				sessionCaptor.getValue().getChargePointId(), equalTo(info.getChargePointId()));
+				sessionCaptor.getValue().getChargePointId(), equalTo(cp.getId()));
 		assertThat("Stored session auth ID matches request", sessionCaptor.getValue().getAuthId(),
 				equalTo(info.getAuthorizationId()));
 		assertThat("Stored session connector ID matches request",
@@ -225,7 +235,7 @@ public class SolarNetChargeSessionManagerTests {
 
 		assertThat("Created session ID matches refresh ID request", sessionIdCaptor.getValue(),
 				equalTo(sessionCaptor.getValue().getId()));
-		assertThat("Charge Point ID returned", sess.getChargePointId(), equalTo(chargePointId));
+		assertThat("Charge Point ID returned", sess.getChargePointId(), equalTo(cp.getId()));
 		assertThat("Auth ID returned", sess.getAuthId(), equalTo(idTag));
 		assertThat("Connector ID returned", sess.getConnectorId(), equalTo(connectorId));
 		assertThat("Transaction ID returned", sess.getTransactionId(), equalTo(transactionId));
@@ -253,8 +263,8 @@ public class SolarNetChargeSessionManagerTests {
 		assertThat("Datum generated", datum, notNullValue());
 		assertThat("Datum date", datum.getCreated().getTime(),
 				equalTo(sess.getCreated().toEpochMilli()));
-		assertThat("Datum source ID", datum.getSourceId(), equalTo(
-				String.format("/ocpp/cp/%s/%d/%s", chargePointId, connectorId, Location.Outlet)));
+		assertThat("Datum source ID", datum.getSourceId(),
+				equalTo(String.format("/ocpp/cp/%s/%d/%s", identifier, connectorId, Location.Outlet)));
 		assertThat("Energy prop", datum.getAccumulatingSampleLong(ACEnergyDatum.WATT_HOUR_READING_KEY),
 				equalTo(info.getMeterStart()));
 		assertThat("Datum prop session ID",
@@ -267,17 +277,22 @@ public class SolarNetChargeSessionManagerTests {
 		// given
 
 		// verify authorization
-		String chargePointId = UUID.randomUUID().toString();
+		String identifier = UUID.randomUUID().toString();
+		ChargePoint cp = new ChargePoint(UUID.randomUUID().getMostSignificantBits(), Instant.now(),
+				new ChargePointInfo(identifier));
 		String idTag = UUID.randomUUID().toString().substring(0, 20);
 		AuthorizationInfo authInfo = new AuthorizationInfo(idTag, AuthorizationStatus.Accepted);
-		expect(authService.authorize(chargePointId, idTag)).andReturn(authInfo);
+		expect(authService.authorize(identifier, idTag)).andReturn(authInfo);
+
+		// get ChargePoint
+		expect(chargePointDao.getForIdentifier(identifier)).andReturn(cp);
 
 		// verify concurrent tx
 		int connectorId = 1;
 		int transactionId = 123;
 		ChargeSession existingSess = new ChargeSession(UUID.randomUUID(), Instant.now().minusSeconds(60),
-				idTag, chargePointId, connectorId, transactionId);
-		expect(chargeSessionDao.getIncompleteChargeSessionForConnector(chargePointId, connectorId))
+				idTag, cp.getId(), connectorId, transactionId);
+		expect(chargeSessionDao.getIncompleteChargeSessionForConnector(cp.getId(), connectorId))
 				.andReturn(existingSess);
 
 		// when
@@ -286,7 +301,7 @@ public class SolarNetChargeSessionManagerTests {
 		// @formatter:off
 		ChargeSessionStartInfo info = ChargeSessionStartInfo.builder()
 				.withTimestampStart(Instant.now())
-				.withChargePointId(chargePointId)
+				.withChargePointId(identifier)
 				.withAuthorizationId(idTag)
 				.withConnectorId(connectorId)
 				.withMeterStart(1234)
@@ -307,13 +322,18 @@ public class SolarNetChargeSessionManagerTests {
 	public void endSession_ok() {
 		// given
 		String idTag = "tester";
-		String chargePointId = UUID.randomUUID().toString().substring(0, 20);
+		String identifier = UUID.randomUUID().toString();
+		ChargePoint cp = new ChargePoint(UUID.randomUUID().getMostSignificantBits(), Instant.now(),
+				new ChargePointInfo(identifier));
 		int connectorId = 1;
 		int transactionId = 123;
 
-		ChargeSession sess = new ChargeSession(UUID.randomUUID(), Instant.now(), idTag, chargePointId,
+		// get ChargePoint
+		expect(chargePointDao.getForIdentifier(identifier)).andReturn(cp);
+
+		ChargeSession sess = new ChargeSession(UUID.randomUUID(), Instant.now(), idTag, cp.getId(),
 				connectorId, transactionId);
-		expect(chargeSessionDao.getIncompleteChargeSessionForTransaction(chargePointId, transactionId))
+		expect(chargeSessionDao.getIncompleteChargeSessionForTransaction(cp.getId(), transactionId))
 				.andReturn(sess);
 
 		Capture<ChargeSession> updatedCaptor = new Capture<>();
@@ -351,7 +371,7 @@ public class SolarNetChargeSessionManagerTests {
 		ChargeSessionEndInfo info = ChargeSessionEndInfo.builder()
 				.withTimestampEnd(Instant.now())
 				.withAuthorizationId(idTag)
-				.withChargePointId(chargePointId)
+				.withChargePointId(identifier)
 				.withTransactionId(transactionId)
 				.withMeterEnd(54321)
 				.withReason(ChargeSessionEndReason.Local)
@@ -390,8 +410,8 @@ public class SolarNetChargeSessionManagerTests {
 		assertThat("Datum generated", datum, notNullValue());
 		assertThat("Datum date", datum.getCreated().getTime(),
 				equalTo(info.getTimestampEnd().toEpochMilli()));
-		assertThat("Datum source ID", datum.getSourceId(), equalTo(
-				String.format("/ocpp/cp/%s/%d/%s", chargePointId, connectorId, Location.Outlet)));
+		assertThat("Datum source ID", datum.getSourceId(),
+				equalTo(String.format("/ocpp/cp/%s/%d/%s", identifier, connectorId, Location.Outlet)));
 		assertThat("Energy prop", datum.getAccumulatingSampleLong(ACEnergyDatum.WATT_HOUR_READING_KEY),
 				equalTo(info.getMeterEnd()));
 		assertThat("Datum prop session ID",
@@ -403,12 +423,17 @@ public class SolarNetChargeSessionManagerTests {
 	public void addReadings_consolidate() {
 		// given
 		String idTag = "tester";
-		String chargePointId = UUID.randomUUID().toString().substring(0, 20);
+		String identifier = UUID.randomUUID().toString();
+		ChargePoint cp = new ChargePoint(UUID.randomUUID().getMostSignificantBits(), Instant.now(),
+				new ChargePointInfo(identifier));
 		int connectorId = 1;
 		int transactionId = 123;
 
+		// get ChargePoint
+		expect(chargePointDao.get(cp.getId())).andReturn(cp);
+
 		// get current session
-		ChargeSession sess = new ChargeSession(UUID.randomUUID(), Instant.now(), idTag, chargePointId,
+		ChargeSession sess = new ChargeSession(UUID.randomUUID(), Instant.now(), idTag, cp.getId(),
 				connectorId, transactionId);
 		expect(chargeSessionDao.get(sess.getId())).andReturn(sess);
 
@@ -492,7 +517,7 @@ public class SolarNetChargeSessionManagerTests {
 		for ( int i = 0; i < persistedDatum.size(); i++ ) {
 			GeneralNodeDatum d = persistedDatum.get(i);
 			assertThat("Datum source ID " + i, d.getSourceId(),
-					equalTo("/ocpp/cp/" + chargePointId + "/" + connectorId + "/Outlet"));
+					equalTo("/ocpp/cp/" + identifier + "/" + connectorId + "/Outlet"));
 			assertThat("Datum session ID " + i, d.getStatusSampleString("sessionId"),
 					equalTo(sess.getId().toString()));
 		}

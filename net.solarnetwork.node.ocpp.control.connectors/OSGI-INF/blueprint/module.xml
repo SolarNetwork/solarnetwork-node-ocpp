@@ -25,6 +25,8 @@
 		<property name="serviceClassName" value="net.solarnetwork.ocpp.service.cs.ChargePointManager"/>
 	</bean>
 
+	<reference id="chargePointDao" interface="net.solarnetwork.ocpp.dao.ChargePointDao"/>
+
 	<reference id="chargePointConnectorDao" interface="net.solarnetwork.ocpp.dao.ChargePointConnectorDao"/>
 
 	<!-- Published Services -->
@@ -46,6 +48,7 @@
 			<osgix:managed-properties persistent-id="net.solarnetwork.node.ocpp.control.connectors.availability" 
 					autowire-on-update="true"/>
 			<argument ref="chargePointManagers"/>
+			<argument ref="chargePointDao"/>
 			<argument ref="chargePointConnectorDao"/>
 			<property name="eventAdmin" ref="eventAdmin"/>
 			<property name="messageSource">

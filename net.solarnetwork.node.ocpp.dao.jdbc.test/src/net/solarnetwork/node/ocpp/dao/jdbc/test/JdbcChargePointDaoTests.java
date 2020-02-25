@@ -22,9 +22,13 @@
 
 package net.solarnetwork.node.ocpp.dao.jdbc.test;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.UUID;
 import javax.annotation.Resource;
 import javax.sql.DataSource;
@@ -63,15 +67,12 @@ public class JdbcChargePointDaoTests extends AbstractNodeTransactionalTest {
 	}
 
 	private ChargePoint createTestChargePoint(String vendor, String model) {
-		ChargePoint cp = new ChargePoint(UUID.randomUUID().toString(),
-				Instant.ofEpochMilli(System.currentTimeMillis()));
-		cp.setEnabled(true);
-		cp.setRegistrationStatus(RegistrationStatus.Unknown);
-
-		ChargePointInfo info = new ChargePointInfo();
+		ChargePointInfo info = new ChargePointInfo(UUID.randomUUID().toString());
 		info.setChargePointVendor(vendor);
 		info.setChargePointModel(model);
-		cp.setInfo(info);
+		ChargePoint cp = new ChargePoint(null, Instant.ofEpochMilli(System.currentTimeMillis()), info);
+		cp.setEnabled(true);
+		cp.setRegistrationStatus(RegistrationStatus.Unknown);
 		cp.setConnectorCount(2);
 		return cp;
 	}
@@ -79,9 +80,12 @@ public class JdbcChargePointDaoTests extends AbstractNodeTransactionalTest {
 	@Test
 	public void insert() {
 		ChargePoint cp = createTestChargePoint("foo", "bar");
-		String pk = dao.save(cp);
-		assertThat("PK preserved", pk, equalTo(cp.getId()));
-		last = cp;
+		Long pk = dao.save(cp);
+		assertThat("PK generated", pk, notNullValue());
+		last = new ChargePoint(pk, cp.getCreated(), cp.getInfo());
+		last.setEnabled(cp.isEnabled());
+		last.setRegistrationStatus(cp.getRegistrationStatus());
+		last.setConnectorCount(cp.getConnectorCount());
 	}
 
 	@Test
@@ -92,7 +96,6 @@ public class JdbcChargePointDaoTests extends AbstractNodeTransactionalTest {
 		assertThat("ID", entity.getId(), equalTo(last.getId()));
 		assertThat("Created", entity.getCreated(), equalTo(last.getCreated()));
 		assertThat("Connector count", entity.getConnectorCount(), equalTo(last.getConnectorCount()));
-		// TODO
 	}
 
 	@Test
@@ -102,7 +105,7 @@ public class JdbcChargePointDaoTests extends AbstractNodeTransactionalTest {
 		cp.setRegistrationStatus(RegistrationStatus.Rejected);
 		cp.getInfo().setChargePointVendor("Updated Vendor");
 		cp.setConnectorCount(3);
-		String pk = dao.save(cp);
+		Long pk = dao.save(cp);
 		assertThat("PK unchanged", pk, equalTo(cp.getId()));
 
 		ChargePoint entity = dao.get(pk);
@@ -114,4 +117,39 @@ public class JdbcChargePointDaoTests extends AbstractNodeTransactionalTest {
 				equalTo(cp.getConnectorCount()));
 	}
 
+	@Test
+	public void findAll() {
+		ChargePoint obj1 = createTestChargePoint("foo", "bar");
+		obj1 = dao.get(dao.save(obj1));
+		ChargePoint obj2 = new ChargePoint(null, obj1.getCreated().minusSeconds(60),
+				new ChargePointInfo("b", "foo", "bar"));
+		obj2 = dao.get(dao.save(obj2));
+		ChargePoint obj3 = new ChargePoint(null, obj1.getCreated().plusSeconds(60),
+				new ChargePointInfo("c", "foo", "bar"));
+		obj3 = dao.get(dao.save(obj3));
+
+		Collection<ChargePoint> results = dao.getAll(null);
+		assertThat("Results found in order", results, contains(obj2, obj1, obj3));
+	}
+
+	@Test
+	public void findByIdentifier_none() {
+		ChargePoint entity = dao.getForIdentifier("foo");
+		assertThat("No users", entity, nullValue());
+	}
+
+	@Test
+	public void findByIdentifier_noMatch() {
+		insert();
+		ChargePoint entity = dao.getForIdentifier("not a match");
+		assertThat("No match", entity, nullValue());
+	}
+
+	@Test
+	public void findByIdentifier() {
+		findAll();
+		ChargePoint entity = dao.getForIdentifier("b");
+		assertThat("Match", entity, notNullValue());
+		assertThat("Identifier matches", entity.getInfo().getId(), equalTo("b"));
+	}
 }

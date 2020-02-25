@@ -48,7 +48,7 @@ import net.solarnetwork.ocpp.domain.RegistrationStatus;
  * @author matt
  * @version 1.0
  */
-public class ChargePointConfig implements Identity<String> {
+public class ChargePointConfig implements Identity<Long> {
 
 	/**
 	 * A default property value used for required properties like
@@ -56,7 +56,7 @@ public class ChargePointConfig implements Identity<String> {
 	 */
 	public static final String DEFAULT_PROPERTY_VALUE = "N/A";
 
-	private String id;
+	private Long id;
 	private Instant created;
 	private boolean enabled;
 	private RegistrationStatus registrationStatus;
@@ -93,7 +93,7 @@ public class ChargePointConfig implements Identity<String> {
 	}
 
 	@Override
-	public int compareTo(String o) {
+	public int compareTo(Long o) {
 		return id.compareTo(o);
 	}
 
@@ -114,7 +114,7 @@ public class ChargePointConfig implements Identity<String> {
 		}
 		List<SettingSpecifier> results = new ArrayList<>(5);
 		results.add(new BasicTitleSettingSpecifier(prefix + "info", info(messageSource, locale), true));
-		results.add(new BasicTextFieldSettingSpecifier(prefix + "id", getId()));
+		results.add(new BasicTextFieldSettingSpecifier(prefix + "info.id", info.getId()));
 		results.add(new BasicToggleSettingSpecifier(prefix + "enabled", isEnabled()));
 
 		// drop-down menu for function
@@ -131,7 +131,7 @@ public class ChargePointConfig implements Identity<String> {
 	}
 
 	private String info(MessageSource messageSource, Locale locale) {
-		if ( id == null || id.isEmpty() ) {
+		if ( id == null ) {
 			return "N/A";
 		}
 		// TODO: better info, and i18n
@@ -170,7 +170,7 @@ public class ChargePointConfig implements Identity<String> {
 	 * @return the Charge Point ID
 	 */
 	@Override
-	public String getId() {
+	public Long getId() {
 		return id;
 	}
 
@@ -180,7 +180,7 @@ public class ChargePointConfig implements Identity<String> {
 	 * @param id
 	 *        the id to set
 	 */
-	public void setId(String id) {
+	public void setId(Long id) {
 		this.id = id;
 	}
 

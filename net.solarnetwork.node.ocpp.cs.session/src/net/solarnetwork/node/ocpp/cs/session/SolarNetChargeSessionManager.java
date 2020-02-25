@@ -56,10 +56,12 @@ import net.solarnetwork.node.settings.SettingSpecifier;
 import net.solarnetwork.node.settings.SettingSpecifierProvider;
 import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
 import net.solarnetwork.node.support.BaseIdentifiable;
+import net.solarnetwork.ocpp.dao.ChargePointDao;
 import net.solarnetwork.ocpp.dao.ChargeSessionDao;
 import net.solarnetwork.ocpp.dao.PurgePostedChargeSessionsTask;
 import net.solarnetwork.ocpp.domain.AuthorizationInfo;
 import net.solarnetwork.ocpp.domain.AuthorizationStatus;
+import net.solarnetwork.ocpp.domain.ChargePoint;
 import net.solarnetwork.ocpp.domain.ChargeSession;
 import net.solarnetwork.ocpp.domain.ChargeSessionEndInfo;
 import net.solarnetwork.ocpp.domain.ChargeSessionStartInfo;
@@ -99,6 +101,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 	private final Logger log = LoggerFactory.getLogger(getClass());
 
 	private final AuthorizationService authService;
+	private final ChargePointDao chargePointDao;
 	private final ChargeSessionDao chargeSessionDao;
 	private final OptionalService<DatumDao<GeneralNodeDatum>> datumDao;
 	private String sourceIdTemplate = DEFAULT_SOURCE_ID_TEMPLATE;
@@ -114,15 +117,18 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 	 * 
 	 * @param authService
 	 *        the authorization service to use
+	 * @param chargePointDao
+	 *        the charge point DAO to use
 	 * @param chargeSessionDao
 	 *        the charge session DAO to use
 	 * @param datumDao
 	 *        the DAO for saving Datum
 	 */
-	public SolarNetChargeSessionManager(AuthorizationService authService,
+	public SolarNetChargeSessionManager(AuthorizationService authService, ChargePointDao chargePointDao,
 			ChargeSessionDao chargeSessionDao, OptionalService<DatumDao<GeneralNodeDatum>> datumDao) {
 		super();
 		this.authService = authService;
+		this.chargePointDao = chargePointDao;
 		this.chargeSessionDao = chargeSessionDao;
 		this.datumDao = datumDao;
 	}
@@ -195,6 +201,15 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 
 	}
 
+	private ChargePoint chargePoint(String identifier, String authId) {
+		ChargePoint cp = chargePointDao.getForIdentifier(identifier);
+		if ( cp == null ) {
+			throw new AuthorizationException(String.format("ChargePoint %s not available.", identifier),
+					new AuthorizationInfo(authId, AuthorizationStatus.Invalid));
+		}
+		return cp;
+	}
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public ChargeSession startChargingSession(ChargeSessionStartInfo info)
@@ -206,9 +221,11 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 			throw new AuthorizationException(authInfo);
 		}
 
+		ChargePoint cp = chargePoint(info.getChargePointId(), info.getAuthorizationId());
+
 		// check for existing session, e.g. ConcurrentTx
-		ChargeSession sess = chargeSessionDao
-				.getIncompleteChargeSessionForConnector(info.getChargePointId(), info.getConnectorId());
+		ChargeSession sess = chargeSessionDao.getIncompleteChargeSessionForConnector(cp.getId(),
+				info.getConnectorId());
 		if ( sess != null ) {
 			throw new AuthorizationException(
 					String.format("ChargeSession %s already active for Charge Point %s connector %d",
@@ -219,7 +236,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 		// persist a new session and then re-load to get the generated transaction ID
 		try {
 			sess = new ChargeSession(UUID.randomUUID(), info.getTimestampStart(),
-					info.getAuthorizationId(), info.getChargePointId(), info.getConnectorId(), 0);
+					info.getAuthorizationId(), cp.getId(), info.getConnectorId(), 0);
 			sess = chargeSessionDao.get(chargeSessionDao.save(sess));
 		} catch ( DataIntegrityViolationException e ) {
 			// assume this is from no matching Charge Point for the given chargePointId value
@@ -243,7 +260,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 		chargeSessionDao.addReadings(singleton(reading));
 		DatumDao<GeneralNodeDatum> dao = datumDao.service();
 		if ( dao != null ) {
-			GeneralNodeDatum d = datum(sess, reading);
+			GeneralNodeDatum d = datum(cp, sess, reading);
 			if ( d != null ) {
 				dao.storeDatum(d);
 			}
@@ -254,16 +271,18 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 
 	@Transactional(readOnly = true, propagation = Propagation.SUPPORTS)
 	@Override
-	public ChargeSession getActiveChargingSession(String chargePointId, int transactionId)
+	public ChargeSession getActiveChargingSession(String identifier, int transactionId)
 			throws AuthorizationException {
-		return chargeSessionDao.getIncompleteChargeSessionForTransaction(chargePointId, transactionId);
+		ChargePoint cp = chargePoint(identifier, null);
+		return chargeSessionDao.getIncompleteChargeSessionForTransaction(cp.getId(), transactionId);
 	}
 
 	@Transactional(readOnly = true, propagation = Propagation.SUPPORTS)
 	@Override
-	public Collection<ChargeSession> getActiveChargingSessions(String chargePointId) {
-		if ( chargePointId != null && !chargePointId.isEmpty() ) {
-			return chargeSessionDao.getIncompleteChargeSessionForChargePoint(chargePointId);
+	public Collection<ChargeSession> getActiveChargingSessions(String identifier) {
+		if ( identifier != null && !identifier.isEmpty() ) {
+			ChargePoint cp = chargePoint(identifier, null);
+			return chargeSessionDao.getIncompleteChargeSessionForChargePoint(cp.getId());
 		}
 		return chargeSessionDao.getIncompleteChargeSessions();
 	}
@@ -271,8 +290,9 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public AuthorizationInfo endChargingSession(ChargeSessionEndInfo info) {
-		ChargeSession sess = chargeSessionDao.getIncompleteChargeSessionForTransaction(
-				info.getChargePointId(), info.getTransactionId());
+		ChargePoint cp = chargePoint(info.getChargePointId(), info.getAuthorizationId());
+		ChargeSession sess = chargeSessionDao.getIncompleteChargeSessionForTransaction(cp.getId(),
+				info.getTransactionId());
 		if ( sess == null ) {
 			throw new AuthorizationException("No active charging session found.", new AuthorizationInfo(
 					info.getAuthorizationId(), AuthorizationStatus.Invalid, null, null));
@@ -308,19 +328,21 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 		readings.add(reading);
 		Map<UUID, ChargeSession> sessions = new HashMap<>(2);
 		sessions.put(sess.getId(), sess);
-		addReadings(readings, sessions);
+		Map<Long, ChargePoint> chargePoints = new HashMap<>(2);
+		chargePoints.put(cp.getId(), cp);
+		addReadings(readings, sessions, chargePoints);
 
 		return new AuthorizationInfo(info.getAuthorizationId(), AuthorizationStatus.Accepted, null,
 				null);
 	}
 
-	private GeneralNodeDatum datum(ChargeSession sess, SampledValue reading) {
+	private GeneralNodeDatum datum(ChargePoint chargePoint, ChargeSession sess, SampledValue reading) {
 		GeneralNodeDatum d = new GeneralNodeDatum();
 		populateProperty(d, reading.getMeasurand(), reading.getUnit(), reading.getValue());
 		if ( d.getSamples() != null && !d.getSamples().isEmpty() ) {
 			d.setCreated(new Date(reading.getTimestamp().toEpochMilli()));
-			d.setSourceId(sourceId(sess.getChargePointId(), sess.getConnectorId(), reading.getLocation(),
-					reading.getPhase()));
+			d.setSourceId(sourceId(chargePoint.getInfo().getId(), sess.getConnectorId(),
+					reading.getLocation(), reading.getPhase()));
 			d.putStatusSampleValue(SESSION_ID_PROPERTY, sess.getId().toString());
 			return d;
 		}
@@ -336,10 +358,11 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void addChargingSessionReadings(Iterable<SampledValue> readings) {
-		addReadings(readings, new HashMap<>(2));
+		addReadings(readings, new HashMap<>(2), new HashMap<>(2));
 	}
 
-	private void addReadings(Iterable<SampledValue> readings, Map<UUID, ChargeSession> sessions) {
+	private void addReadings(Iterable<SampledValue> readings, Map<UUID, ChargeSession> sessions,
+			Map<Long, ChargePoint> chargePoints) {
 		if ( readings == null ) {
 			return;
 		}
@@ -379,7 +402,21 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 							dao.storeDatum(d);
 							d = null;
 						}
-						d = datum(sessions.get(reading.getSessionId()), reading);
+
+						ChargeSession s = sessions.get(reading.getSessionId());
+						ChargePoint cp = chargePoints.get(s.getChargePointId());
+						if ( cp == null ) {
+							cp = chargePointDao.get(s.getChargePointId());
+							if ( cp == null ) {
+								throw new AuthorizationException(
+										String.format("ChargePoint %d not available.",
+												s.getChargePointId()),
+										new AuthorizationInfo(s.getAuthId(),
+												AuthorizationStatus.Invalid));
+							}
+							chargePoints.put(cp.getId(), cp);
+						}
+						d = datum(cp, sessions.get(reading.getSessionId()), reading);
 					} else {
 						populateProperty(d, reading.getMeasurand(), reading.getUnit(),
 								reading.getValue());

@@ -1,5 +1,5 @@
 CREATE TABLE solarnode.ocpp_charge_point_conn (
-	cp_id				VARCHAR(255) NOT NULL,
+	cp_id				BIGINT NOT NULL,
 	conn_id				INTEGER NOT NULL,
 	created				TIMESTAMP NOT NULL WITH DEFAULT CURRENT_TIMESTAMP,
 	status				SMALLINT NOT NULL WITH DEFAULT 0,

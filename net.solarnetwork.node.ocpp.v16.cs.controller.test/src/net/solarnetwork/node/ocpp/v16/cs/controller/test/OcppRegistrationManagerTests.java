@@ -94,8 +94,8 @@ public class OcppRegistrationManagerTests {
 		// given
 		OcppRegistrationManager mgr = new OcppRegistrationManager(chargePointDao);
 
-		ChargePoint cp = new ChargePoint(UUID.randomUUID().toString(), Instant.now());
-		cp.setInfo(new ChargePointInfo(cp.getId()));
+		ChargePoint cp = new ChargePoint(UUID.randomUUID().getMostSignificantBits(), Instant.now(),
+				new ChargePointInfo(UUID.randomUUID().toString()));
 		cp.getInfo().setChargePointVendor("Vendor");
 		cp.getInfo().setChargePointModel("Model");
 		cp.getInfo().setChargePointSerialNumber("ABC123");
@@ -116,8 +116,8 @@ public class OcppRegistrationManagerTests {
 		// given
 		OcppRegistrationManager mgr = new OcppRegistrationManager(chargePointDao);
 
-		ChargePoint cp = new ChargePoint(UUID.randomUUID().toString(), Instant.now());
-		cp.setInfo(new ChargePointInfo(cp.getId()));
+		ChargePoint cp = new ChargePoint(UUID.randomUUID().getMostSignificantBits(), Instant.now(),
+				new ChargePointInfo(UUID.randomUUID().toString()));
 		cp.getInfo().setChargePointVendor("Vendor");
 		cp.getInfo().setChargePointModel("Model");
 		cp.getInfo().setChargePointSerialNumber("ABC123");

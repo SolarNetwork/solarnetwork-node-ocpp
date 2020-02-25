@@ -37,7 +37,7 @@ import net.solarnetwork.ocpp.domain.ChargePoint;
  * @version 1.0
  */
 public class OcppRegistrationManager
-		extends BaseEntityManager<ChargePointDao, ChargePoint, String, ChargePointConfig> {
+		extends BaseEntityManager<ChargePointDao, ChargePoint, Long, ChargePointConfig> {
 
 	/**
 	 * Constructor.

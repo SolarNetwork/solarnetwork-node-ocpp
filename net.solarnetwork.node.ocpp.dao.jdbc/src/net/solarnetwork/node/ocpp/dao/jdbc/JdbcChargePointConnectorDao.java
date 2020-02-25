@@ -79,13 +79,13 @@ public class JdbcChargePointConnectorDao
 	}
 
 	@Override
-	public Collection<ChargePointConnector> findByIdChargePointId(String chargePointId) {
+	public Collection<ChargePointConnector> findByChargePointId(long chargePointId) {
 		return getJdbcTemplate().query(getSqlResource(SQL_FIND_BY_CHARGE_POINT), getRowMapper(),
 				chargePointId);
 	}
 
 	@Override
-	public ChargePointConnectorKey saveStatusInfo(String chargePointId, StatusNotification info) {
+	public ChargePointConnectorKey saveStatusInfo(long chargePointId, StatusNotification info) {
 		ChargePointConnectorKey pk = new ChargePointConnectorKey(chargePointId, info.getConnectorId());
 		ChargePointConnector entity = get(pk);
 		if ( entity == null ) {
@@ -98,7 +98,7 @@ public class JdbcChargePointConnectorDao
 	}
 
 	@Override
-	public int updateChargePointStatus(String chargePointId, int connectorId, ChargePointStatus status) {
+	public int updateChargePointStatus(long chargePointId, int connectorId, ChargePointStatus status) {
 		if ( connectorId < 1 ) {
 			return getJdbcTemplate().update(getSqlResource(SQL_UPDATE_STATUS_FOR_CHARGE_POINT),
 					status.codeValue(), chargePointId);
@@ -115,7 +115,7 @@ public class JdbcChargePointConnectorDao
 	@Override
 	protected void setStoreStatementValues(ChargePointConnector obj, PreparedStatement ps)
 			throws SQLException {
-		ps.setString(1, obj.getId().getChargePointId());
+		ps.setLong(1, obj.getId().getChargePointId());
 		ps.setInt(2, obj.getId().getConnectorId());
 		setInstantParameter(ps, 3, obj.getCreated() != null ? obj.getCreated() : Instant.now());
 		setUpdateStatementValues(obj, ps, 3);
@@ -125,7 +125,7 @@ public class JdbcChargePointConnectorDao
 	protected void setUpdateStatementValues(ChargePointConnector obj, PreparedStatement ps)
 			throws SQLException {
 		setUpdateStatementValues(obj, ps, 0);
-		ps.setString(7, obj.getId().getChargePointId());
+		ps.setLong(7, obj.getId().getChargePointId());
 		ps.setInt(8, obj.getId().getConnectorId());
 	}
 
@@ -150,7 +150,7 @@ public class JdbcChargePointConnectorDao
 
 		@Override
 		public ChargePointConnector mapRow(ResultSet rs, int rowNum) throws SQLException {
-			ChargePointConnectorKey id = new ChargePointConnectorKey(rs.getString(1), rs.getInt(2));
+			ChargePointConnectorKey id = new ChargePointConnectorKey(rs.getLong(1), rs.getInt(2));
 			Instant created = getInstantColumn(rs, 3);
 
 			ChargePointConnector obj = new ChargePointConnector(id, created);

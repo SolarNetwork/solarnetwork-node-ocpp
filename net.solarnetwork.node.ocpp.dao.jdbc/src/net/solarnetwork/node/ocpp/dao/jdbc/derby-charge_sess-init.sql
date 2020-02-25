@@ -6,7 +6,7 @@ CREATE TABLE solarnode.ocpp_charge_sess (
 	id_lo				BIGINT NOT NULL,
 	created				TIMESTAMP NOT NULL WITH DEFAULT CURRENT_TIMESTAMP,
 	auth_id				VARCHAR(20) NOT NULL,
-	cp_id				VARCHAR(255) NOT NULL,
+	cp_id				BIGINT NOT NULL,
 	conn_id				INTEGER NOT NULL,
 	tx_id				INTEGER NOT NULL,
 	ended				TIMESTAMP,

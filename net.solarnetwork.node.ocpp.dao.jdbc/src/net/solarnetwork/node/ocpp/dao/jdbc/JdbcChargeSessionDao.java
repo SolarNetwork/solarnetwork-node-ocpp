@@ -125,26 +125,26 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 		setUuidParameters(ps, 1, obj.getId());
 		setInstantParameter(ps, 3, obj.getCreated() != null ? obj.getCreated() : Instant.now());
 		ps.setString(4, obj.getAuthId());
-		ps.setString(5, obj.getChargePointId());
+		ps.setLong(5, obj.getChargePointId());
 		ps.setInt(6, obj.getConnectorId());
 		setUpdateStatementValues(obj, ps, 6);
 	}
 
 	@Override
-	public ChargeSession getIncompleteChargeSessionForTransaction(String chargePointId,
+	public ChargeSession getIncompleteChargeSessionForTransaction(long chargePointId,
 			int transactionId) {
 		return findFirst(getSqlResource(SqlResource.FindByIncompleteTransaction.getResource()),
 				chargePointId, transactionId);
 	}
 
 	@Override
-	public ChargeSession getIncompleteChargeSessionForConnector(String chargePointId, int connectorId) {
+	public ChargeSession getIncompleteChargeSessionForConnector(long chargePointId, int connectorId) {
 		return findFirst(getSqlResource(SqlResource.FindByIncompleteConnector.getResource()),
 				chargePointId, connectorId);
 	}
 
 	@Override
-	public Collection<ChargeSession> getIncompleteChargeSessionForChargePoint(String chargePointId) {
+	public Collection<ChargeSession> getIncompleteChargeSessionForChargePoint(long chargePointId) {
 		return getJdbcTemplate().query(
 				getSqlResource(SqlResource.FindByIncompleteChargePoint.getResource()), getRowMapper(),
 				chargePointId);
@@ -260,7 +260,7 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 			UUID id = getUuidColumns(rs, 1);
 			Instant created = getInstantColumn(rs, 3);
 
-			ChargeSession obj = new ChargeSession(id, created, rs.getString(4), rs.getString(5),
+			ChargeSession obj = new ChargeSession(id, created, rs.getString(4), rs.getLong(5),
 					rs.getInt(6), rs.getInt(7));
 			obj.setEnded(getInstantColumn(rs, 8));
 			obj.setEndReason(ChargeSessionEndReason.forCode(rs.getInt(9)));

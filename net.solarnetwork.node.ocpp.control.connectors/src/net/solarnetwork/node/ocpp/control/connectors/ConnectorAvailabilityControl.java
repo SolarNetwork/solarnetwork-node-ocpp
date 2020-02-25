@@ -49,6 +49,8 @@ import net.solarnetwork.node.settings.SettingSpecifierProvider;
 import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
 import net.solarnetwork.node.support.BaseIdentifiable;
 import net.solarnetwork.ocpp.dao.ChargePointConnectorDao;
+import net.solarnetwork.ocpp.dao.ChargePointDao;
+import net.solarnetwork.ocpp.domain.ChargePoint;
 import net.solarnetwork.ocpp.domain.ChargePointConnector;
 import net.solarnetwork.ocpp.domain.ChargePointConnectorKey;
 import net.solarnetwork.ocpp.domain.ChargePointStatus;
@@ -88,6 +90,7 @@ public class ConnectorAvailabilityControl extends BaseIdentifiable
 	public static final long DEFAULT_MESSAGE_TIMEOUT = TimeUnit.SECONDS.toMillis(60);
 
 	private final OptionalServiceCollection<ChargePointManager> chargePointManagers;
+	private final ChargePointDao chargePointDao;
 	private final ChargePointConnectorDao chargePointConnectorDao;
 	private String controlIdTemplate;
 	private Pattern controlIdRegex;
@@ -101,6 +104,8 @@ public class ConnectorAvailabilityControl extends BaseIdentifiable
 	 * 
 	 * @param chargePointManagers
 	 *        the managers to use
+	 * @param chargePointDao
+	 *        the charge point DAO
 	 * @param chargePointConnectorDao
 	 *        the Charge Point connector DAO to use
 	 * @throws IllegalArgumentException
@@ -108,12 +113,16 @@ public class ConnectorAvailabilityControl extends BaseIdentifiable
 	 */
 	public ConnectorAvailabilityControl(
 			OptionalServiceCollection<ChargePointManager> chargePointManagers,
-			ChargePointConnectorDao chargePointConnectorDao) {
+			ChargePointDao chargePointDao, ChargePointConnectorDao chargePointConnectorDao) {
 		super();
 		if ( chargePointManagers == null ) {
 			throw new IllegalArgumentException("The chargePointBroker parameter must not be null.");
 		}
 		this.chargePointManagers = chargePointManagers;
+		if ( chargePointDao == null ) {
+			throw new IllegalArgumentException("The chargePointDao parameter must not be null.");
+		}
+		this.chargePointDao = chargePointDao;
 		if ( chargePointConnectorDao == null ) {
 			throw new IllegalArgumentException(
 					"The chargePointConnectorDao parameter must not be null.");
@@ -145,12 +154,17 @@ public class ConnectorAvailabilityControl extends BaseIdentifiable
 		if ( !m.matches() ) {
 			return null;
 		}
-		final String chargePointId = m.group(1);
+		final String identifier = m.group(1);
 		final int connectorId = Integer.parseInt(m.group(2));
 
+		ChargePoint cp = chargePointDao.getForIdentifier(identifier);
+		if ( cp == null ) {
+			return null;
+		}
+
 		ChargePointConnector cpc = chargePointConnectorDao
-				.get(new ChargePointConnectorKey(chargePointId, connectorId));
-		return newNodeControlInfoDatum(controlId, chargePointId, connectorId,
+				.get(new ChargePointConnectorKey(cp.getId(), connectorId));
+		return newNodeControlInfoDatum(controlId, identifier, connectorId,
 				cpc.getInfo() != null ? cpc.getInfo().getStatus() != ChargePointStatus.Unavailable
 						: false);
 	}
@@ -174,30 +188,34 @@ public class ConnectorAvailabilityControl extends BaseIdentifiable
 				continue;
 			}
 
-			final String chargePointId = m.group(1);
+			final String identifier = m.group(1);
 			final int connectorId = Integer.parseInt(m.group(2));
 			final boolean enabled = StringUtils.parseBoolean(instruction.getParameterValue(paramName));
 
-			for ( ChargePointManager mgr : chargePointManagers.services() ) {
-				if ( mgr.isChargePointAvailable(chargePointId) ) {
-					handled = true;
+			ChargePoint cp = chargePointDao.getForIdentifier(identifier);
+			if ( cp != null ) {
+				for ( ChargePointManager mgr : chargePointManagers.services() ) {
+					if ( mgr.isChargePointAvailable(identifier) ) {
+						handled = true;
 
-					CompletableFuture<Boolean> f = mgr.adjustConnectorEnabledState(chargePointId,
-							connectorId, enabled);
-					try {
-						boolean result = f.get(messageTimeout, TimeUnit.MILLISECONDS).booleanValue();
-						allComplete &= result;
-						if ( result ) {
-							postControlEvent(
-									newNodeControlInfoDatum(paramName, chargePointId, connectorId,
-											enabled),
-									NodeControlProvider.EVENT_TOPIC_CONTROL_INFO_CHANGED);
+						CompletableFuture<Boolean> f = mgr.adjustConnectorEnabledState(cp.getId(),
+								connectorId, enabled);
+						try {
+							boolean result = f.get(messageTimeout, TimeUnit.MILLISECONDS).booleanValue();
+							allComplete &= result;
+							if ( result ) {
+								postControlEvent(
+										newNodeControlInfoDatum(paramName, identifier, connectorId,
+												enabled),
+										NodeControlProvider.EVENT_TOPIC_CONTROL_INFO_CHANGED);
+							}
+						} catch ( Exception e ) {
+							log.warn(
+									"Unable to adjust Charge Point {} connector {} enabled state to {}: {}",
+									identifier, connectorId, enabled, e.toString());
 						}
-					} catch ( Exception e ) {
-						log.warn("Unable to adjust Charge Point {} connector {} enabled state to {}: {}",
-								chargePointId, connectorId, enabled, e.toString());
+						break;
 					}
-					break;
 				}
 			}
 		}

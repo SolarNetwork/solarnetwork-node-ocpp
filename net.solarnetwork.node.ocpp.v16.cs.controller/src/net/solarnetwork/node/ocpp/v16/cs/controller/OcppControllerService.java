@@ -167,27 +167,25 @@ public class OcppControllerService extends BaseIdentifiable
 			throw new IllegalArgumentException("The ChargePoint ID must be provided.");
 		}
 
-		ChargePoint cp = chargePointDao.get(info.getId());
+		ChargePoint cp = chargePointDao.getForIdentifier(info.getId());
 		if ( cp == null ) {
 			cp = registerNewChargePoint(info);
 		} else if ( cp.isEnabled() ) {
 			cp = updateChargePointInfo(cp, info);
 		}
 
-		sendToChargePoint(info.getId(), ChargePointAction.GetConfiguration,
-				new GetConfigurationRequest(), processConfiguration(info.getId()));
+		sendToChargePoint(cp.getId(), ChargePointAction.GetConfiguration, new GetConfigurationRequest(),
+				processConfiguration(cp));
 
 		return cp;
 	}
 
 	private ChargePoint registerNewChargePoint(ChargePointInfo info) {
 		log.info("Registering new ChargePoint {}", info);
-		ChargePoint cp = new ChargePoint(info.getId(), Instant.now());
+		ChargePoint cp = new ChargePoint(null, Instant.now(), info);
 		cp.setEnabled(true);
 		cp.setRegistrationStatus(getInitialRegistrationStatus());
-		cp.setInfo(info);
-		chargePointDao.save(cp);
-		return cp;
+		return chargePointDao.get(chargePointDao.save(cp));
 	}
 
 	private ChargePoint updateChargePointInfo(ChargePoint cp, ChargePointInfo info) {
@@ -196,7 +194,7 @@ public class OcppControllerService extends BaseIdentifiable
 			log.info("ChargePoint registration info is unchanged: {}", info);
 		} else {
 			log.info("Updating ChargePoint registration info {} -> {}", cp.getInfo(), info);
-			cp.setInfo(info);
+			cp.copyInfoFrom(info);
 			chargePointDao.save(cp);
 		}
 		return cp;
@@ -204,13 +202,13 @@ public class OcppControllerService extends BaseIdentifiable
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public boolean isChargePointRegistrationAccepted(String chargePointId) {
+	public boolean isChargePointRegistrationAccepted(long chargePointId) {
 		ChargePoint cp = chargePointDao.get(chargePointId);
 		return cp != null && cp.isEnabled() && cp.getRegistrationStatus() == RegistrationStatus.Accepted;
 	}
 
 	private ActionMessageResultHandler<GetConfigurationRequest, GetConfigurationResponse> processConfiguration(
-			String chargePointId) {
+			ChargePoint chargePoint) {
 		return (msg, confs, err) -> {
 			if ( confs != null && confs.getConfigurationKey() != null
 					&& !confs.getConfigurationKey().isEmpty() ) {
@@ -218,7 +216,7 @@ public class OcppControllerService extends BaseIdentifiable
 
 					@Override
 					protected void doInTransactionWithoutResult(TransactionStatus status) {
-						ChargePoint cp = chargePointDao.get(chargePointId);
+						ChargePoint cp = chargePointDao.get(chargePoint.getId());
 						ChargePoint orig = new ChargePoint(cp);
 						KeyValue numConnsKey = confs.getConfigurationKey().stream()
 								.filter(k -> ConfigurationKey.NumberOfConnectors.getName()
@@ -239,7 +237,7 @@ public class OcppControllerService extends BaseIdentifiable
 
 						// add missing ChargePointConnector entities; remove excess
 						Collection<ChargePointConnector> connectors = chargePointConnectorDao
-								.findByIdChargePointId(cp.getId());
+								.findByChargePointId(cp.getId());
 						Map<Integer, ChargePointConnector> existing = connectors.stream().collect(
 								Collectors.toMap(cpc -> cpc.getId().getConnectorId(), cpc -> cpc));
 						for ( int i = 1; i <= cp.getConnectorCount(); i++ ) {
@@ -267,15 +265,15 @@ public class OcppControllerService extends BaseIdentifiable
 					}
 				});
 			} else if ( err != null ) {
-				log.warn("Error requesting configuration from charge point {}: {}", chargePointId,
-						err.getMessage());
+				log.warn("Error requesting configuration from charge point {}: {}",
+						chargePoint.getInfo().getId(), err.getMessage());
 			}
 			return true;
 		};
 	}
 
 	@Override
-	public CompletableFuture<Boolean> adjustConnectorEnabledState(String chargePointId, int connectorId,
+	public CompletableFuture<Boolean> adjustConnectorEnabledState(long chargePointId, int connectorId,
 			boolean enabled) {
 		ChangeAvailabilityRequest req = new ChangeAvailabilityRequest();
 		req.setConnectorId(connectorId);
@@ -287,7 +285,7 @@ public class OcppControllerService extends BaseIdentifiable
 	}
 
 	private ActionMessageResultHandler<ChangeAvailabilityRequest, ChangeAvailabilityResponse> changeAvailability(
-			String chargePointId, ChangeAvailabilityRequest req, CompletableFuture<Boolean> future) {
+			long chargePointId, ChangeAvailabilityRequest req, CompletableFuture<Boolean> future) {
 		return (msg, res, err) -> {
 			if ( res != null ) {
 				AvailabilityStatus status = res.getStatus();
@@ -347,18 +345,24 @@ public class OcppControllerService extends BaseIdentifiable
 		}
 	}
 
-	private <T, R> void sendToChargePoint(String chargePointId, Action action, T payload,
+	private <T, R> void sendToChargePoint(Long chargePointId, Action action, T payload,
 			ActionMessageResultHandler<T, R> handler) {
 		executor.execute(() -> {
-			ActionMessage<T> msg = new BasicActionMessage<T>(chargePointId, UUID.randomUUID().toString(),
-					action, payload);
-			ChargePointBroker broker = chargePointRouter.brokerForChargePoint(chargePointId);
+			ChargePoint cp = chargePointDao.get(chargePointId);
+			ActionMessage<T> msg = null;
+			ChargePointBroker broker = null;
+			if ( cp != null ) {
+				msg = new BasicActionMessage<T>(cp.getInfo().getId(), UUID.randomUUID().toString(),
+						action, payload);
+				broker = chargePointRouter.brokerForChargePoint(cp.getInfo().getId());
+			}
 			if ( broker != null ) {
 				if ( broker.sendMessageToChargePoint(msg, handler) ) {
 					return;
 				}
 			} else {
-				log.warn("No ChargePointBroker available for client {}", chargePointId);
+				log.warn("No ChargePointBroker available for {}",
+						(cp != null ? cp.getInfo().getId() : chargePointId));
 			}
 			handler.handleActionMessageResult(msg, null,
 					new ErrorCodeException(ActionErrorCode.GenericError, "Client not available."));
@@ -390,7 +394,7 @@ public class OcppControllerService extends BaseIdentifiable
 
 		List<SettingSpecifier> cpSettings = new ArrayList<>(chargePoints.size());
 		for ( ChargePoint cp : chargePoints ) {
-			cpSettings.add(new BasicTitleSettingSpecifier(cp.getId(),
+			cpSettings.add(new BasicTitleSettingSpecifier(cp.getInfo().getId(),
 					chargePointStatus(cp, availableChargePointIds), true));
 		}
 		results.add(new BasicGroupSettingSpecifier("chargePoints", cpSettings));
@@ -400,7 +404,7 @@ public class OcppControllerService extends BaseIdentifiable
 
 	private String chargePointStatus(ChargePoint cp, Set<String> availableChargePointIds) {
 		StringBuilder buf = new StringBuilder();
-		buf.append(availableChargePointIds.contains(cp.getId())
+		buf.append(availableChargePointIds.contains(cp.getInfo().getId())
 				? getMessageSource().getMessage("connected.label", null, "Connected",
 						Locale.getDefault())
 				: getMessageSource().getMessage("disconnected.label", null, "Not connected",

@@ -89,15 +89,12 @@ public class JdbcChargePointConnectorDaoTests extends AbstractNodeTransactionalT
 	}
 
 	private ChargePoint createTestChargePoint(String vendor, String model) {
-		ChargePoint cp = new ChargePoint(UUID.randomUUID().toString(),
-				Instant.ofEpochMilli(System.currentTimeMillis()));
-		cp.setEnabled(true);
-		cp.setRegistrationStatus(RegistrationStatus.Accepted);
-
-		ChargePointInfo info = new ChargePointInfo();
+		ChargePointInfo info = new ChargePointInfo(UUID.randomUUID().toString());
 		info.setChargePointVendor(vendor);
 		info.setChargePointModel(model);
-		cp.setInfo(info);
+		ChargePoint cp = new ChargePoint(null, Instant.ofEpochMilli(System.currentTimeMillis()), info);
+		cp.setEnabled(true);
+		cp.setRegistrationStatus(RegistrationStatus.Accepted);
 		cp.setConnectorCount(2);
 		return cp;
 	}
@@ -105,7 +102,7 @@ public class JdbcChargePointConnectorDaoTests extends AbstractNodeTransactionalT
 	@Test
 	public void insert() {
 		ChargePoint cp = createTestChargePoint("foo", "bar");
-		chargePointDao.save(cp);
+		cp = chargePointDao.get(chargePointDao.save(cp));
 
 		ChargePointConnector cpc = new ChargePointConnector(new ChargePointConnectorKey(cp.getId(), 1),
 				Instant.ofEpochMilli(System.currentTimeMillis()));
@@ -205,7 +202,7 @@ public class JdbcChargePointConnectorDaoTests extends AbstractNodeTransactionalT
 		expectedKeys.sort(null);
 
 		Collection<ChargePointConnector> results = dao
-				.findByIdChargePointId(expectedKeys.get(0).getChargePointId());
+				.findByChargePointId(expectedKeys.get(0).getChargePointId());
 		assertThat("Result keys",
 				results.stream().map(ChargePointConnector::getId).collect(Collectors.toList()),
 				equalTo(expectedKeys));
@@ -312,7 +309,7 @@ public class JdbcChargePointConnectorDaoTests extends AbstractNodeTransactionalT
 		// then
 		assertThat("Two row updated", result, equalTo(2));
 		assertThat("Status updated for charge point",
-				dao.findByIdChargePointId(cpc.getId().getChargePointId()).stream()
+				dao.findByChargePointId(cpc.getId().getChargePointId()).stream()
 						.map(c -> c.getInfo().getStatus()).collect(Collectors.toList()),
 				contains(ChargePointStatus.Charging, ChargePointStatus.Charging));
 		assertThat("Other charge point status unchanged", dao.get(last.getId()).getInfo().getStatus(),

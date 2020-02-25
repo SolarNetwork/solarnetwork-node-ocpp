@@ -202,17 +202,18 @@ public class OcppControllerServiceTests {
 	@Test
 	public void register_new() {
 		// given
-		String chargePointId = UUID.randomUUID().toString();
+		String identifier = UUID.randomUUID().toString();
 
 		// look for existing charge point: not found
-		expect(chargePointDao.get(chargePointId)).andReturn(null);
+		expect(chargePointDao.getForIdentifier(identifier)).andReturn(null);
 
 		// save new charge point
 		Capture<ChargePoint> chargePointCaptor = new Capture<>(CaptureType.ALL);
+		long chargePointId = UUID.randomUUID().getMostSignificantBits();
 		expect(chargePointDao.save(capture(chargePointCaptor))).andReturn(chargePointId).times(2);
 
 		// find broker for charge point, to send GetConfiguration message to
-		expect(chargePointRouter.brokerForChargePoint(chargePointId)).andReturn(chargePointBroker);
+		expect(chargePointRouter.brokerForChargePoint(identifier)).andReturn(chargePointBroker);
 
 		// send GetConfiguration message to broker
 		Capture<ActionMessage<Object>> actionCaptor = new Capture<>();
@@ -226,12 +227,16 @@ public class OcppControllerServiceTests {
 			@Override
 			public ChargePoint answer() throws Throwable {
 				ChargePoint cp = chargePointCaptor.getValues().get(0);
-				return new ChargePoint(cp);
+				ChargePoint copy = new ChargePoint(chargePointId, cp.getCreated(), cp.getInfo());
+				copy.setEnabled(cp.isEnabled());
+				copy.setRegistrationStatus(cp.getRegistrationStatus());
+				copy.setConnectorCount(cp.getConnectorCount());
+				return copy;
 			}
-		});
+		}).times(3);
 
 		// look for existing charge point connectors
-		expect(chargePointConnectorDao.findByIdChargePointId(chargePointId))
+		expect(chargePointConnectorDao.findByChargePointId(chargePointId))
 				.andReturn(Collections.emptyList());
 
 		// insert new connector
@@ -245,7 +250,7 @@ public class OcppControllerServiceTests {
 		// when
 		replayAll();
 		ChargePointInfo info = new ChargePointInfo();
-		info.setId(chargePointId);
+		info.setId(identifier);
 		info.setChargePointVendor("ACME");
 		info.setChargePointModel("One");
 		ChargePoint result = service.registerChargePoint(info);
@@ -265,12 +270,15 @@ public class OcppControllerServiceTests {
 		assertThat("Result returned", result, notNullValue());
 
 		ChargePoint inserted = chargePointCaptor.getValues().get(0);
-		assertThat("Inserted charge point ID preserved", inserted.getId(), equalTo(chargePointId));
+		assertThat("Inserted charge point identifier preserved", inserted.getInfo().getId(),
+				equalTo(identifier));
 		assertThat("Inserted charge point connectors start at 0", inserted.getConnectorCount(),
 				equalTo(0));
 
 		ChargePoint updated = chargePointCaptor.getValues().get(1);
 		assertThat("Updated charge point ID preserved", updated.getId(), equalTo(chargePointId));
+		assertThat("Updated charge point identifier preserved", updated.getInfo().getId(),
+				equalTo(identifier));
 		assertThat("Updated charge point connectors updated based on GetConfiguration response",
 				updated.getConnectorCount(), equalTo(connectorCount));
 
@@ -289,19 +297,19 @@ public class OcppControllerServiceTests {
 	@Test
 	public void register_decreaseConnectors() {
 		// given
-		String chargePointId = UUID.randomUUID().toString();
+		String identifier = UUID.randomUUID().toString();
 
 		// look for existing charge point: not found
-		ChargePoint cp = new ChargePoint(chargePointId, Instant.now());
-		ChargePointInfo cpInfo = new ChargePointInfo(chargePointId);
+		ChargePointInfo cpInfo = new ChargePointInfo(identifier);
 		cpInfo.setChargePointVendor("ACME");
 		cpInfo.setChargePointModel("One");
-		cp.setInfo(cpInfo);
+		ChargePoint cp = new ChargePoint(UUID.randomUUID().getMostSignificantBits(), Instant.now(),
+				cpInfo);
 		cp.setConnectorCount(2);
-		expect(chargePointDao.get(chargePointId)).andReturn(cp);
+		expect(chargePointDao.getForIdentifier(identifier)).andReturn(cp);
 
 		// find broker for charge point, to send GetConfiguration message to
-		expect(chargePointRouter.brokerForChargePoint(chargePointId)).andReturn(chargePointBroker);
+		expect(chargePointRouter.brokerForChargePoint(identifier)).andReturn(chargePointBroker);
 
 		// send GetConfiguration message to broker
 		Capture<ActionMessage<Object>> actionCaptor = new Capture<>();
@@ -310,23 +318,23 @@ public class OcppControllerServiceTests {
 				capture(resultHandlerCaptor))).andReturn(true);
 
 		// after response to get configuration, get ChargePoint again
-		expect(chargePointDao.get(chargePointId)).andAnswer(new IAnswer<ChargePoint>() {
+		expect(chargePointDao.get(cp.getId())).andAnswer(new IAnswer<ChargePoint>() {
 
 			@Override
 			public ChargePoint answer() throws Throwable {
 				return new ChargePoint(cp);
 			}
-		});
+		}).times(2);
 
-		// udpate connector count to 1
+		// update connector count to 1
 		Capture<ChargePoint> chargePointCaptor = new Capture<>();
-		expect(chargePointDao.save(capture(chargePointCaptor))).andReturn(chargePointId);
+		expect(chargePointDao.save(capture(chargePointCaptor))).andReturn(cp.getId());
 
 		// look for existing charge point connectors
 		List<ChargePointConnector> connectors = Arrays.asList(
-				new ChargePointConnector(new ChargePointConnectorKey(chargePointId, 1), Instant.now()),
-				new ChargePointConnector(new ChargePointConnectorKey(chargePointId, 2), Instant.now()));
-		expect(chargePointConnectorDao.findByIdChargePointId(chargePointId)).andReturn(connectors);
+				new ChargePointConnector(new ChargePointConnectorKey(cp.getId(), 1), Instant.now()),
+				new ChargePointConnector(new ChargePointConnectorKey(cp.getId(), 2), Instant.now()));
+		expect(chargePointConnectorDao.findByChargePointId(cp.getId())).andReturn(connectors);
 
 		// remove extra connector
 		int connectorCount = 1;
@@ -336,7 +344,7 @@ public class OcppControllerServiceTests {
 		// when
 		replayAll();
 		ChargePointInfo info = new ChargePointInfo();
-		info.setId(chargePointId);
+		info.setId(identifier);
 		info.setChargePointVendor("ACME");
 		info.setChargePointModel("One");
 		ChargePoint result = service.registerChargePoint(info);
