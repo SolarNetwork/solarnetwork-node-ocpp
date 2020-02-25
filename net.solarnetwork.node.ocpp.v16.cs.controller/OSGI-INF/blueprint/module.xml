@@ -41,7 +41,7 @@
 	
 	<reference id="systemUserDao" interface="net.solarnetwork.ocpp.dao.SystemUserDao"/>
 	
-	<reference id="chargePointRouter" interface="net.solarnetwork.ocpp.service.ChargePointRouter"/>
+	<reference id="chargePointRouter" interface="net.solarnetwork.ocpp.service.ChargePointRouter" filter="(function=node)"/>
 
 	<reference id="chargeSessionManager" interface="net.solarnetwork.ocpp.service.cs.ChargeSessionManager" availability="optional" />
 	
