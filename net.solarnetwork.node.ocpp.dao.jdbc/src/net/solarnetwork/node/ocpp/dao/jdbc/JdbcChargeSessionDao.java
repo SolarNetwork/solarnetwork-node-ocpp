@@ -184,17 +184,17 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 						for ( SampledValue v : readings ) {
 							setUuidParameters(ps, 1, v.getSessionId());
 							setInstantParameter(ps, 3, v.getTimestamp());
-							ps.setInt(4, v.getLocation() != null ? v.getLocation().codeValue()
-									: Location.Outlet.codeValue());
-							ps.setInt(5, v.getUnit() != null ? v.getUnit().codeValue()
-									: UnitOfMeasure.Unknown.codeValue());
-							ps.setInt(6, v.getContext() != null ? v.getContext().codeValue()
-									: ReadingContext.Unknown.codeValue());
-							ps.setInt(7, v.getMeasurand() != null ? v.getMeasurand().codeValue()
-									: Measurand.Unknown.codeValue());
+							ps.setInt(4, v.getLocation() != null ? v.getLocation().getCode()
+									: Location.Outlet.getCode());
+							ps.setInt(5, v.getUnit() != null ? v.getUnit().getCode()
+									: UnitOfMeasure.Unknown.getCode());
+							ps.setInt(6, v.getContext() != null ? v.getContext().getCode()
+									: ReadingContext.Unknown.getCode());
+							ps.setInt(7, v.getMeasurand() != null ? v.getMeasurand().getCode()
+									: Measurand.Unknown.getCode());
 							ps.setObject(8,
 									v.getPhase() != null && v.getPhase() != Phase.Unknown
-											? v.getPhase().codeValue()
+											? v.getPhase().getCode()
 											: null);
 							ps.setString(9, v.getValue());
 							ps.executeUpdate();
@@ -244,8 +244,8 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 	protected void setUpdateStatementValues(ChargeSession obj, PreparedStatement ps, int offset)
 			throws SQLException {
 		setInstantParameter(ps, 1 + offset, obj.getEnded());
-		ps.setInt(2 + offset, obj.getEndReason() != null ? obj.getEndReason().codeValue()
-				: ChargeSessionEndReason.Unknown.codeValue());
+		ps.setInt(2 + offset, obj.getEndReason() != null ? obj.getEndReason().getCode()
+				: ChargeSessionEndReason.Unknown.getCode());
 		ps.setString(3 + offset, obj.getEndAuthId());
 		setInstantParameter(ps, 4 + offset, obj.getPosted());
 	}

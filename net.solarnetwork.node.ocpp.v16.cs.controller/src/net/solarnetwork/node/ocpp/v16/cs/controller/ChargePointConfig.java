@@ -122,7 +122,7 @@ public class ChargePointConfig implements Identity<Long> {
 				prefix + "registrationStatusCode", String.valueOf(getRegistrationStatusCode()));
 		Map<String, String> statusTitles = new LinkedHashMap<String, String>(4);
 		for ( RegistrationStatus e : RegistrationStatus.values() ) {
-			statusTitles.put(String.valueOf(e.codeValue()), e.toString());
+			statusTitles.put(String.valueOf(e.getCode()), e.toString());
 		}
 		statusSpec.setValueTitles(statusTitles);
 		results.add(statusSpec);
@@ -248,7 +248,7 @@ public class ChargePointConfig implements Identity<Long> {
 	 */
 	public int getRegistrationStatusCode() {
 		RegistrationStatus s = getRegistrationStatus();
-		return (s != null ? s.codeValue() : RegistrationStatus.Unknown.codeValue());
+		return (s != null ? s.getCode() : RegistrationStatus.Unknown.getCode());
 	}
 
 	/**

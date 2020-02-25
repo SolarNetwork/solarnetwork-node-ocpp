@@ -102,8 +102,8 @@ public class JdbcChargePointDao extends BaseJdbcGenericDao<ChargePoint, Long> im
 			throws SQLException {
 		ps.setBoolean(1 + offset, obj.isEnabled());
 		ps.setInt(2 + offset,
-				obj.getRegistrationStatus() != null ? obj.getRegistrationStatus().codeValue()
-						: RegistrationStatus.Unknown.codeValue());
+				obj.getRegistrationStatus() != null ? obj.getRegistrationStatus().getCode()
+						: RegistrationStatus.Unknown.getCode());
 
 		ChargePointInfo info = obj.getInfo() != null ? obj.getInfo() : new ChargePointInfo();
 		ps.setString(3 + offset, info.getId());

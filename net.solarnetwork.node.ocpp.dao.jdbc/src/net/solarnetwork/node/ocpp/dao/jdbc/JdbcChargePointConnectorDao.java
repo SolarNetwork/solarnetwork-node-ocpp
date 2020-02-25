@@ -101,9 +101,9 @@ public class JdbcChargePointConnectorDao
 	public int updateChargePointStatus(long chargePointId, int connectorId, ChargePointStatus status) {
 		if ( connectorId < 1 ) {
 			return getJdbcTemplate().update(getSqlResource(SQL_UPDATE_STATUS_FOR_CHARGE_POINT),
-					status.codeValue(), chargePointId);
+					status.getCode(), chargePointId);
 		}
-		return getJdbcTemplate().update(getSqlResource(SQL_UPDATE_STATUS), status.codeValue(),
+		return getJdbcTemplate().update(getSqlResource(SQL_UPDATE_STATUS), status.getCode(),
 				chargePointId, connectorId);
 	}
 
@@ -133,10 +133,10 @@ public class JdbcChargePointConnectorDao
 			throws SQLException {
 		StatusNotification info = obj.getInfo() != null ? obj.getInfo()
 				: StatusNotification.builder().build();
-		ps.setInt(1 + offset, info.getStatus() != null ? info.getStatus().codeValue()
-				: ChargePointStatus.Unknown.codeValue());
-		ps.setInt(2 + offset, info.getErrorCode() != null ? info.getErrorCode().codeValue()
-				: ChargePointErrorCode.Unknown.codeValue());
+		ps.setInt(1 + offset, info.getStatus() != null ? info.getStatus().getCode()
+				: ChargePointStatus.Unknown.getCode());
+		ps.setInt(2 + offset, info.getErrorCode() != null ? info.getErrorCode().getCode()
+				: ChargePointErrorCode.Unknown.getCode());
 		setInstantParameter(ps, 3 + offset, info.getTimestamp());
 		ps.setString(4 + offset, info.getInfo());
 		ps.setString(5 + offset, info.getVendorId());

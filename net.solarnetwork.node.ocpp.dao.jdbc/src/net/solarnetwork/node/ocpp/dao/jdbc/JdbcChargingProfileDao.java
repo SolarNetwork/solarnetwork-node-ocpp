@@ -213,20 +213,20 @@ public class JdbcChargingProfileDao extends BaseJdbcGenericDao<ChargingProfile, 
 	protected void setUpdateStatementValues(ChargingProfile obj, PreparedStatement ps, int offset)
 			throws SQLException {
 		ChargingProfileInfo info = obj.getInfo();
-		ps.setInt(1 + offset, info.getPurpose() != null ? info.getPurpose().codeValue()
-				: ChargingProfilePurpose.Unknown.codeValue());
-		ps.setInt(2 + offset, info.getKind() != null ? info.getKind().codeValue()
-				: ChargingProfileKind.Unknown.codeValue());
-		ps.setInt(3 + offset, info.getRecurrency() != null ? info.getRecurrency().codeValue()
-				: ChargingScheduleRecurrency.Unknown.codeValue());
+		ps.setInt(1 + offset, info.getPurpose() != null ? info.getPurpose().getCode()
+				: ChargingProfilePurpose.Unknown.getCode());
+		ps.setInt(2 + offset, info.getKind() != null ? info.getKind().getCode()
+				: ChargingProfileKind.Unknown.getCode());
+		ps.setInt(3 + offset, info.getRecurrency() != null ? info.getRecurrency().getCode()
+				: ChargingScheduleRecurrency.Unknown.getCode());
 		setInstantParameter(ps, 4 + offset, info.getValidFrom());
 		setInstantParameter(ps, 5 + offset, info.getValidTo());
 
 		ChargingScheduleInfo sched = info.getSchedule();
 		ps.setObject(6 + offset, sched.getDuration() != null ? sched.getDuration().getSeconds() : null);
 		setInstantParameter(ps, 7 + offset, sched.getStart());
-		ps.setInt(8 + offset, sched.getRateUnit() != null ? sched.getRateUnit().codeValue()
-				: UnitOfMeasure.Unknown.codeValue());
+		ps.setInt(8 + offset, sched.getRateUnit() != null ? sched.getRateUnit().getCode()
+				: UnitOfMeasure.Unknown.getCode());
 		ps.setBigDecimal(9 + offset, sched.getMinRate());
 	}
 

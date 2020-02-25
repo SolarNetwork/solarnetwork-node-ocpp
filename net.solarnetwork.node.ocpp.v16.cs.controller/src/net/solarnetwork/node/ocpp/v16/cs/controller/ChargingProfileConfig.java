@@ -113,7 +113,7 @@ public class ChargingProfileConfig implements Identity<UUID> {
 			if ( e == ChargingProfilePurpose.TxProfile ) {
 				continue;
 			}
-			purposeTitles.put(String.valueOf(e.codeValue()), messageSource
+			purposeTitles.put(String.valueOf(e.getCode()), messageSource
 					.getMessage("ChargingProfilePurpose." + e.name(), null, e.toString(), locale));
 		}
 		purposeSpec.setValueTitles(purposeTitles);
@@ -124,7 +124,7 @@ public class ChargingProfileConfig implements Identity<UUID> {
 				prefix + "info.kindCode", String.valueOf(info.getKindCode()));
 		Map<String, String> kindTitles = new LinkedHashMap<String, String>(3);
 		for ( ChargingProfileKind e : ChargingProfileKind.values() ) {
-			kindTitles.put(String.valueOf(e.codeValue()), messageSource
+			kindTitles.put(String.valueOf(e.getCode()), messageSource
 					.getMessage("ChargingProfileKind." + e.name(), null, e.toString(), locale));
 		}
 		kindSpec.setValueTitles(kindTitles);
@@ -135,7 +135,7 @@ public class ChargingProfileConfig implements Identity<UUID> {
 				prefix + "info.recurrencyCode", String.valueOf(info.getRecurrencyCode()));
 		Map<String, String> recurTitles = new LinkedHashMap<String, String>(2);
 		for ( ChargingScheduleRecurrency e : ChargingScheduleRecurrency.values() ) {
-			recurTitles.put(String.valueOf(e.codeValue()), messageSource
+			recurTitles.put(String.valueOf(e.getCode()), messageSource
 					.getMessage("ChargingScheduleRecurrency." + e.name(), null, e.toString(), locale));
 		}
 		recurSpec.setValueTitles(recurTitles);
@@ -157,7 +157,7 @@ public class ChargingProfileConfig implements Identity<UUID> {
 		Map<String, String> rateUnitTitles = new LinkedHashMap<String, String>(4);
 		for ( UnitOfMeasure e : Arrays.asList(UnitOfMeasure.Unknown, UnitOfMeasure.W,
 				UnitOfMeasure.A) ) {
-			rateUnitTitles.put(String.valueOf(e.codeValue()),
+			rateUnitTitles.put(String.valueOf(e.getCode()),
 					messageSource.getMessage("UnitOfMeasure." + e.name(), null, e.toString(), locale));
 		}
 		rateUnitSpec.setValueTitles(rateUnitTitles);
