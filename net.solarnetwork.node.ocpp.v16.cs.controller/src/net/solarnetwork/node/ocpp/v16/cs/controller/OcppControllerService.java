@@ -320,7 +320,7 @@ public class OcppControllerService extends BaseIdentifiable
 	public AuthorizationInfo authorize(final String clientId, final String idTag) {
 		Authorization auth = null;
 		if ( clientId != null && idTag != null ) {
-			auth = authorizationDao.get(idTag);
+			auth = authorizationDao.getForToken(idTag);
 		}
 		AuthorizationInfo.Builder result = AuthorizationInfo.builder().withId(idTag);
 		if ( auth != null ) {

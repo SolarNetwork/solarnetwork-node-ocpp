@@ -40,9 +40,10 @@ import net.solarnetwork.util.DateUtils;
  * @author matt
  * @version 1.0
  */
-public class AuthorizationConfig implements Identity<String> {
+public class AuthorizationConfig implements Identity<Long> {
 
-	private String id;
+	private Long id;
+	private String token;
 	private boolean enabled;
 	private Instant expiryDate;
 	private String parentId;
@@ -83,7 +84,7 @@ public class AuthorizationConfig implements Identity<String> {
 			prefix = "";
 		}
 		List<SettingSpecifier> results = new ArrayList<>(4);
-		results.add(new BasicTextFieldSettingSpecifier(prefix + "id", id));
+		results.add(new BasicTextFieldSettingSpecifier(prefix + "token", token));
 		results.add(new BasicToggleSettingSpecifier(prefix + "enabled", enabled));
 		results.add(
 				new BasicTextFieldSettingSpecifier(prefix + "expiryDateValue", getExpiryDateValue()));
@@ -92,12 +93,12 @@ public class AuthorizationConfig implements Identity<String> {
 	}
 
 	@Override
-	public int compareTo(String o) {
+	public int compareTo(Long o) {
 		return id.compareTo(o);
 	}
 
 	@Override
-	public String getId() {
+	public Long getId() {
 		return id;
 	}
 
@@ -105,8 +106,23 @@ public class AuthorizationConfig implements Identity<String> {
 	 * @param id
 	 *        the id to set
 	 */
-	public void setId(String id) {
+	public void setId(Long id) {
 		this.id = id;
+	}
+
+	/**
+	 * @return the token
+	 */
+	public String getToken() {
+		return token;
+	}
+
+	/**
+	 * @param token
+	 *        the token to set
+	 */
+	public void setToken(String token) {
+		this.token = token;
 	}
 
 	/**

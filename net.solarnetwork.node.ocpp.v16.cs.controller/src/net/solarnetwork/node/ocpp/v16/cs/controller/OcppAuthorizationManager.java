@@ -36,7 +36,7 @@ import net.solarnetwork.ocpp.domain.Authorization;
  * @version 1.0
  */
 public class OcppAuthorizationManager
-		extends BaseEntityManager<AuthorizationDao, Authorization, String, AuthorizationConfig> {
+		extends BaseEntityManager<AuthorizationDao, Authorization, Long, AuthorizationConfig> {
 
 	/**
 	 * Constructor.

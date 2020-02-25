@@ -22,11 +22,14 @@
 
 package net.solarnetwork.node.ocpp.dao.jdbc.test;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Collection;
 import java.util.UUID;
 import javax.annotation.Resource;
 import javax.sql.DataSource;
@@ -63,9 +66,10 @@ public class JdbcAuthorizationDaoTests extends AbstractNodeTransactionalTest {
 	}
 
 	private Authorization createTestAuthorization(String vendor, String model) {
-		Authorization auth = new Authorization(UUID.randomUUID().toString().substring(0, 20),
+		Authorization auth = new Authorization(null,
 				// note NOT Instant.ofEpochMilli(System.currentTimeMillis()) because database might not store nanoseconds
 				Instant.ofEpochMilli(System.currentTimeMillis()));
+		auth.setToken(UUID.randomUUID().toString().substring(0, 20));
 		auth.setEnabled(true);
 		auth.setExpiryDate(auth.getCreated().plus(1, ChronoUnit.HOURS));
 		auth.setParentId(UUID.randomUUID().toString().substring(0, 20));
@@ -75,9 +79,13 @@ public class JdbcAuthorizationDaoTests extends AbstractNodeTransactionalTest {
 	@Test
 	public void insert() {
 		Authorization auth = createTestAuthorization("foo", "bar");
-		String pk = dao.save(auth);
-		assertThat("PK preserved", pk, equalTo(auth.getId()));
-		last = auth;
+		Long pk = dao.save(auth);
+		assertThat("PK generated", pk, notNullValue());
+		last = new Authorization(pk, auth.getCreated());
+		last.setToken(auth.getToken());
+		last.setEnabled(auth.isEnabled());
+		last.setExpiryDate(auth.getExpiryDate());
+		last.setParentId(auth.getParentId());
 	}
 
 	@Test
@@ -96,7 +104,7 @@ public class JdbcAuthorizationDaoTests extends AbstractNodeTransactionalTest {
 		Authorization auth = dao.get(last.getId());
 		auth.setExpiryDate(auth.getExpiryDate().plus(1, ChronoUnit.HOURS));
 		auth.setParentId(null);
-		String pk = dao.save(auth);
+		Long pk = dao.save(auth);
 		assertThat("PK unchanged", pk, equalTo(auth.getId()));
 
 		Authorization entity = dao.get(pk);
@@ -104,4 +112,37 @@ public class JdbcAuthorizationDaoTests extends AbstractNodeTransactionalTest {
 		assertThat("Parent ID updated", entity.getParentId(), nullValue());
 	}
 
+	@Test
+	public void findAll() {
+		Authorization obj1 = createTestAuthorization("foo", "bar");
+		obj1 = dao.get(dao.save(obj1));
+		Authorization obj2 = new Authorization(obj1.getCreated().minusSeconds(60), "b");
+		obj2 = dao.get(dao.save(obj2));
+		Authorization obj3 = new Authorization(obj1.getCreated().plusSeconds(60), "c");
+		obj3 = dao.get(dao.save(obj3));
+
+		Collection<Authorization> results = dao.getAll(null);
+		assertThat("Results found in order", results, contains(obj2, obj1, obj3));
+	}
+
+	@Test
+	public void findByToken_none() {
+		Authorization entity = dao.getForToken("foo");
+		assertThat("No users", entity, nullValue());
+	}
+
+	@Test
+	public void findByToken_noMatch() {
+		insert();
+		Authorization entity = dao.getForToken("not a match");
+		assertThat("No match", entity, nullValue());
+	}
+
+	@Test
+	public void findByToken() {
+		findAll();
+		Authorization entity = dao.getForToken("b");
+		assertThat("Match", entity, notNullValue());
+		assertThat("Token matches", entity.getToken(), equalTo("b"));
+	}
 }

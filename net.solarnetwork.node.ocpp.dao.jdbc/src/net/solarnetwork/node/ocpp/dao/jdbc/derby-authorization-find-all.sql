@@ -1,4 +1,4 @@
 SELECT
-	id,created,enabled,expires,parent_id
+	id,created,token,enabled,expires,parent_id
 FROM solarnode.ocpp_authorization
-ORDER BY id
+ORDER BY created, id

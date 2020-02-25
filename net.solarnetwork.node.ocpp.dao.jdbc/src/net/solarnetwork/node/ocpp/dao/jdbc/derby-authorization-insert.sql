@@ -1,4 +1,4 @@
 INSERT INTO solarnode.ocpp_authorization
-	(id,created,enabled,expires,parent_id)
+	(created,token,enabled,expires,parent_id)
 VALUES 
 	(?,?,?,?,?)

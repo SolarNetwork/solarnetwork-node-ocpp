@@ -105,10 +105,12 @@ public class OcppControllerServiceTests {
 	@Test
 	public void auth_ok() {
 		// given
+		Long id = UUID.randomUUID().getMostSignificantBits();
 		String idTag = UUID.randomUUID().toString().substring(0, 20);
-		Authorization auth = new Authorization(idTag, Instant.now());
+		Authorization auth = new Authorization(id, Instant.now());
+		auth.setToken(idTag);
 		auth.setEnabled(true);
-		expect(authorizationDao.get(idTag)).andReturn(auth);
+		expect(authorizationDao.getForToken(idTag)).andReturn(auth);
 
 		// when
 		replayAll();
@@ -116,7 +118,7 @@ public class OcppControllerServiceTests {
 
 		// then
 		assertThat("Result available", result, notNullValue());
-		assertThat("Auth ID", result.getId(), equalTo(auth.getId()));
+		assertThat("Auth ID", result.getId(), equalTo(auth.getToken()));
 		assertThat("Auth status", result.getStatus(), equalTo(AuthorizationStatus.Accepted));
 		assertThat("Auth expiry", result.getExpiryDate(), equalTo(auth.getExpiryDate()));
 		assertThat("Auth parent", result.getParentId(), equalTo(auth.getParentId()));
@@ -125,10 +127,12 @@ public class OcppControllerServiceTests {
 	@Test
 	public void auth_disabled() {
 		// given
+		Long id = UUID.randomUUID().getMostSignificantBits();
 		String idTag = UUID.randomUUID().toString().substring(0, 20);
-		Authorization auth = new Authorization(idTag, Instant.now());
+		Authorization auth = new Authorization(id, Instant.now());
+		auth.setToken(idTag);
 		auth.setEnabled(false);
-		expect(authorizationDao.get(idTag)).andReturn(auth);
+		expect(authorizationDao.getForToken(idTag)).andReturn(auth);
 
 		// when
 		replayAll();
@@ -136,7 +140,7 @@ public class OcppControllerServiceTests {
 
 		// then
 		assertThat("Result available", result, notNullValue());
-		assertThat("Auth ID", result.getId(), equalTo(auth.getId()));
+		assertThat("Auth ID", result.getId(), equalTo(auth.getToken()));
 		assertThat("Auth status", result.getStatus(), equalTo(AuthorizationStatus.Blocked));
 		assertThat("Auth expiry", result.getExpiryDate(), equalTo(auth.getExpiryDate()));
 		assertThat("Auth parent", result.getParentId(), equalTo(auth.getParentId()));
@@ -145,11 +149,13 @@ public class OcppControllerServiceTests {
 	@Test
 	public void auth_expired() {
 		// given
+		Long id = UUID.randomUUID().getMostSignificantBits();
 		String idTag = UUID.randomUUID().toString().substring(0, 20);
-		Authorization auth = new Authorization(idTag, Instant.now());
+		Authorization auth = new Authorization(id, Instant.now());
+		auth.setToken(idTag);
 		auth.setEnabled(true);
 		auth.setExpiryDate(Instant.now().minusSeconds(60));
-		expect(authorizationDao.get(idTag)).andReturn(auth);
+		expect(authorizationDao.getForToken(idTag)).andReturn(auth);
 
 		// when
 		replayAll();
@@ -157,7 +163,7 @@ public class OcppControllerServiceTests {
 
 		// then
 		assertThat("Result available", result, notNullValue());
-		assertThat("Auth ID", result.getId(), equalTo(auth.getId()));
+		assertThat("Auth ID", result.getId(), equalTo(auth.getToken()));
 		assertThat("Auth status", result.getStatus(), equalTo(AuthorizationStatus.Expired));
 		assertThat("Auth expiry", result.getExpiryDate(), equalTo(auth.getExpiryDate()));
 		assertThat("Auth parent", result.getParentId(), equalTo(auth.getParentId()));
@@ -167,7 +173,7 @@ public class OcppControllerServiceTests {
 	public void auth_invalid() {
 		// given
 		String idTag = UUID.randomUUID().toString().substring(0, 20);
-		expect(authorizationDao.get(idTag)).andReturn(null);
+		expect(authorizationDao.getForToken(idTag)).andReturn(null);
 
 		// when
 		replayAll();

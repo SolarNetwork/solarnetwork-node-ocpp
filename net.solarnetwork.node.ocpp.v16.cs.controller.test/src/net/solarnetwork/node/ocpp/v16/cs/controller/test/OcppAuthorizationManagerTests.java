@@ -32,7 +32,6 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import java.time.Instant;
-import java.util.UUID;
 import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Before;
@@ -89,7 +88,7 @@ public class OcppAuthorizationManagerTests {
 		// given
 		OcppAuthorizationManager mgr = new OcppAuthorizationManager(chargePointDao);
 
-		Authorization cp = new Authorization(UUID.randomUUID().toString(), Instant.now());
+		Authorization cp = new Authorization(1L, Instant.now());
 		cp.setExpiryDate(Instant.now().plusSeconds(60));
 		expect(chargePointDao.getAll(anyObject())).andReturn(singletonList(cp));
 
@@ -108,7 +107,7 @@ public class OcppAuthorizationManagerTests {
 		// given
 		OcppAuthorizationManager mgr = new OcppAuthorizationManager(chargePointDao);
 
-		Authorization cp = new Authorization(UUID.randomUUID().toString(), Instant.now());
+		Authorization cp = new Authorization(1L, Instant.now());
 		cp.setExpiryDate(Instant.now().plusSeconds(60));
 		expect(chargePointDao.getAll(anyObject())).andReturn(singletonList(cp)).times(2);
 
