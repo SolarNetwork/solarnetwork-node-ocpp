@@ -51,6 +51,7 @@
 	
 	<osgi:service interface="net.solarnetwork.ocpp.service.ChargePointBroker" ref="ocppWebSocketHandler_v16">
 		<osgi:service-properties>
+			<entry key="function" value="node"/>
 			<entry key="protocol" value="json"/>
 		</osgi:service-properties>
 	</osgi:service>
