@@ -26,7 +26,6 @@ Import-Package:
  ocpp.v16.cp.json;version="[1.0,2.0)",
  ocpp.v16.cs.json;version="[1.0,2.0)",
  org.osgi.framework;version="[1.7,2.0)",
- org.osgi.util.tracker;version="[1.4,2.0)",
  org.springframework.core.task;version="[4.3,5.0)",
  org.springframework.http.server;version="[4.3,5.0)",
  org.springframework.scheduling;version="[4.3,5.0)",
