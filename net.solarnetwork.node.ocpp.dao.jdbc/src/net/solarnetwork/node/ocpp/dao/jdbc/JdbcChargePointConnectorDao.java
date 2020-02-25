@@ -48,21 +48,34 @@ public class JdbcChargePointConnectorDao
 		implements ChargePointConnectorDao {
 
 	/**
-	 * The SQL resource suffix for finding all entities for a given Charge Point
-	 * ID.
+	 * Enumeration of SQL resources.
 	 */
-	public static final String SQL_FIND_BY_CHARGE_POINT = "find-for-charge-point";
+	public enum SqlResource {
 
-	/**
-	 * The SQL resource suffix for updating the status of a specific connector.
-	 */
-	public static final String SQL_UPDATE_STATUS = "update-status";
+		/** Find all entities for a given Charge Point ID. */
+		FindByChargePoint("find-for-charge-point"),
 
-	/**
-	 * The SQL resource suffix for updating the status of all connectors with a
-	 * given Charge Point ID.
-	 */
-	public static final String SQL_UPDATE_STATUS_FOR_CHARGE_POINT = "update-status-for-charge-point";
+		/** Update the status of a specific connector. */
+		UpdateStatus("update-status"),
+
+		/** Update the status of all connectors with a given Charge Point ID. */
+		UpdateStatusForChargePoint("update-status-for-charge-point");
+
+		private final String resource;
+
+		private SqlResource(String resource) {
+			this.resource = resource;
+		}
+
+		/**
+		 * Get the SQL resource name.
+		 * 
+		 * @return the resource
+		 */
+		public String getResource() {
+			return resource;
+		}
+	}
 
 	/** The table name for {@link ChargePointConnector} entities. */
 	public static final String TABLE_NAME = "charge_point_conn";
@@ -80,8 +93,8 @@ public class JdbcChargePointConnectorDao
 
 	@Override
 	public Collection<ChargePointConnector> findByChargePointId(long chargePointId) {
-		return getJdbcTemplate().query(getSqlResource(SQL_FIND_BY_CHARGE_POINT), getRowMapper(),
-				chargePointId);
+		return getJdbcTemplate().query(getSqlResource(SqlResource.FindByChargePoint.getResource()),
+				getRowMapper(), chargePointId);
 	}
 
 	@Override
@@ -100,11 +113,12 @@ public class JdbcChargePointConnectorDao
 	@Override
 	public int updateChargePointStatus(long chargePointId, int connectorId, ChargePointStatus status) {
 		if ( connectorId < 1 ) {
-			return getJdbcTemplate().update(getSqlResource(SQL_UPDATE_STATUS_FOR_CHARGE_POINT),
+			return getJdbcTemplate().update(
+					getSqlResource(SqlResource.UpdateStatusForChargePoint.getResource()),
 					status.getCode(), chargePointId);
 		}
-		return getJdbcTemplate().update(getSqlResource(SQL_UPDATE_STATUS), status.getCode(),
-				chargePointId, connectorId);
+		return getJdbcTemplate().update(getSqlResource(SqlResource.UpdateStatus.getResource()),
+				status.getCode(), chargePointId, connectorId);
 	}
 
 	@Override
