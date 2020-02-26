@@ -54,6 +54,7 @@ import net.solarnetwork.ocpp.domain.UnitOfMeasure;
 public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID>
 		implements ChargeSessionDao {
 
+	/** SQL resource enumeration. */
 	public enum SqlResource {
 
 		/**
