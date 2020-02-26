@@ -160,7 +160,7 @@ public class ConnectorAvailabilityControl extends BaseIdentifiable
 		final ChargePointIdentity chargePointId = new ChargePointIdentity(identifier,
 				ChargePointIdentity.ANY_USERNAME);
 
-		ChargePoint cp = chargePointDao.getForIdentifier(chargePointId);
+		ChargePoint cp = chargePointDao.getForIdentity(chargePointId);
 		if ( cp == null ) {
 			return null;
 		}
@@ -197,7 +197,7 @@ public class ConnectorAvailabilityControl extends BaseIdentifiable
 					ChargePointIdentity.ANY_USERNAME);
 			final boolean enabled = StringUtils.parseBoolean(instruction.getParameterValue(paramName));
 
-			ChargePoint cp = chargePointDao.getForIdentifier(chargePointId);
+			ChargePoint cp = chargePointDao.getForIdentity(chargePointId);
 			if ( cp != null ) {
 				for ( ChargePointManager mgr : chargePointManagers.services() ) {
 					if ( mgr.isChargePointAvailable(chargePointId) ) {

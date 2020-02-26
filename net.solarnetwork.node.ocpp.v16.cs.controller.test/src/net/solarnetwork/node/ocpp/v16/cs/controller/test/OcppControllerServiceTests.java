@@ -219,7 +219,7 @@ public class OcppControllerServiceTests {
 		ChargePointIdentity identity = createClientId(identifier);
 
 		// look for existing charge point: not found
-		expect(chargePointDao.getForIdentifier(identity)).andReturn(null);
+		expect(chargePointDao.getForIdentity(identity)).andReturn(null);
 
 		// save new charge point
 		Capture<ChargePoint> chargePointCaptor = new Capture<>(CaptureType.ALL);
@@ -321,7 +321,7 @@ public class OcppControllerServiceTests {
 		ChargePoint cp = new ChargePoint(UUID.randomUUID().getMostSignificantBits(), Instant.now(),
 				cpInfo);
 		cp.setConnectorCount(2);
-		expect(chargePointDao.getForIdentifier(identity)).andReturn(cp);
+		expect(chargePointDao.getForIdentity(identity)).andReturn(cp);
 
 		// find broker for charge point, to send GetConfiguration message to
 		expect(chargePointRouter.brokerForChargePoint(identity)).andReturn(chargePointBroker);

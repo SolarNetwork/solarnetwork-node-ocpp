@@ -168,7 +168,7 @@ public class OcppControllerService extends BaseIdentifiable
 			throw new IllegalArgumentException("The ChargePoint ID must be provided.");
 		}
 
-		ChargePoint cp = chargePointDao.getForIdentifier(chargePointId);
+		ChargePoint cp = chargePointDao.getForIdentity(chargePointId);
 		if ( cp == null ) {
 			cp = registerNewChargePoint(info);
 		} else if ( cp.isEnabled() ) {

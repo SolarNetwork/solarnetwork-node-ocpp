@@ -83,7 +83,7 @@ public class JdbcChargePointDao extends BaseJdbcGenericDao<ChargePoint, Long> im
 	}
 
 	@Override
-	public ChargePoint getForIdentifier(ChargePointIdentity chargePointId) {
+	public ChargePoint getForIdentity(ChargePointIdentity chargePointId) {
 		return findFirst(getSqlResource(SqlResource.GetByIdentifier.getResource()),
 				chargePointId.getIdentifier());
 	}

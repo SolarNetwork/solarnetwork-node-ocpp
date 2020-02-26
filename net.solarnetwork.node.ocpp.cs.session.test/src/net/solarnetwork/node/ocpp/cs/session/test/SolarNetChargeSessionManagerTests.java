@@ -169,7 +169,7 @@ public class SolarNetChargeSessionManagerTests {
 		expect(authService.authorize(chargePointId, idTag)).andReturn(authInfo);
 
 		// get ChargePoint
-		expect(chargePointDao.getForIdentifier(chargePointId)).andReturn(cp);
+		expect(chargePointDao.getForIdentity(chargePointId)).andReturn(cp);
 
 		// verify concurrent tx
 		int connectorId = 1;
@@ -288,7 +288,7 @@ public class SolarNetChargeSessionManagerTests {
 		expect(authService.authorize(chargePointId, idTag)).andReturn(authInfo);
 
 		// get ChargePoint
-		expect(chargePointDao.getForIdentifier(chargePointId)).andReturn(cp);
+		expect(chargePointDao.getForIdentity(chargePointId)).andReturn(cp);
 
 		// verify concurrent tx
 		int connectorId = 1;
@@ -333,7 +333,7 @@ public class SolarNetChargeSessionManagerTests {
 		int transactionId = 123;
 
 		// get ChargePoint
-		expect(chargePointDao.getForIdentifier(chargePointId)).andReturn(cp);
+		expect(chargePointDao.getForIdentity(chargePointId)).andReturn(cp);
 
 		ChargeSession sess = new ChargeSession(UUID.randomUUID(), Instant.now(), idTag, cp.getId(),
 				connectorId, transactionId);

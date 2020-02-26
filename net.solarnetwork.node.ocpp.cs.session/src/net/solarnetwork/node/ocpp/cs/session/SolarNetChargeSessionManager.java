@@ -203,7 +203,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 	}
 
 	private ChargePoint chargePoint(ChargePointIdentity identifier, String authId) {
-		ChargePoint cp = chargePointDao.getForIdentifier(identifier);
+		ChargePoint cp = chargePointDao.getForIdentity(identifier);
 		if ( cp == null ) {
 			throw new AuthorizationException(
 					String.format("ChargePoint %s not available.", identifier.getIdentifier()),

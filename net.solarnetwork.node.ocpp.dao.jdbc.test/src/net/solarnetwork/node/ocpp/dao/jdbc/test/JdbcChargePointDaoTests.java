@@ -135,21 +135,21 @@ public class JdbcChargePointDaoTests extends AbstractNodeTransactionalTest {
 
 	@Test
 	public void findByIdentifier_none() {
-		ChargePoint entity = dao.getForIdentifier(new ChargePointIdentity("foo", "bar"));
+		ChargePoint entity = dao.getForIdentity(new ChargePointIdentity("foo", "bar"));
 		assertThat("No users", entity, nullValue());
 	}
 
 	@Test
 	public void findByIdentifier_noMatch() {
 		insert();
-		ChargePoint entity = dao.getForIdentifier(new ChargePointIdentity("not a match", "bar"));
+		ChargePoint entity = dao.getForIdentity(new ChargePointIdentity("not a match", "bar"));
 		assertThat("No match", entity, nullValue());
 	}
 
 	@Test
 	public void findByIdentifier() {
 		findAll();
-		ChargePoint entity = dao.getForIdentifier(new ChargePointIdentity("b", "c"));
+		ChargePoint entity = dao.getForIdentity(new ChargePointIdentity("b", "c"));
 		assertThat("Match", entity, notNullValue());
 		assertThat("Identifier matches", entity.getInfo().getId(), equalTo("b"));
 	}
