@@ -29,6 +29,7 @@
 				<constructor-arg>
 					<osgi:reference interface="net.solarnetwork.support.PasswordEncoder" filter="(&amp;(function=node)(role=ocpp))"/>
 				</constructor-arg>
+				<property name="fixedIdentityUsername" value="#{T(net.solarnetwork.ocpp.domain.ChargePointIdentity).ANY_USERNAME}"/>
 			</bean>
 		</websocket:handshake-interceptors>
 	</websocket:handlers>

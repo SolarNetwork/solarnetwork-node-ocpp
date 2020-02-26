@@ -68,6 +68,7 @@ import net.solarnetwork.ocpp.dao.PurgePostedChargeSessionsTask;
 import net.solarnetwork.ocpp.domain.AuthorizationInfo;
 import net.solarnetwork.ocpp.domain.AuthorizationStatus;
 import net.solarnetwork.ocpp.domain.ChargePoint;
+import net.solarnetwork.ocpp.domain.ChargePointIdentity;
 import net.solarnetwork.ocpp.domain.ChargePointInfo;
 import net.solarnetwork.ocpp.domain.ChargeSession;
 import net.solarnetwork.ocpp.domain.ChargeSessionEndInfo;
@@ -160,14 +161,15 @@ public class SolarNetChargeSessionManagerTests {
 
 		// verify authorization
 		String identifier = UUID.randomUUID().toString();
+		ChargePointIdentity chargePointId = new ChargePointIdentity(identifier, "foo");
 		ChargePoint cp = new ChargePoint(UUID.randomUUID().getMostSignificantBits(), Instant.now(),
 				new ChargePointInfo(identifier));
 		String idTag = UUID.randomUUID().toString().substring(0, 20);
 		AuthorizationInfo authInfo = new AuthorizationInfo(idTag, AuthorizationStatus.Accepted);
-		expect(authService.authorize(identifier, idTag)).andReturn(authInfo);
+		expect(authService.authorize(chargePointId, idTag)).andReturn(authInfo);
 
 		// get ChargePoint
-		expect(chargePointDao.getForIdentifier(identifier)).andReturn(cp);
+		expect(chargePointDao.getForIdentifier(chargePointId)).andReturn(cp);
 
 		// verify concurrent tx
 		int connectorId = 1;
@@ -211,7 +213,7 @@ public class SolarNetChargeSessionManagerTests {
 		// @formatter:off
 		ChargeSessionStartInfo info = ChargeSessionStartInfo.builder()
 				.withTimestampStart(Instant.now())
-				.withChargePointId(identifier)
+				.withChargePointId(chargePointId)
 				.withAuthorizationId(idTag)
 				.withConnectorId(connectorId)
 				.withMeterStart(1234)
@@ -278,14 +280,15 @@ public class SolarNetChargeSessionManagerTests {
 
 		// verify authorization
 		String identifier = UUID.randomUUID().toString();
+		ChargePointIdentity chargePointId = new ChargePointIdentity(identifier, "foo");
 		ChargePoint cp = new ChargePoint(UUID.randomUUID().getMostSignificantBits(), Instant.now(),
 				new ChargePointInfo(identifier));
 		String idTag = UUID.randomUUID().toString().substring(0, 20);
 		AuthorizationInfo authInfo = new AuthorizationInfo(idTag, AuthorizationStatus.Accepted);
-		expect(authService.authorize(identifier, idTag)).andReturn(authInfo);
+		expect(authService.authorize(chargePointId, idTag)).andReturn(authInfo);
 
 		// get ChargePoint
-		expect(chargePointDao.getForIdentifier(identifier)).andReturn(cp);
+		expect(chargePointDao.getForIdentifier(chargePointId)).andReturn(cp);
 
 		// verify concurrent tx
 		int connectorId = 1;
@@ -301,7 +304,7 @@ public class SolarNetChargeSessionManagerTests {
 		// @formatter:off
 		ChargeSessionStartInfo info = ChargeSessionStartInfo.builder()
 				.withTimestampStart(Instant.now())
-				.withChargePointId(identifier)
+				.withChargePointId(chargePointId)
 				.withAuthorizationId(idTag)
 				.withConnectorId(connectorId)
 				.withMeterStart(1234)
@@ -323,13 +326,14 @@ public class SolarNetChargeSessionManagerTests {
 		// given
 		String idTag = "tester";
 		String identifier = UUID.randomUUID().toString();
+		ChargePointIdentity chargePointId = new ChargePointIdentity(identifier, "foo");
 		ChargePoint cp = new ChargePoint(UUID.randomUUID().getMostSignificantBits(), Instant.now(),
 				new ChargePointInfo(identifier));
 		int connectorId = 1;
 		int transactionId = 123;
 
 		// get ChargePoint
-		expect(chargePointDao.getForIdentifier(identifier)).andReturn(cp);
+		expect(chargePointDao.getForIdentifier(chargePointId)).andReturn(cp);
 
 		ChargeSession sess = new ChargeSession(UUID.randomUUID(), Instant.now(), idTag, cp.getId(),
 				connectorId, transactionId);
@@ -371,7 +375,7 @@ public class SolarNetChargeSessionManagerTests {
 		ChargeSessionEndInfo info = ChargeSessionEndInfo.builder()
 				.withTimestampEnd(Instant.now())
 				.withAuthorizationId(idTag)
-				.withChargePointId(identifier)
+				.withChargePointId(chargePointId)
 				.withTransactionId(transactionId)
 				.withMeterEnd(54321)
 				.withReason(ChargeSessionEndReason.Local)

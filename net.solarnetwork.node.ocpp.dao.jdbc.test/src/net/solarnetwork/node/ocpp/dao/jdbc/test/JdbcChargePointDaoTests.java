@@ -38,6 +38,7 @@ import net.solarnetwork.node.dao.jdbc.DatabaseSetup;
 import net.solarnetwork.node.ocpp.dao.jdbc.JdbcChargePointDao;
 import net.solarnetwork.node.test.AbstractNodeTransactionalTest;
 import net.solarnetwork.ocpp.domain.ChargePoint;
+import net.solarnetwork.ocpp.domain.ChargePointIdentity;
 import net.solarnetwork.ocpp.domain.ChargePointInfo;
 import net.solarnetwork.ocpp.domain.RegistrationStatus;
 
@@ -134,21 +135,21 @@ public class JdbcChargePointDaoTests extends AbstractNodeTransactionalTest {
 
 	@Test
 	public void findByIdentifier_none() {
-		ChargePoint entity = dao.getForIdentifier("foo");
+		ChargePoint entity = dao.getForIdentifier(new ChargePointIdentity("foo", "bar"));
 		assertThat("No users", entity, nullValue());
 	}
 
 	@Test
 	public void findByIdentifier_noMatch() {
 		insert();
-		ChargePoint entity = dao.getForIdentifier("not a match");
+		ChargePoint entity = dao.getForIdentifier(new ChargePointIdentity("not a match", "bar"));
 		assertThat("No match", entity, nullValue());
 	}
 
 	@Test
 	public void findByIdentifier() {
 		findAll();
-		ChargePoint entity = dao.getForIdentifier("b");
+		ChargePoint entity = dao.getForIdentifier(new ChargePointIdentity("b", "c"));
 		assertThat("Match", entity, notNullValue());
 		assertThat("Identifier matches", entity.getInfo().getId(), equalTo("b"));
 	}

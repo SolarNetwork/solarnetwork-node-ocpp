@@ -31,6 +31,7 @@ import org.springframework.jdbc.core.RowMapper;
 import net.solarnetwork.node.dao.jdbc.BaseJdbcGenericDao;
 import net.solarnetwork.ocpp.dao.ChargePointDao;
 import net.solarnetwork.ocpp.domain.ChargePoint;
+import net.solarnetwork.ocpp.domain.ChargePointIdentity;
 import net.solarnetwork.ocpp.domain.ChargePointInfo;
 import net.solarnetwork.ocpp.domain.RegistrationStatus;
 
@@ -82,8 +83,9 @@ public class JdbcChargePointDao extends BaseJdbcGenericDao<ChargePoint, Long> im
 	}
 
 	@Override
-	public ChargePoint getForIdentifier(String identifier) {
-		return findFirst(getSqlResource(SqlResource.GetByIdentifier.getResource()), identifier);
+	public ChargePoint getForIdentifier(ChargePointIdentity chargePointId) {
+		return findFirst(getSqlResource(SqlResource.GetByIdentifier.getResource()),
+				chargePointId.getIdentifier());
 	}
 
 	@Override
@@ -101,9 +103,8 @@ public class JdbcChargePointDao extends BaseJdbcGenericDao<ChargePoint, Long> im
 	protected void setUpdateStatementValues(ChargePoint obj, PreparedStatement ps, int offset)
 			throws SQLException {
 		ps.setBoolean(1 + offset, obj.isEnabled());
-		ps.setInt(2 + offset,
-				obj.getRegistrationStatus() != null ? obj.getRegistrationStatus().getCode()
-						: RegistrationStatus.Unknown.getCode());
+		ps.setInt(2 + offset, obj.getRegistrationStatus() != null ? obj.getRegistrationStatus().getCode()
+				: RegistrationStatus.Unknown.getCode());
 
 		ChargePointInfo info = obj.getInfo() != null ? obj.getInfo() : new ChargePointInfo();
 		ps.setString(3 + offset, info.getId());

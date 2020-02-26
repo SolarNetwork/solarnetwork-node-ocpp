@@ -53,6 +53,7 @@ import net.solarnetwork.ocpp.dao.ChargePointDao;
 import net.solarnetwork.ocpp.domain.ChargePoint;
 import net.solarnetwork.ocpp.domain.ChargePointConnector;
 import net.solarnetwork.ocpp.domain.ChargePointConnectorKey;
+import net.solarnetwork.ocpp.domain.ChargePointIdentity;
 import net.solarnetwork.ocpp.domain.ChargePointStatus;
 import net.solarnetwork.ocpp.service.cs.ChargePointManager;
 import net.solarnetwork.util.OptionalService;
@@ -156,8 +157,10 @@ public class ConnectorAvailabilityControl extends BaseIdentifiable
 		}
 		final String identifier = m.group(1);
 		final int connectorId = Integer.parseInt(m.group(2));
+		final ChargePointIdentity chargePointId = new ChargePointIdentity(identifier,
+				ChargePointIdentity.ANY_USERNAME);
 
-		ChargePoint cp = chargePointDao.getForIdentifier(identifier);
+		ChargePoint cp = chargePointDao.getForIdentifier(chargePointId);
 		if ( cp == null ) {
 			return null;
 		}
@@ -190,12 +193,14 @@ public class ConnectorAvailabilityControl extends BaseIdentifiable
 
 			final String identifier = m.group(1);
 			final int connectorId = Integer.parseInt(m.group(2));
+			final ChargePointIdentity chargePointId = new ChargePointIdentity(identifier,
+					ChargePointIdentity.ANY_USERNAME);
 			final boolean enabled = StringUtils.parseBoolean(instruction.getParameterValue(paramName));
 
-			ChargePoint cp = chargePointDao.getForIdentifier(identifier);
+			ChargePoint cp = chargePointDao.getForIdentifier(chargePointId);
 			if ( cp != null ) {
 				for ( ChargePointManager mgr : chargePointManagers.services() ) {
-					if ( mgr.isChargePointAvailable(identifier) ) {
+					if ( mgr.isChargePointAvailable(chargePointId) ) {
 						handled = true;
 
 						CompletableFuture<Boolean> f = mgr.adjustConnectorEnabledState(cp.getId(),

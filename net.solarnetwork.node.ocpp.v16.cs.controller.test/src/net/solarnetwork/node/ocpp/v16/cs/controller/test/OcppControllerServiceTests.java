@@ -53,6 +53,7 @@ import net.solarnetwork.ocpp.domain.AuthorizationStatus;
 import net.solarnetwork.ocpp.domain.ChargePoint;
 import net.solarnetwork.ocpp.domain.ChargePointConnector;
 import net.solarnetwork.ocpp.domain.ChargePointConnectorKey;
+import net.solarnetwork.ocpp.domain.ChargePointIdentity;
 import net.solarnetwork.ocpp.domain.ChargePointInfo;
 import net.solarnetwork.ocpp.service.ActionMessageResultHandler;
 import net.solarnetwork.ocpp.service.ChargePointBroker;
@@ -102,9 +103,18 @@ public class OcppControllerServiceTests {
 				chargePointConnectorDao);
 	}
 
+	private ChargePointIdentity createClientId() {
+		return createClientId(UUID.randomUUID().toString());
+	}
+
+	private ChargePointIdentity createClientId(String identifier) {
+		return new ChargePointIdentity(identifier, ChargePointIdentity.ANY_USERNAME);
+	}
+
 	@Test
 	public void auth_ok() {
 		// given
+		ChargePointIdentity identity = createClientId();
 		Long id = UUID.randomUUID().getMostSignificantBits();
 		String idTag = UUID.randomUUID().toString().substring(0, 20);
 		Authorization auth = new Authorization(id, Instant.now());
@@ -114,7 +124,7 @@ public class OcppControllerServiceTests {
 
 		// when
 		replayAll();
-		AuthorizationInfo result = service.authorize("foobar", idTag);
+		AuthorizationInfo result = service.authorize(identity, idTag);
 
 		// then
 		assertThat("Result available", result, notNullValue());
@@ -127,6 +137,7 @@ public class OcppControllerServiceTests {
 	@Test
 	public void auth_disabled() {
 		// given
+		ChargePointIdentity identity = createClientId();
 		Long id = UUID.randomUUID().getMostSignificantBits();
 		String idTag = UUID.randomUUID().toString().substring(0, 20);
 		Authorization auth = new Authorization(id, Instant.now());
@@ -136,7 +147,7 @@ public class OcppControllerServiceTests {
 
 		// when
 		replayAll();
-		AuthorizationInfo result = service.authorize("foobar", idTag);
+		AuthorizationInfo result = service.authorize(identity, idTag);
 
 		// then
 		assertThat("Result available", result, notNullValue());
@@ -149,6 +160,7 @@ public class OcppControllerServiceTests {
 	@Test
 	public void auth_expired() {
 		// given
+		ChargePointIdentity identity = createClientId();
 		Long id = UUID.randomUUID().getMostSignificantBits();
 		String idTag = UUID.randomUUID().toString().substring(0, 20);
 		Authorization auth = new Authorization(id, Instant.now());
@@ -159,7 +171,7 @@ public class OcppControllerServiceTests {
 
 		// when
 		replayAll();
-		AuthorizationInfo result = service.authorize("foobar", idTag);
+		AuthorizationInfo result = service.authorize(identity, idTag);
 
 		// then
 		assertThat("Result available", result, notNullValue());
@@ -172,12 +184,13 @@ public class OcppControllerServiceTests {
 	@Test
 	public void auth_invalid() {
 		// given
+		ChargePointIdentity identity = createClientId();
 		String idTag = UUID.randomUUID().toString().substring(0, 20);
 		expect(authorizationDao.getForToken(idTag)).andReturn(null);
 
 		// when
 		replayAll();
-		AuthorizationInfo result = service.authorize("foobar", idTag);
+		AuthorizationInfo result = service.authorize(identity, idTag);
 
 		// then
 		assertThat("Result available", result, notNullValue());
@@ -203,9 +216,10 @@ public class OcppControllerServiceTests {
 	public void register_new() {
 		// given
 		String identifier = UUID.randomUUID().toString();
+		ChargePointIdentity identity = createClientId(identifier);
 
 		// look for existing charge point: not found
-		expect(chargePointDao.getForIdentifier(identifier)).andReturn(null);
+		expect(chargePointDao.getForIdentifier(identity)).andReturn(null);
 
 		// save new charge point
 		Capture<ChargePoint> chargePointCaptor = new Capture<>(CaptureType.ALL);
@@ -213,7 +227,7 @@ public class OcppControllerServiceTests {
 		expect(chargePointDao.save(capture(chargePointCaptor))).andReturn(chargePointId).times(2);
 
 		// find broker for charge point, to send GetConfiguration message to
-		expect(chargePointRouter.brokerForChargePoint(identifier)).andReturn(chargePointBroker);
+		expect(chargePointRouter.brokerForChargePoint(identity)).andReturn(chargePointBroker);
 
 		// send GetConfiguration message to broker
 		Capture<ActionMessage<Object>> actionCaptor = new Capture<>();
@@ -253,7 +267,7 @@ public class OcppControllerServiceTests {
 		info.setId(identifier);
 		info.setChargePointVendor("ACME");
 		info.setChargePointModel("One");
-		ChargePoint result = service.registerChargePoint(info);
+		ChargePoint result = service.registerChargePoint(identity, info);
 
 		// then invoke result handler
 		ActionMessage<Object> message = actionCaptor.getValue();
@@ -298,6 +312,7 @@ public class OcppControllerServiceTests {
 	public void register_decreaseConnectors() {
 		// given
 		String identifier = UUID.randomUUID().toString();
+		ChargePointIdentity identity = createClientId(identifier);
 
 		// look for existing charge point: not found
 		ChargePointInfo cpInfo = new ChargePointInfo(identifier);
@@ -306,10 +321,10 @@ public class OcppControllerServiceTests {
 		ChargePoint cp = new ChargePoint(UUID.randomUUID().getMostSignificantBits(), Instant.now(),
 				cpInfo);
 		cp.setConnectorCount(2);
-		expect(chargePointDao.getForIdentifier(identifier)).andReturn(cp);
+		expect(chargePointDao.getForIdentifier(identity)).andReturn(cp);
 
 		// find broker for charge point, to send GetConfiguration message to
-		expect(chargePointRouter.brokerForChargePoint(identifier)).andReturn(chargePointBroker);
+		expect(chargePointRouter.brokerForChargePoint(identity)).andReturn(chargePointBroker);
 
 		// send GetConfiguration message to broker
 		Capture<ActionMessage<Object>> actionCaptor = new Capture<>();
@@ -347,7 +362,7 @@ public class OcppControllerServiceTests {
 		info.setId(identifier);
 		info.setChargePointVendor("ACME");
 		info.setChargePointModel("One");
-		ChargePoint result = service.registerChargePoint(info);
+		ChargePoint result = service.registerChargePoint(identity, info);
 
 		// then invoke result handler
 		ActionMessage<Object> message = actionCaptor.getValue();

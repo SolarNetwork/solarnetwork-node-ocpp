@@ -60,6 +60,7 @@ import net.solarnetwork.ocpp.domain.BasicActionMessage;
 import net.solarnetwork.ocpp.domain.ChargePoint;
 import net.solarnetwork.ocpp.domain.ChargePointConnector;
 import net.solarnetwork.ocpp.domain.ChargePointConnectorKey;
+import net.solarnetwork.ocpp.domain.ChargePointIdentity;
 import net.solarnetwork.ocpp.domain.ChargePointInfo;
 import net.solarnetwork.ocpp.domain.ChargePointStatus;
 import net.solarnetwork.ocpp.domain.RegistrationStatus;
@@ -149,25 +150,25 @@ public class OcppControllerService extends BaseIdentifiable
 	}
 
 	@Override
-	public Set<String> availableChargePointsIds() {
+	public Set<ChargePointIdentity> availableChargePointsIds() {
 		return chargePointRouter.availableChargePointsIds();
 	}
 
 	@Override
-	public boolean isChargePointAvailable(String chargePointId) {
+	public boolean isChargePointAvailable(ChargePointIdentity chargePointId) {
 		return chargePointRouter.availableChargePointsIds().contains(chargePointId);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public ChargePoint registerChargePoint(ChargePointInfo info) {
+	public ChargePoint registerChargePoint(ChargePointIdentity chargePointId, ChargePointInfo info) {
 		log.info("Charge Point registration received: {}", info);
 
 		if ( info == null || info.getId() == null ) {
 			throw new IllegalArgumentException("The ChargePoint ID must be provided.");
 		}
 
-		ChargePoint cp = chargePointDao.getForIdentifier(info.getId());
+		ChargePoint cp = chargePointDao.getForIdentifier(chargePointId);
 		if ( cp == null ) {
 			cp = registerNewChargePoint(info);
 		} else if ( cp.isEnabled() ) {
@@ -315,7 +316,7 @@ public class OcppControllerService extends BaseIdentifiable
 	}
 
 	@Override
-	public AuthorizationInfo authorize(final String clientId, final String idTag) {
+	public AuthorizationInfo authorize(final ChargePointIdentity clientId, final String idTag) {
 		Authorization auth = null;
 		if ( clientId != null && idTag != null ) {
 			auth = authorizationDao.getForToken(idTag);
@@ -349,12 +350,13 @@ public class OcppControllerService extends BaseIdentifiable
 			ActionMessageResultHandler<T, R> handler) {
 		executor.execute(() -> {
 			ChargePoint cp = chargePointDao.get(chargePointId);
+			ChargePointIdentity identity = new ChargePointIdentity(cp.getInfo().getId(),
+					ChargePointIdentity.ANY_USERNAME);
 			ActionMessage<T> msg = null;
 			ChargePointBroker broker = null;
 			if ( cp != null ) {
-				msg = new BasicActionMessage<T>(cp.getInfo().getId(), UUID.randomUUID().toString(),
-						action, payload);
-				broker = chargePointRouter.brokerForChargePoint(cp.getInfo().getId());
+				msg = new BasicActionMessage<T>(identity, UUID.randomUUID().toString(), action, payload);
+				broker = chargePointRouter.brokerForChargePoint(identity);
 			}
 			if ( broker != null ) {
 				if ( broker.sendMessageToChargePoint(msg, handler) ) {
@@ -378,7 +380,7 @@ public class OcppControllerService extends BaseIdentifiable
 	public List<SettingSpecifier> getSettingSpecifiers() {
 		List<SettingSpecifier> results = new ArrayList<SettingSpecifier>(8);
 
-		Set<String> availableChargePointIds;
+		Set<ChargePointIdentity> availableChargePointIds;
 		try {
 			availableChargePointIds = availableChargePointsIds();
 		} catch ( Exception e ) {
@@ -402,9 +404,11 @@ public class OcppControllerService extends BaseIdentifiable
 		return results;
 	}
 
-	private String chargePointStatus(ChargePoint cp, Set<String> availableChargePointIds) {
+	private String chargePointStatus(ChargePoint cp, Set<ChargePointIdentity> availableChargePointIds) {
 		StringBuilder buf = new StringBuilder();
-		buf.append(availableChargePointIds.contains(cp.getInfo().getId())
+		ChargePointIdentity identity = new ChargePointIdentity(cp.getInfo().getId(),
+				ChargePointIdentity.ANY_USERNAME);
+		buf.append(availableChargePointIds.contains(identity)
 				? getMessageSource().getMessage("connected.label", null, "Connected",
 						Locale.getDefault())
 				: getMessageSource().getMessage("disconnected.label", null, "Not connected",

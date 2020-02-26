@@ -62,6 +62,7 @@ import net.solarnetwork.ocpp.dao.PurgePostedChargeSessionsTask;
 import net.solarnetwork.ocpp.domain.AuthorizationInfo;
 import net.solarnetwork.ocpp.domain.AuthorizationStatus;
 import net.solarnetwork.ocpp.domain.ChargePoint;
+import net.solarnetwork.ocpp.domain.ChargePointIdentity;
 import net.solarnetwork.ocpp.domain.ChargeSession;
 import net.solarnetwork.ocpp.domain.ChargeSessionEndInfo;
 import net.solarnetwork.ocpp.domain.ChargeSessionStartInfo;
@@ -201,10 +202,11 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 
 	}
 
-	private ChargePoint chargePoint(String identifier, String authId) {
+	private ChargePoint chargePoint(ChargePointIdentity identifier, String authId) {
 		ChargePoint cp = chargePointDao.getForIdentifier(identifier);
 		if ( cp == null ) {
-			throw new AuthorizationException(String.format("ChargePoint %s not available.", identifier),
+			throw new AuthorizationException(
+					String.format("ChargePoint %s not available.", identifier.getIdentifier()),
 					new AuthorizationInfo(authId, AuthorizationStatus.Invalid));
 		}
 		return cp;
@@ -271,7 +273,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 
 	@Transactional(readOnly = true, propagation = Propagation.SUPPORTS)
 	@Override
-	public ChargeSession getActiveChargingSession(String identifier, int transactionId)
+	public ChargeSession getActiveChargingSession(ChargePointIdentity identifier, int transactionId)
 			throws AuthorizationException {
 		ChargePoint cp = chargePoint(identifier, null);
 		return chargeSessionDao.getIncompleteChargeSessionForTransaction(cp.getId(), transactionId);
@@ -279,8 +281,8 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 
 	@Transactional(readOnly = true, propagation = Propagation.SUPPORTS)
 	@Override
-	public Collection<ChargeSession> getActiveChargingSessions(String identifier) {
-		if ( identifier != null && !identifier.isEmpty() ) {
+	public Collection<ChargeSession> getActiveChargingSessions(ChargePointIdentity identifier) {
+		if ( identifier != null ) {
 			ChargePoint cp = chargePoint(identifier, null);
 			return chargeSessionDao.getIncompleteChargeSessionForChargePoint(cp.getId());
 		}
