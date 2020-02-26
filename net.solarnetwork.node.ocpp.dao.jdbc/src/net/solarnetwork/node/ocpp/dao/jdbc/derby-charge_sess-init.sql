@@ -34,5 +34,8 @@ CREATE TABLE solarnode.ocpp_charge_sess_reading (
 		ON DELETE CASCADE
 );
 
+CREATE INDEX ocpp_charge_sess_reading_sess_id_idx
+ON solarnode.ocpp_charge_sess_reading (sess_id_hi, sess_id_lo);
+
 INSERT INTO solarnode.sn_settings (skey, svalue) 
 VALUES ('solarnode.ocpp_charge_sess.version', '1');
