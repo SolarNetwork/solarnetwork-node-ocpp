@@ -24,10 +24,10 @@
 		<websocket:handshake-interceptors>
 			<bean class="net.solarnetwork.ocpp.web.json.OcppWebSocketHandshakeInterceptor">
 				<constructor-arg>
-					<osgi:reference interface="net.solarnetwork.ocpp.dao.SystemUserDao"/>
+					<osgi:reference interface="net.solarnetwork.ocpp.dao.SystemUserDao" filter="(function=node)"/>
 				</constructor-arg>
 				<constructor-arg>
-					<osgi:reference interface="net.solarnetwork.support.PasswordEncoder" filter="(function=ocpp)"/>
+					<osgi:reference interface="net.solarnetwork.support.PasswordEncoder" filter="(&amp;(function=node)(role=ocpp))"/>
 				</constructor-arg>
 			</bean>
 		</websocket:handshake-interceptors>
@@ -44,7 +44,7 @@
 	</bean>
 	
 	<osgi:list id="csActions" interface="net.solarnetwork.ocpp.service.ActionMessageProcessor" 
-			filter="(role=cs)" availability="optional">
+			filter="(&amp;(function=node)(role=cs))" availability="optional">
 		<osgi:reference-listener  bind-method="addActionMessageProcessor" unbind-method="removeActionMessageProcessor"
 				ref="ocppWebSocketHandler_v16"/>
 	</osgi:list>
