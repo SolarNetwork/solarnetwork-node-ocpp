@@ -264,6 +264,8 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 	public void addReadings() {
 		insert();
 		dao.addReadings(createTestReadings());
+		assertThat("Readings persisted", jdbcTemplate.queryForObject(
+				"select count(*) from solarnode.ocpp_charge_sess_reading", Integer.class), equalTo(2));
 	}
 
 	@Test
