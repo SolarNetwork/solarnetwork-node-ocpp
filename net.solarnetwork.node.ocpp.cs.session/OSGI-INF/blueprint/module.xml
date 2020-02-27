@@ -13,11 +13,11 @@
 
 	<!-- Service references -->
 	
-	<reference id="authService" interface="net.solarnetwork.ocpp.service.AuthorizationService"/>
+	<reference id="authService" interface="net.solarnetwork.ocpp.service.AuthorizationService" filter="(function=node)"/>
 
-	<reference id="chargePointDao" interface="net.solarnetwork.ocpp.dao.ChargePointDao"/>
+	<reference id="chargePointDao" interface="net.solarnetwork.ocpp.dao.ChargePointDao" filter="(function=node)"/>
 	
-	<reference id="chargeSessionDao" interface="net.solarnetwork.ocpp.dao.ChargeSessionDao"/>
+	<reference id="chargeSessionDao" interface="net.solarnetwork.ocpp.dao.ChargeSessionDao" filter="(function=node)"/>
 
 	<bean id="generalNodeDatumDao" class="net.solarnetwork.util.DynamicServiceTracker">
 		<property name="bundleContext" ref="bundleContext"/>
@@ -40,6 +40,9 @@
 			<value>net.solarnetwork.node.settings.SettingSpecifierProvider</value>
 			<value>net.solarnetwork.ocpp.service.cs.ChargeSessionManager</value>
 		</interfaces>
+		<service-properties>
+			<entry key="function" value="node"/>
+		</service-properties>
 	</service>
 
 	<bean id="manager" class="net.solarnetwork.node.ocpp.cs.session.SolarNetChargeSessionManager" init-method="startup" destroy-method="shutdown">
