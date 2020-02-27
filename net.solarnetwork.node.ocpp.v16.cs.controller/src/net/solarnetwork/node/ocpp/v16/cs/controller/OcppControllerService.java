@@ -161,21 +161,21 @@ public class OcppControllerService extends BaseIdentifiable
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public ChargePoint registerChargePoint(ChargePointIdentity chargePointId, ChargePointInfo info) {
+	public ChargePoint registerChargePoint(ChargePointIdentity identity, ChargePointInfo info) {
 		log.info("Charge Point registration received: {}", info);
 
 		if ( info == null || info.getId() == null ) {
 			throw new IllegalArgumentException("The ChargePoint ID must be provided.");
 		}
 
-		ChargePoint cp = chargePointDao.getForIdentity(chargePointId);
+		ChargePoint cp = chargePointDao.getForIdentity(identity);
 		if ( cp == null ) {
 			cp = registerNewChargePoint(info);
 		} else if ( cp.isEnabled() ) {
 			cp = updateChargePointInfo(cp, info);
 		}
 
-		sendToChargePoint(cp.getId(), ChargePointAction.GetConfiguration, new GetConfigurationRequest(),
+		sendToChargePoint(identity, ChargePointAction.GetConfiguration, new GetConfigurationRequest(),
 				processConfiguration(cp));
 
 		return cp;
@@ -274,38 +274,46 @@ public class OcppControllerService extends BaseIdentifiable
 	}
 
 	@Override
-	public CompletableFuture<Boolean> adjustConnectorEnabledState(long chargePointId, int connectorId,
-			boolean enabled) {
+	public CompletableFuture<Boolean> adjustConnectorEnabledState(ChargePointIdentity identity,
+			int connectorId, boolean enabled) {
 		ChangeAvailabilityRequest req = new ChangeAvailabilityRequest();
 		req.setConnectorId(connectorId);
 		req.setType(enabled ? AvailabilityType.OPERATIVE : AvailabilityType.INOPERATIVE);
 		CompletableFuture<Boolean> result = new CompletableFuture<>();
-		sendToChargePoint(chargePointId, ChargePointAction.ChangeAvailability, req,
-				changeAvailability(chargePointId, req, result));
+		sendToChargePoint(identity, ChargePointAction.ChangeAvailability, req,
+				changeAvailability(identity, req, result));
 		return result;
 	}
 
 	private ActionMessageResultHandler<ChangeAvailabilityRequest, ChangeAvailabilityResponse> changeAvailability(
-			long chargePointId, ChangeAvailabilityRequest req, CompletableFuture<Boolean> future) {
+			ChargePointIdentity identity, ChangeAvailabilityRequest req,
+			CompletableFuture<Boolean> future) {
 		return (msg, res, err) -> {
 			if ( res != null ) {
 				AvailabilityStatus status = res.getStatus();
 				if ( status == AvailabilityStatus.ACCEPTED ) {
-					log.info("Charge Point {} connector {} availability set to {}", chargePointId,
+					log.info("Charge Point {} connector {} availability set to {}", identity,
 							req.getConnectorId(), req.getType());
-					try {
-						chargePointConnectorDao.updateChargePointStatus(chargePointId,
-								req.getConnectorId(),
-								req.getType() == AvailabilityType.OPERATIVE ? ChargePointStatus.Available
-										: ChargePointStatus.Unavailable);
-					} catch ( RuntimeException e ) {
-						log.error("Error saving Charge Point {} connector {} status {}: {}",
-								chargePointId, req.getConnectorId(), e.toString());
+					ChargePoint cp = chargePointDao.getForIdentity(identity);
+					if ( cp == null ) {
+						log.warn("Charge Point {} not available.", identity);
+						future.complete(false);
+					} else {
+						Long id = cp.getId();
+						try {
+							chargePointConnectorDao.updateChargePointStatus(id, req.getConnectorId(),
+									req.getType() == AvailabilityType.OPERATIVE
+											? ChargePointStatus.Available
+											: ChargePointStatus.Unavailable);
+						} catch ( RuntimeException e ) {
+							log.error("Error saving Charge Point {} connector {} status {}: {}", id,
+									req.getConnectorId(), e.toString());
+						}
+						future.complete(true);
 					}
-					future.complete(true);
 				} else {
-					log.warn("Charge Point {} connector {} availability rejected change to {}",
-							chargePointId, req.getConnectorId(), req.getType());
+					log.warn("Charge Point {} connector {} availability rejected change to {}", identity,
+							req.getConnectorId(), req.getType());
 					future.complete(false);
 				}
 			} else {
@@ -346,25 +354,18 @@ public class OcppControllerService extends BaseIdentifiable
 		}
 	}
 
-	private <T, R> void sendToChargePoint(Long chargePointId, Action action, T payload,
+	private <T, R> void sendToChargePoint(ChargePointIdentity identity, Action action, T payload,
 			ActionMessageResultHandler<T, R> handler) {
 		executor.execute(() -> {
-			ChargePoint cp = chargePointDao.get(chargePointId);
-			ChargePointIdentity identity = new ChargePointIdentity(cp.getInfo().getId(),
-					ChargePointIdentity.ANY_USERNAME);
-			ActionMessage<T> msg = null;
-			ChargePointBroker broker = null;
-			if ( cp != null ) {
-				msg = new BasicActionMessage<T>(identity, UUID.randomUUID().toString(), action, payload);
-				broker = chargePointRouter.brokerForChargePoint(identity);
-			}
+			ActionMessage<T> msg = new BasicActionMessage<T>(identity, UUID.randomUUID().toString(),
+					action, payload);
+			ChargePointBroker broker = chargePointRouter.brokerForChargePoint(identity);
 			if ( broker != null ) {
 				if ( broker.sendMessageToChargePoint(msg, handler) ) {
 					return;
 				}
 			} else {
-				log.warn("No ChargePointBroker available for {}",
-						(cp != null ? cp.getInfo().getId() : chargePointId));
+				log.warn("No ChargePointBroker available for {}", identity);
 			}
 			handler.handleActionMessageResult(msg, null,
 					new ErrorCodeException(ActionErrorCode.GenericError, "Client not available."));

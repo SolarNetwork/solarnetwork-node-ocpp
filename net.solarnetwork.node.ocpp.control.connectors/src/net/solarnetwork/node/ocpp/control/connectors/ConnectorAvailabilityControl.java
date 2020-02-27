@@ -203,7 +203,7 @@ public class ConnectorAvailabilityControl extends BaseIdentifiable
 					if ( mgr.isChargePointAvailable(chargePointId) ) {
 						handled = true;
 
-						CompletableFuture<Boolean> f = mgr.adjustConnectorEnabledState(cp.getId(),
+						CompletableFuture<Boolean> f = mgr.adjustConnectorEnabledState(chargePointId,
 								connectorId, enabled);
 						try {
 							boolean result = f.get(messageTimeout, TimeUnit.MILLISECONDS).booleanValue();

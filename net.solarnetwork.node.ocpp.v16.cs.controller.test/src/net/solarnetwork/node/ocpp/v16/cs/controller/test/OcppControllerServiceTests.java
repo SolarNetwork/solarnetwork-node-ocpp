@@ -247,7 +247,7 @@ public class OcppControllerServiceTests {
 				copy.setConnectorCount(cp.getConnectorCount());
 				return copy;
 			}
-		}).times(3);
+		}).times(2);
 
 		// look for existing charge point connectors
 		expect(chargePointConnectorDao.findByChargePointId(chargePointId))
@@ -339,7 +339,7 @@ public class OcppControllerServiceTests {
 			public ChargePoint answer() throws Throwable {
 				return new ChargePoint(cp);
 			}
-		}).times(2);
+		});
 
 		// update connector count to 1
 		Capture<ChargePoint> chargePointCaptor = new Capture<>();
