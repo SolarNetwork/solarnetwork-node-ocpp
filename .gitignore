@@ -1,5 +1,6 @@
 .DS_Store
 /solarnetwork-osgi-target
+/net.solarnetwork.node.test
 test.jpage
 build/
 target/
