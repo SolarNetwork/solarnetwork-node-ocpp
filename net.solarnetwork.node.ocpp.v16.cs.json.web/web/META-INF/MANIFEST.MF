@@ -12,7 +12,7 @@ Bundle-ClassPath: WEB-INF/classes/
 Import-Package: 
  com.fasterxml.jackson.annotation;version="[2.10,3.0)",
  com.fasterxml.jackson.module.jaxb;version="[2.10,3.0)",
- com.sun.xml.bind.v2,
+ com.sun.xml.bind.v2;resolution:=optional,
  javax.xml.bind,
  javax.xml.bind.annotation,
  net.solarnetwork.ocpp.dao;version="[1.0,2.0)",
