@@ -108,7 +108,7 @@ public class OcppControllerServiceTests {
 	}
 
 	private ChargePointIdentity createClientId(String identifier) {
-		return new ChargePointIdentity(identifier, ChargePointIdentity.ANY_USERNAME);
+		return new ChargePointIdentity(identifier, ChargePointIdentity.ANY_USER);
 	}
 
 	@Test

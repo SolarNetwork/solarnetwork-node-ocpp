@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: SolarNode OCPP Connector Control
 Bundle-SymbolicName: net.solarnetwork.node.ocpp.control.connectors
-Bundle-Version: 0.1.0
+Bundle-Version: 0.2.0
 Bundle-Vendor: SolarNetwork
 Automatic-Module-Name: net.solarnetwork.node.ocpp.control.connectors
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
@@ -17,7 +17,7 @@ Import-Package:
  net.solarnetwork.node.settings.support;version="[1.10,2.0)",
  net.solarnetwork.node.support;version="[1.20,2.0)",
  net.solarnetwork.ocpp.dao;version="[1.0,2.0)",
- net.solarnetwork.ocpp.domain;version="[1.0,2.0)",
+ net.solarnetwork.ocpp.domain;version="[1.1,2.0)",
  net.solarnetwork.ocpp.service;version="[1.0,2.0)",
  net.solarnetwork.ocpp.service.cs;version="[1.0,2.0)",
  net.solarnetwork.util;version="[1.41,2.0)",

@@ -407,8 +407,7 @@ public class OcppControllerService extends BaseIdentifiable
 
 	private String chargePointStatus(ChargePoint cp, Set<ChargePointIdentity> availableChargePointIds) {
 		StringBuilder buf = new StringBuilder();
-		ChargePointIdentity identity = new ChargePointIdentity(cp.getInfo().getId(),
-				ChargePointIdentity.ANY_USERNAME);
+		ChargePointIdentity identity = cp.chargePointIdentity();
 		buf.append(availableChargePointIds.contains(identity)
 				? getMessageSource().getMessage("connected.label", null, "Connected",
 						Locale.getDefault())
