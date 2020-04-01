@@ -94,7 +94,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 	public static final String SESSION_ID_PROPERTY = "sessionId";
 
 	/** The default {@code sourceIdTemplate} value. */
-	public static final String DEFAULT_SOURCE_ID_TEMPLATE = "/ocpp/cp/{chargePointId}/{connectorId}/{location}";
+	public static final String DEFAULT_SOURCE_ID_TEMPLATE = "/ocpp/cp/{chargerIdentifier}/{connectorId}/{location}";
 
 	/** The default {@code maxTemperatureScale} value. */
 	public static final int DEFAULT_MAX_TEMPERATURE_SCALE = 1;
@@ -284,7 +284,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 	public Collection<ChargeSession> getActiveChargingSessions(ChargePointIdentity identifier) {
 		if ( identifier != null ) {
 			ChargePoint cp = chargePoint(identifier, null);
-			return chargeSessionDao.getIncompleteChargeSessionForChargePoint(cp.getId());
+			return chargeSessionDao.getIncompleteChargeSessionsForChargePoint(cp.getId());
 		}
 		return chargeSessionDao.getIncompleteChargeSessions();
 	}
@@ -343,8 +343,8 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 		populateProperty(d, reading.getMeasurand(), reading.getUnit(), reading.getValue());
 		if ( d.getSamples() != null && !d.getSamples().isEmpty() ) {
 			d.setCreated(new Date(reading.getTimestamp().toEpochMilli()));
-			d.setSourceId(sourceId(chargePoint.getInfo().getId(), sess.getConnectorId(),
-					reading.getLocation(), reading.getPhase()));
+			d.setSourceId(sourceId(chargePoint, sess.getConnectorId(), reading.getLocation(),
+					reading.getPhase()));
 			d.putStatusSampleValue(SESSION_ID_PROPERTY, sess.getId().toString());
 			return d;
 		}
@@ -431,9 +431,10 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 		}
 	}
 
-	private String sourceId(String chargePointId, int connectorId, Location location, Phase phase) {
+	private String sourceId(ChargePoint chargePoint, int connectorId, Location location, Phase phase) {
 		Map<String, Object> params = new HashMap<>(4);
-		params.put("chargePointId", chargePointId);
+		params.put("chargePointId", chargePoint.getId());
+		params.put("chargerIdentifier", chargePoint.getInfo().getId());
 		params.put("connectorId", connectorId);
 		params.put("location", location);
 		params.put("phase", phase);
@@ -622,7 +623,9 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 	 * </p>
 	 * 
 	 * <ol>
-	 * <li><code>{chargePointId}</code> - the Charge Point ID (string)</li>
+	 * <li><code>{chargePointId}</code> - the Charge Point ID (number)</li>
+	 * <li><code>{chargerIdentifier}</code> - the Charge Point info identifier
+	 * (string)</li>
 	 * <li><code>{connectorId}</code> - the connector ID (integer)</li>
 	 * <li><code>{location}</code> - the location (string)</li>
 	 * <li><code>{phase}</code> - the phase (string)</li>
