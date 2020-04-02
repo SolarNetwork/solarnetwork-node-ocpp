@@ -3,7 +3,7 @@ Bundle-ManifestVersion: 2
 Bundle-Name: OCPP 1.6 JSON Central System Web
 Bundle-Description: OCPP 1.6 JSON Central System web service.
 Bundle-SymbolicName: net.solarnetwork.node.ocpp.v16.cs.json.web
-Bundle-Version: 0.1.0
+Bundle-Version: 0.2.0
 Fragment-Host: net.solarnetwork.node.setup.web;bundle-version="[1.43,2.0)"
 Bundle-Vendor: SolarNetwork
 Automatic-Module-Name: net.solarnetwork.node.ocpp.v16.cs.json.web
@@ -18,11 +18,11 @@ Import-Package:
  net.solarnetwork.ocpp.dao;version="[1.0,2.0)",
  net.solarnetwork.ocpp.domain;version="[1.1,2.0)",
  net.solarnetwork.ocpp.service;version="[1.0,2.0)",
- net.solarnetwork.ocpp.web.json;version="[1.0,2.0)",
+ net.solarnetwork.ocpp.web.json;version="[1.1,2.0)",
  net.solarnetwork.settings;version="[1.2,2.0)",
- ocpp.domain;version="[1.0,2.0)",
+ ocpp.domain;version="[1.1,2.0)",
  ocpp.json;version="[1.0,2.0)",
- ocpp.v16;version="[1.0,2.0)",
+ ocpp.v16;version="[1.1,2.0)",
  ocpp.v16.cp.json;version="[1.0,2.0)",
  ocpp.v16.cs.json;version="[1.0,2.0)",
  org.osgi.framework;version="[1.7,2.0)",

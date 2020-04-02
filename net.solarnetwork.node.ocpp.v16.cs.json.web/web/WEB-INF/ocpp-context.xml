@@ -36,6 +36,11 @@
 	
 	<bean id="ocppWebSocketHandler_v16" class="net.solarnetwork.ocpp.web.json.OcppWebSocketHandler" 
 			init-method="startup" destroy-method="shutdown">
+		<constructor-arg value="ocpp.v16.ChargePointAction"/>
+		<constructor-arg value="ocpp.v16.CentralSystemAction"/>
+		<constructor-arg>
+			<bean class="ocpp.v16.ErrorCodeResolver"/>
+		</constructor-arg>
 		<constructor-arg>
 			<osgi:reference interface="org.springframework.core.task.AsyncTaskExecutor" filter="(function=node)"/>
 		</constructor-arg>
