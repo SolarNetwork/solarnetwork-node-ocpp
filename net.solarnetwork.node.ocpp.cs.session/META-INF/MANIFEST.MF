@@ -3,13 +3,14 @@ Bundle-ManifestVersion: 2
 Bundle-Name: OCPP ChargeSession SolarNetwork Integration
 Bundle-Description: Post OCPP charge session data as SolarNetwork datum streams.
 Bundle-SymbolicName: net.solarnetwork.node.ocpp.cs.session
-Bundle-Version: 0.1.0
+Bundle-Version: 0.2.0
 Bundle-Vendor: SolarNetwork
 Automatic-Module-Name: net.solarnetwork.node.ocpp.cs.session
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Import-Package: 
  net.solarnetwork.dao;version="[1.0,2.0)",
  net.solarnetwork.domain;version="[1.19,2.0)",
+ net.solarnetwork.node;version="1.31.0",
  net.solarnetwork.node.dao;version="[1.10,2.0)",
  net.solarnetwork.node.domain;version="[1.18,2.0)",
  net.solarnetwork.node.settings;version="[1.12,2.0)",

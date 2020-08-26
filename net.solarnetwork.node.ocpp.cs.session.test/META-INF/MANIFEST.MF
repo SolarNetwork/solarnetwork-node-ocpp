@@ -2,9 +2,9 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Test
 Bundle-SymbolicName: net.solarnetwork.node.ocpp.cs.session.test
-Bundle-Version: 0.1.0
+Bundle-Version: 0.2.0
 Bundle-Vendor: SolarNetwork
-Fragment-Host: net.solarnetwork.node.ocpp.cs.session;bundle-version="[0.1.0,1.0.0)"
+Fragment-Host: net.solarnetwork.node.ocpp.cs.session;bundle-version="[0.2,1.0)"
 Automatic-Module-Name: net.solarnetwork.node.ocpp.cs.session.test
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Import-Package: 

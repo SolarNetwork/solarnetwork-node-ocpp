@@ -24,6 +24,7 @@ package net.solarnetwork.node.ocpp.cs.session;
 
 import static java.util.Collections.singleton;
 import static net.solarnetwork.node.domain.Datum.REVERSE_ACCUMULATING_SUFFIX_KEY;
+import static net.solarnetwork.util.OptionalService.service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -47,6 +48,7 @@ import org.springframework.scheduling.TaskScheduler;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import net.solarnetwork.domain.GeneralDatumSamplesType;
+import net.solarnetwork.node.PlaceholderService;
 import net.solarnetwork.node.dao.DatumDao;
 import net.solarnetwork.node.domain.ACEnergyDatum;
 import net.solarnetwork.node.domain.AtmosphericDatum;
@@ -85,7 +87,7 @@ import net.solarnetwork.util.StringUtils;
  * session transaction data.
  * 
  * @author matt
- * @version 1.0
+ * @version 1.1
  */
 public class SolarNetChargeSessionManager extends BaseIdentifiable
 		implements ChargeSessionManager, SettingSpecifierProvider, SettingsChangeObserver {
@@ -438,7 +440,9 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 		params.put("connectorId", connectorId);
 		params.put("location", location);
 		params.put("phase", phase);
-		return StringUtils.expandTemplateString(sourceIdTemplate, params);
+		PlaceholderService service = service(getPlaceholderService());
+		return (service != null ? service.resolvePlaceholders(sourceIdTemplate, params)
+				: StringUtils.expandTemplateString(sourceIdTemplate, params));
 	}
 
 	private void populateProperty(GeneralNodeDatum datum, Measurand measurand, UnitOfMeasure unit,
