@@ -24,6 +24,7 @@ package net.solarnetwork.node.ocpp.cs.session;
 
 import static java.util.Collections.singleton;
 import static net.solarnetwork.node.domain.Datum.REVERSE_ACCUMULATING_SUFFIX_KEY;
+import static net.solarnetwork.util.OptionalService.service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -47,6 +48,7 @@ import org.springframework.scheduling.TaskScheduler;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import net.solarnetwork.domain.GeneralDatumSamplesType;
+import net.solarnetwork.node.PlaceholderService;
 import net.solarnetwork.node.dao.DatumDao;
 import net.solarnetwork.node.domain.ACEnergyDatum;
 import net.solarnetwork.node.domain.AtmosphericDatum;
@@ -85,7 +87,7 @@ import net.solarnetwork.util.StringUtils;
  * session transaction data.
  * 
  * @author matt
- * @version 1.0
+ * @version 1.1
  */
 public class SolarNetChargeSessionManager extends BaseIdentifiable
 		implements ChargeSessionManager, SettingSpecifierProvider, SettingsChangeObserver {
@@ -94,7 +96,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 	public static final String SESSION_ID_PROPERTY = "sessionId";
 
 	/** The default {@code sourceIdTemplate} value. */
-	public static final String DEFAULT_SOURCE_ID_TEMPLATE = "/ocpp/cp/{chargePointId}/{connectorId}/{location}";
+	public static final String DEFAULT_SOURCE_ID_TEMPLATE = "/ocpp/cp/{chargerIdentifier}/{connectorId}/{location}";
 
 	/** The default {@code maxTemperatureScale} value. */
 	public static final int DEFAULT_MAX_TEMPERATURE_SCALE = 1;
@@ -284,7 +286,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 	public Collection<ChargeSession> getActiveChargingSessions(ChargePointIdentity identifier) {
 		if ( identifier != null ) {
 			ChargePoint cp = chargePoint(identifier, null);
-			return chargeSessionDao.getIncompleteChargeSessionForChargePoint(cp.getId());
+			return chargeSessionDao.getIncompleteChargeSessionsForChargePoint(cp.getId());
 		}
 		return chargeSessionDao.getIncompleteChargeSessions();
 	}
@@ -343,8 +345,8 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 		populateProperty(d, reading.getMeasurand(), reading.getUnit(), reading.getValue());
 		if ( d.getSamples() != null && !d.getSamples().isEmpty() ) {
 			d.setCreated(new Date(reading.getTimestamp().toEpochMilli()));
-			d.setSourceId(sourceId(chargePoint.getInfo().getId(), sess.getConnectorId(),
-					reading.getLocation(), reading.getPhase()));
+			d.setSourceId(sourceId(chargePoint, sess.getConnectorId(), reading.getLocation(),
+					reading.getPhase()));
 			d.putStatusSampleValue(SESSION_ID_PROPERTY, sess.getId().toString());
 			return d;
 		}
@@ -431,13 +433,16 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 		}
 	}
 
-	private String sourceId(String chargePointId, int connectorId, Location location, Phase phase) {
+	private String sourceId(ChargePoint chargePoint, int connectorId, Location location, Phase phase) {
 		Map<String, Object> params = new HashMap<>(4);
-		params.put("chargePointId", chargePointId);
+		params.put("chargePointId", chargePoint.getId());
+		params.put("chargerIdentifier", chargePoint.getInfo().getId());
 		params.put("connectorId", connectorId);
 		params.put("location", location);
 		params.put("phase", phase);
-		return StringUtils.expandTemplateString(sourceIdTemplate, params);
+		PlaceholderService service = service(getPlaceholderService());
+		return (service != null ? service.resolvePlaceholders(sourceIdTemplate, params)
+				: StringUtils.expandTemplateString(sourceIdTemplate, params));
 	}
 
 	private void populateProperty(GeneralNodeDatum datum, Measurand measurand, UnitOfMeasure unit,
@@ -622,7 +627,9 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 	 * </p>
 	 * 
 	 * <ol>
-	 * <li><code>{chargePointId}</code> - the Charge Point ID (string)</li>
+	 * <li><code>{chargePointId}</code> - the Charge Point ID (number)</li>
+	 * <li><code>{chargerIdentifier}</code> - the Charge Point info identifier
+	 * (string)</li>
 	 * <li><code>{connectorId}</code> - the connector ID (integer)</li>
 	 * <li><code>{location}</code> - the location (string)</li>
 	 * <li><code>{phase}</code> - the phase (string)</li>

@@ -25,6 +25,11 @@
 		<property name="serviceFilter" value="(datumClassName=net.solarnetwork.node.domain.GeneralNodeDatum)"/>
 	</bean>
 	
+	<bean id="placeholderService" class="net.solarnetwork.util.DynamicServiceTracker">
+		<property name="bundleContext" ref="bundleContext"/>
+		<property name="serviceClassName" value="net.solarnetwork.node.PlaceholderService"/>
+	</bean>
+	
 	<reference id="taskScheduler" interface="org.springframework.scheduling.TaskScheduler"
 		filter="(function=node)"/>
 	
@@ -53,6 +58,7 @@
 		<argument ref="chargeSessionDao"/>
 		<argument ref="generalNodeDatumDao"/>
 		<property name="taskScheduler" ref="taskScheduler"/>
+		<property name="placeholderService" ref="placeholderService"/>
 		<property name="messageSource">
 				<bean class="org.springframework.context.support.ResourceBundleMessageSource">
 					<property name="basenames">

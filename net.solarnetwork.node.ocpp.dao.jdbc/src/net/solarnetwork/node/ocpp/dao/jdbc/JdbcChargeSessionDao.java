@@ -145,7 +145,7 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 	}
 
 	@Override
-	public Collection<ChargeSession> getIncompleteChargeSessionForChargePoint(long chargePointId) {
+	public Collection<ChargeSession> getIncompleteChargeSessionsForChargePoint(long chargePointId) {
 		return getJdbcTemplate().query(
 				getSqlResource(SqlResource.FindByIncompleteChargePoint.getResource()), getRowMapper(),
 				chargePointId);

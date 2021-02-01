@@ -3,7 +3,7 @@ Bundle-ManifestVersion: 2
 Bundle-Name: OCPP v1.6 Central System Local Controller
 Bundle-Description: Act as a OCPP v1.6 Local Controller.
 Bundle-SymbolicName: net.solarnetwork.node.ocpp.v16.cs.controller
-Bundle-Version: 0.1.0
+Bundle-Version: 0.2.0
 Bundle-Vendor: SolarNetwork
 Automatic-Module-Name: net.solarnetwork.node.ocpp.v16.cs.controller
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
@@ -12,14 +12,15 @@ Import-Package:
  net.solarnetwork.domain;version="[1.19,2.0)",
  net.solarnetwork.node;version="[1.29,2.0)",
  net.solarnetwork.ocpp.dao;version="[1.0,2.0)",
- net.solarnetwork.ocpp.domain;version="[1.0,2.0)",
- net.solarnetwork.ocpp.service;version="[1.0,2.0)",
- net.solarnetwork.ocpp.service.cs;version="[1.0,2.0)",
- net.solarnetwork.ocpp.v16.cs;version="[1.0,2.0)",
+ net.solarnetwork.ocpp.domain;version="[1.1,2.0)",
+ net.solarnetwork.ocpp.service;version="[1.1,2.0)",
+ net.solarnetwork.ocpp.service.cs;version="[1.1,2.0)",
+ net.solarnetwork.ocpp.v16.cs;version="[1.1,2.0)",
  net.solarnetwork.node.settings;version="[1.12,2.0)",
  net.solarnetwork.node.settings.support;version="[1.10,2.0)",
  net.solarnetwork.node.support;version="[1.20,2.0)",
  net.solarnetwork.pki.bc;version="[1.2,2.0)",
+ net.solarnetwork.security;version="[1.0,2.0)",
  net.solarnetwork.settings;version="[1.2,2.0)",
  net.solarnetwork.support;version="[1.11,2.0)",
  net.solarnetwork.util;version="[1.40,2.0)",

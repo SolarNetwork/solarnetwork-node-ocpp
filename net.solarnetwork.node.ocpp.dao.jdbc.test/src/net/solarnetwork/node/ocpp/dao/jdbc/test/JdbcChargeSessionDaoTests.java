@@ -202,7 +202,7 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 		dao.save(two);
 
 		Collection<ChargeSession> sess = dao
-				.getIncompleteChargeSessionForChargePoint(s.getChargePointId());
+				.getIncompleteChargeSessionsForChargePoint(s.getChargePointId());
 		assertThat("Incomplete session found", sess, contains(s));
 	}
 
@@ -219,7 +219,7 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 		dao.save(two);
 
 		Collection<ChargeSession> sess = dao
-				.getIncompleteChargeSessionForChargePoint(s.getChargePointId());
+				.getIncompleteChargeSessionsForChargePoint(s.getChargePointId());
 		assertThat("Incomplete session found", sess, contains(s));
 	}
 
@@ -234,7 +234,7 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 		dao.save(two);
 
 		Collection<ChargeSession> sess = dao
-				.getIncompleteChargeSessionForChargePoint(s.getChargePointId());
+				.getIncompleteChargeSessionsForChargePoint(s.getChargePointId());
 		assertThat("Incomplete session found", sess, contains(s, two));
 	}
 
