@@ -34,8 +34,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import javax.annotation.Resource;
-import javax.sql.DataSource;
 import org.easymock.Capture;
 import org.easymock.EasyMock;
 import org.junit.Before;
@@ -55,18 +53,15 @@ import net.solarnetwork.ocpp.domain.ChargePointInfo;
 import net.solarnetwork.ocpp.domain.ChargePointStatus;
 import net.solarnetwork.ocpp.domain.RegistrationStatus;
 import net.solarnetwork.ocpp.domain.StatusNotification;
-import net.solarnetwork.util.StaticOptionalService;
+import net.solarnetwork.service.StaticOptionalService;
 
 /**
  * Test cases for the {@link JdbcChargePointConnectorDao}.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class JdbcChargePointConnectorDaoTests extends AbstractNodeTransactionalTest {
-
-	@Resource(name = "dataSource")
-	private DataSource dataSource;
 
 	private JdbcChargePointDao chargePointDao;
 
@@ -213,7 +208,7 @@ public class JdbcChargePointConnectorDaoTests extends AbstractNodeTransactionalT
 		EventAdmin eventAdmin = EasyMock.createMock(EventAdmin.class);
 		dao.setEventAdmin(new StaticOptionalService<EventAdmin>(eventAdmin));
 
-		Capture<Event> eventCaptor = new Capture<>();
+		Capture<Event> eventCaptor = Capture.newInstance();
 		eventAdmin.postEvent(capture(eventCaptor));
 
 		// when
@@ -239,7 +234,7 @@ public class JdbcChargePointConnectorDaoTests extends AbstractNodeTransactionalT
 		EventAdmin eventAdmin = EasyMock.createMock(EventAdmin.class);
 		dao.setEventAdmin(new StaticOptionalService<EventAdmin>(eventAdmin));
 
-		Capture<Event> eventCaptor = new Capture<>();
+		Capture<Event> eventCaptor = Capture.newInstance();
 		eventAdmin.postEvent(capture(eventCaptor));
 
 		// when

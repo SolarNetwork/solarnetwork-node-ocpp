@@ -28,16 +28,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import net.solarnetwork.domain.Identity;
-import net.solarnetwork.node.settings.SettingSpecifier;
-import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
-import net.solarnetwork.node.settings.support.SettingsUtil;
 import net.solarnetwork.ocpp.domain.SystemUser;
+import net.solarnetwork.settings.SettingSpecifier;
+import net.solarnetwork.settings.support.BasicTextFieldSettingSpecifier;
+import net.solarnetwork.settings.support.SettingUtils;
 
 /**
  * Configuration object for {@link SystemUser}.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class SystemUserConfig implements Identity<Long> {
 
@@ -94,8 +94,8 @@ public class SystemUserConfig implements Identity<Long> {
 
 		// charging periods list
 		List<String> allowed = getAllowedChargePoints();
-		results.add(SettingsUtil.dynamicListSettingSpecifier(prefix + "allowedChargePoints", allowed,
-				new SettingsUtil.KeyedListCallback<String>() {
+		results.add(SettingUtils.dynamicListSettingSpecifier(prefix + "allowedChargePoints", allowed,
+				new SettingUtils.KeyedListCallback<String>() {
 
 					@Override
 					public Collection<SettingSpecifier> mapListSettingKey(String value, int index,

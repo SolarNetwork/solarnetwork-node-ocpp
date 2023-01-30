@@ -28,7 +28,6 @@ import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
@@ -59,11 +58,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.scheduling.TaskScheduler;
-import net.solarnetwork.node.PlaceholderService;
-import net.solarnetwork.node.dao.DatumDao;
-import net.solarnetwork.node.domain.ACEnergyDatum;
-import net.solarnetwork.node.domain.GeneralNodeDatum;
+import net.solarnetwork.domain.datum.DatumSamplesType;
+import net.solarnetwork.node.domain.datum.AcEnergyDatum;
+import net.solarnetwork.node.domain.datum.NodeDatum;
 import net.solarnetwork.node.ocpp.cs.session.SolarNetChargeSessionManager;
+import net.solarnetwork.node.service.DatumQueue;
+import net.solarnetwork.node.service.PlaceholderService;
 import net.solarnetwork.ocpp.dao.ChargePointDao;
 import net.solarnetwork.ocpp.dao.ChargeSessionDao;
 import net.solarnetwork.ocpp.dao.PurgePostedChargeSessionsTask;
@@ -83,7 +83,7 @@ import net.solarnetwork.ocpp.domain.SampledValue;
 import net.solarnetwork.ocpp.domain.UnitOfMeasure;
 import net.solarnetwork.ocpp.service.AuthorizationException;
 import net.solarnetwork.ocpp.service.AuthorizationService;
-import net.solarnetwork.util.StaticOptionalService;
+import net.solarnetwork.service.StaticOptionalService;
 
 /**
  * Test cases for the {@link SolarNetChargeSessionManager} class.
@@ -96,33 +96,32 @@ public class SolarNetChargeSessionManagerTests {
 	private AuthorizationService authService;
 	private ChargePointDao chargePointDao;
 	private ChargeSessionDao chargeSessionDao;
-	private DatumDao<GeneralNodeDatum> datumDao;
+	private DatumQueue datumQueue;
 	private TaskScheduler taskScheduler;
 	private PlaceholderService placeholderService;
 	private SolarNetChargeSessionManager manager;
 
-	@SuppressWarnings("unchecked")
 	@Before
 	public void setup() {
 		authService = createMock(AuthorizationService.class);
 		chargePointDao = createMock(ChargePointDao.class);
 		chargeSessionDao = createMock(ChargeSessionDao.class);
-		datumDao = createMock(DatumDao.class);
+		datumQueue = createMock(DatumQueue.class);
 		taskScheduler = createMock(TaskScheduler.class);
 		placeholderService = createMock(PlaceholderService.class);
 		manager = new SolarNetChargeSessionManager(authService, chargePointDao, chargeSessionDao,
-				new StaticOptionalService<>(datumDao));
+				new StaticOptionalService<>(datumQueue));
 		manager.setTaskScheduler(taskScheduler);
 	}
 
 	@After
 	public void teardown() {
-		EasyMock.verify(authService, chargePointDao, chargeSessionDao, datumDao, taskScheduler,
+		EasyMock.verify(authService, chargePointDao, chargeSessionDao, datumQueue, taskScheduler,
 				placeholderService);
 	}
 
 	private void replayAll(Object... mocks) {
-		EasyMock.replay(authService, chargePointDao, chargeSessionDao, datumDao, taskScheduler,
+		EasyMock.replay(authService, chargePointDao, chargeSessionDao, datumQueue, taskScheduler,
 				placeholderService);
 		if ( mocks != null ) {
 			EasyMock.replay(mocks);
@@ -136,14 +135,14 @@ public class SolarNetChargeSessionManagerTests {
 		int expireHours = 2;
 		manager.setPurgePostedChargeSessionsExpirationHours(expireHours);
 
-		Capture<Runnable> startupTaskCaptor = new Capture<>();
+		Capture<Runnable> startupTaskCaptor = Capture.newInstance();
 		ScheduledFuture<Object> startupTaskFuture = createMock(ScheduledFuture.class);
 		expect(taskScheduler.schedule(capture(startupTaskCaptor), anyObject(Date.class)))
 				.andReturn((ScheduledFuture) startupTaskFuture);
 
 		long taskDelay = TimeUnit.HOURS.toMillis(expireHours) / 4;
 		ScheduledFuture<Object> purgePostedTaskFuture = createMock(ScheduledFuture.class);
-		Capture<Runnable> purgeTaskCaptor = new Capture<>();
+		Capture<Runnable> purgeTaskCaptor = Capture.newInstance();
 		expect(taskScheduler.scheduleWithFixedDelay(capture(purgeTaskCaptor), anyObject(),
 				eq(taskDelay))).andReturn((ScheduledFuture) purgePostedTaskFuture);
 
@@ -163,7 +162,7 @@ public class SolarNetChargeSessionManagerTests {
 
 	@Test
 	public void startSession_ok() {
-		// given
+		// GIVEN
 
 		// verify authorization
 		String identifier = UUID.randomUUID().toString();
@@ -183,7 +182,7 @@ public class SolarNetChargeSessionManagerTests {
 				.andReturn(null);
 
 		// create new session
-		Capture<ChargeSession> sessionCaptor = new Capture<>();
+		Capture<ChargeSession> sessionCaptor = Capture.newInstance();
 		expect(chargeSessionDao.save(capture(sessionCaptor))).andAnswer(new IAnswer<UUID>() {
 
 			@Override
@@ -193,7 +192,7 @@ public class SolarNetChargeSessionManagerTests {
 		});
 
 		// refresh to get txid
-		Capture<UUID> sessionIdCaptor = new Capture<>();
+		Capture<UUID> sessionIdCaptor = Capture.newInstance();
 		int transactionId = 123;
 		expect(chargeSessionDao.get(capture(sessionIdCaptor))).andAnswer(new IAnswer<ChargeSession>() {
 
@@ -206,14 +205,14 @@ public class SolarNetChargeSessionManagerTests {
 		});
 
 		// store initial reading
-		Capture<Iterable<SampledValue>> readingsCaptor = new Capture<>();
+		Capture<Iterable<SampledValue>> readingsCaptor = Capture.newInstance();
 		chargeSessionDao.addReadings(capture(readingsCaptor));
 
 		// generate datum from initial reading
-		Capture<GeneralNodeDatum> datumCaptor = new Capture<>();
-		datumDao.storeDatum(capture(datumCaptor));
+		Capture<NodeDatum> datumCaptor = Capture.newInstance();
+		expect(datumQueue.offer(capture(datumCaptor))).andReturn(true);
 
-		// when
+		// WHEN
 		replayAll();
 
 		// @formatter:off
@@ -228,7 +227,7 @@ public class SolarNetChargeSessionManagerTests {
 
 		ChargeSession sess = manager.startChargingSession(info);
 
-		// then
+		// THEN
 		assertThat("Session created", sess, notNullValue());
 
 		assertThat("Stored session ID not null", sessionCaptor.getValue(), notNullValue());
@@ -267,16 +266,16 @@ public class SolarNetChargeSessionManagerTests {
 		assertThat("Initial reading value", samples.get(0).getValue(),
 				equalTo(String.valueOf(info.getMeterStart())));
 
-		GeneralNodeDatum datum = datumCaptor.getValue();
+		NodeDatum datum = datumCaptor.getValue();
 		assertThat("Datum generated", datum, notNullValue());
-		assertThat("Datum date", datum.getCreated().getTime(),
-				equalTo(sess.getCreated().toEpochMilli()));
+		assertThat("Datum date", datum.getTimestamp(), equalTo(sess.getCreated()));
 		assertThat("Datum source ID", datum.getSourceId(),
 				equalTo(String.format("/ocpp/cp/%s/%d/%s", identifier, connectorId, Location.Outlet)));
-		assertThat("Energy prop", datum.getAccumulatingSampleLong(ACEnergyDatum.WATT_HOUR_READING_KEY),
-				equalTo(info.getMeterStart()));
+		assertThat("Energy prop", datum.asSampleOperations().getSampleLong(DatumSamplesType.Accumulating,
+				AcEnergyDatum.WATT_HOUR_READING_KEY), equalTo(info.getMeterStart()));
 		assertThat("Datum prop session ID",
-				datum.getStatusSampleString(SolarNetChargeSessionManager.SESSION_ID_PROPERTY),
+				datum.asSampleOperations().getSampleString(DatumSamplesType.Status,
+						SolarNetChargeSessionManager.SESSION_ID_PROPERTY),
 				equalTo(sess.getId().toString()));
 	}
 
@@ -346,7 +345,7 @@ public class SolarNetChargeSessionManagerTests {
 		expect(chargeSessionDao.getIncompleteChargeSessionForTransaction(cp.getId(), transactionId))
 				.andReturn(sess);
 
-		Capture<ChargeSession> updatedCaptor = new Capture<>();
+		Capture<ChargeSession> updatedCaptor = Capture.newInstance();
 		expect(chargeSessionDao.save(capture(updatedCaptor))).andReturn(sess.getId());
 
 		// @formatter:off
@@ -368,12 +367,13 @@ public class SolarNetChargeSessionManagerTests {
 		expect(chargeSessionDao.findReadingsForSession(sess.getId()))
 				.andReturn(Arrays.asList(startReading, middleReading));
 
-		Capture<Iterable<SampledValue>> newReadingsCapture = new Capture<>();
+		Capture<Iterable<SampledValue>> newReadingsCapture = Capture.newInstance();
 		chargeSessionDao.addReadings(capture(newReadingsCapture));
 
 		// generate datum from initial reading
-		Capture<GeneralNodeDatum> datumCaptor = new Capture<>();
-		datumDao.storeDatum(capture(datumCaptor));
+		Capture<NodeDatum> datumCaptor = Capture.newInstance();
+		expect(datumQueue.offer(capture(datumCaptor))).andReturn(true);
+
 		// when
 		replayAll();
 
@@ -416,16 +416,16 @@ public class SolarNetChargeSessionManagerTests {
 		assertThat("End auth ID set", updated.getAuthId(), equalTo(info.getAuthorizationId()));
 		assertThat("Posted date set", updated.getPosted(), notNullValue());
 
-		GeneralNodeDatum datum = datumCaptor.getValue();
+		NodeDatum datum = datumCaptor.getValue();
 		assertThat("Datum generated", datum, notNullValue());
-		assertThat("Datum date", datum.getCreated().getTime(),
-				equalTo(info.getTimestampEnd().toEpochMilli()));
+		assertThat("Datum date", datum.getTimestamp(), equalTo(info.getTimestampEnd()));
 		assertThat("Datum source ID", datum.getSourceId(),
 				equalTo(String.format("/ocpp/cp/%s/%d/%s", identifier, connectorId, Location.Outlet)));
-		assertThat("Energy prop", datum.getAccumulatingSampleLong(ACEnergyDatum.WATT_HOUR_READING_KEY),
-				equalTo(info.getMeterEnd()));
+		assertThat("Energy prop", datum.asSampleOperations().getSampleLong(DatumSamplesType.Accumulating,
+				AcEnergyDatum.WATT_HOUR_READING_KEY), equalTo(info.getMeterEnd()));
 		assertThat("Datum prop session ID",
-				datum.getStatusSampleString(SolarNetChargeSessionManager.SESSION_ID_PROPERTY),
+				datum.asSampleOperations().getSampleString(DatumSamplesType.Status,
+						SolarNetChargeSessionManager.SESSION_ID_PROPERTY),
 				equalTo(sess.getId().toString()));
 	}
 
@@ -451,12 +451,11 @@ public class SolarNetChargeSessionManagerTests {
 		expect(chargeSessionDao.findReadingsForSession(sess.getId())).andReturn(Collections.emptyList());
 
 		// save readings
-		Capture<Iterable<SampledValue>> readingsCaptor = new Capture<>();
+		Capture<Iterable<SampledValue>> readingsCaptor = Capture.newInstance();
 		chargeSessionDao.addReadings(capture(readingsCaptor));
 
-		Capture<GeneralNodeDatum> datumCaptor = new Capture<>(CaptureType.ALL);
-		datumDao.storeDatum(capture(datumCaptor));
-		expectLastCall().times(3);
+		Capture<NodeDatum> datumCaptor = Capture.newInstance(CaptureType.ALL);
+		expect(datumQueue.offer(capture(datumCaptor))).andReturn(true).times(3);
 
 		// when
 		replayAll();
@@ -515,41 +514,39 @@ public class SolarNetChargeSessionManagerTests {
 				.withValue("3456")
 				.build();
 		// @formatter:on
-		manager.addChargingSessionReadings(asList(r1, r2, r3, r4, r5, r6));
+		manager.addChargingSessionReadings(cp.chargePointIdentity(), asList(r1, r2, r3, r4, r5, r6));
 
 		// then
 		assertThat("Persisted readings same as passed in", readingsCaptor.getValue(),
 				contains(r1, r2, r3, r4, r5, r6));
 
-		List<GeneralNodeDatum> persistedDatum = datumCaptor.getValues();
+		List<NodeDatum> persistedDatum = datumCaptor.getValues();
 		assertThat("Consolidated readings into 3 datum based on date", persistedDatum, hasSize(3));
 
 		for ( int i = 0; i < persistedDatum.size(); i++ ) {
-			GeneralNodeDatum d = persistedDatum.get(i);
+			NodeDatum d = persistedDatum.get(i);
 			assertThat("Datum source ID " + i, d.getSourceId(),
 					equalTo("/ocpp/cp/" + identifier + "/" + connectorId + "/Outlet"));
-			assertThat("Datum session ID " + i, d.getStatusSampleString("sessionId"),
+			assertThat("Datum session ID " + i,
+					d.asSampleOperations().getSampleString(DatumSamplesType.Status, "sessionId"),
 					equalTo(sess.getId().toString()));
 		}
 
-		GeneralNodeDatum d = persistedDatum.get(0);
-		assertThat("Datum 1 @ transaction start", d.getCreated().getTime(),
-				equalTo(r1.getTimestamp().toEpochMilli()));
+		NodeDatum d = persistedDatum.get(0);
+		assertThat("Datum 1 @ transaction start", d.getTimestamp(), equalTo(r1.getTimestamp()));
 		assertThat("Datum 1 consolidated properties", d.getSampleData(),
 				allOf(hasEntry("wattHours", new BigDecimal(r1.getValue())),
 						hasEntry("watts", new BigDecimal(r2.getValue()))));
 
 		d = persistedDatum.get(1);
-		assertThat("Datum 2 @ middle", d.getCreated().getTime(),
-				equalTo(r3.getTimestamp().toEpochMilli()));
+		assertThat("Datum 2 @ middle", d.getTimestamp(), equalTo(r3.getTimestamp()));
 		assertThat("Datum 2 consolidated properties", d.getSampleData(),
 				allOf(hasEntry("wattHours", new BigDecimal(r3.getValue())),
 						hasEntry("watts", new BigDecimal(r4.getValue())),
 						hasEntry("frequency", new BigDecimal(r5.getValue()))));
 
 		d = persistedDatum.get(2);
-		assertThat("Datum 2 @ transaction end", d.getCreated().getTime(),
-				equalTo(r6.getTimestamp().toEpochMilli()));
+		assertThat("Datum 2 @ transaction end", d.getTimestamp(), equalTo(r6.getTimestamp()));
 		assertThat("Datum 2 consolidated properties", d.getSampleData(),
 				hasEntry("wattHours", new BigDecimal(r6.getValue())));
 	}
@@ -579,16 +576,15 @@ public class SolarNetChargeSessionManagerTests {
 		expect(chargeSessionDao.findReadingsForSession(sess.getId())).andReturn(Collections.emptyList());
 
 		// save readings
-		Capture<Iterable<SampledValue>> readingsCaptor = new Capture<>();
+		Capture<Iterable<SampledValue>> readingsCaptor = Capture.newInstance();
 		chargeSessionDao.addReadings(capture(readingsCaptor));
 
 		expect(placeholderService.resolvePlaceholders(
 				eq(SolarNetChargeSessionManager.DEFAULT_SOURCE_ID_TEMPLATE), anyObject(Map.class)))
 						.andReturn("RESOLVED");
 
-		Capture<GeneralNodeDatum> datumCaptor = new Capture<>(CaptureType.ALL);
-		datumDao.storeDatum(capture(datumCaptor));
-		expectLastCall().times(1);
+		Capture<NodeDatum> datumCaptor = Capture.newInstance(CaptureType.ALL);
+		expect(datumQueue.offer(capture(datumCaptor))).andReturn(true);
 
 		// when
 		replayAll();
@@ -604,24 +600,24 @@ public class SolarNetChargeSessionManagerTests {
 				.withValue("1234")
 				.build();
 		// @formatter:on
-		manager.addChargingSessionReadings(asList(r1));
+		manager.addChargingSessionReadings(cp.chargePointIdentity(), asList(r1));
 
 		// then
 		assertThat("Persisted readings same as passed in", readingsCaptor.getValue(), contains(r1));
 
-		List<GeneralNodeDatum> persistedDatum = datumCaptor.getValues();
+		List<NodeDatum> persistedDatum = datumCaptor.getValues();
 		assertThat("Readings into datum based on date", persistedDatum, hasSize(1));
 
 		for ( int i = 0; i < persistedDatum.size(); i++ ) {
-			GeneralNodeDatum d = persistedDatum.get(i);
+			NodeDatum d = persistedDatum.get(i);
 			//assertThat("Datum source ID " + i, d.getSourceId(), equalTo("RESOLVED"));
-			assertThat("Datum session ID " + i, d.getStatusSampleString("sessionId"),
+			assertThat("Datum session ID " + i,
+					d.asSampleOperations().getSampleString(DatumSamplesType.Status, "sessionId"),
 					equalTo(sess.getId().toString()));
 		}
 
-		GeneralNodeDatum d = persistedDatum.get(0);
-		assertThat("Datum 1 @ transaction start", d.getCreated().getTime(),
-				equalTo(r1.getTimestamp().toEpochMilli()));
+		NodeDatum d = persistedDatum.get(0);
+		assertThat("Datum 1 @ transaction start", d.getTimestamp(), equalTo(r1.getTimestamp()));
 		assertThat("Datum 1 properties", d.getSampleData(),
 				hasEntry("wattHours", new BigDecimal(r1.getValue())));
 	}

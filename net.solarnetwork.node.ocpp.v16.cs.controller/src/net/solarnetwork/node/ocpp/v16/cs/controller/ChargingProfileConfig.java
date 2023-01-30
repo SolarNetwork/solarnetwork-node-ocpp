@@ -33,12 +33,6 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.context.MessageSource;
 import net.solarnetwork.domain.Identity;
-import net.solarnetwork.node.settings.SettingSpecifier;
-import net.solarnetwork.node.settings.support.BasicGroupSettingSpecifier;
-import net.solarnetwork.node.settings.support.BasicMultiValueSettingSpecifier;
-import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
-import net.solarnetwork.node.settings.support.BasicTitleSettingSpecifier;
-import net.solarnetwork.node.settings.support.SettingsUtil;
 import net.solarnetwork.ocpp.domain.ChargingProfile;
 import net.solarnetwork.ocpp.domain.ChargingProfileInfo;
 import net.solarnetwork.ocpp.domain.ChargingProfileKind;
@@ -47,13 +41,19 @@ import net.solarnetwork.ocpp.domain.ChargingScheduleInfo;
 import net.solarnetwork.ocpp.domain.ChargingSchedulePeriodInfo;
 import net.solarnetwork.ocpp.domain.ChargingScheduleRecurrency;
 import net.solarnetwork.ocpp.domain.UnitOfMeasure;
+import net.solarnetwork.settings.SettingSpecifier;
+import net.solarnetwork.settings.support.BasicGroupSettingSpecifier;
+import net.solarnetwork.settings.support.BasicMultiValueSettingSpecifier;
+import net.solarnetwork.settings.support.BasicTextFieldSettingSpecifier;
+import net.solarnetwork.settings.support.BasicTitleSettingSpecifier;
+import net.solarnetwork.settings.support.SettingUtils;
 
 /**
  * Configuration for an
  * {@link net.solarnetwork.node.ocpp.domain.ChargingProfile}.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class ChargingProfileConfig implements Identity<UUID> {
 
@@ -169,8 +169,8 @@ public class ChargingProfileConfig implements Identity<UUID> {
 
 		// charging periods list
 		List<ChargingSchedulePeriodInfo> periods = info.getSchedule().getPeriods();
-		results.add(SettingsUtil.dynamicListSettingSpecifier(prefix + "info.schedule.periods", periods,
-				new SettingsUtil.KeyedListCallback<ChargingSchedulePeriodInfo>() {
+		results.add(SettingUtils.dynamicListSettingSpecifier(prefix + "info.schedule.periods", periods,
+				new SettingUtils.KeyedListCallback<ChargingSchedulePeriodInfo>() {
 
 					@Override
 					public Collection<SettingSpecifier> mapListSettingKey(

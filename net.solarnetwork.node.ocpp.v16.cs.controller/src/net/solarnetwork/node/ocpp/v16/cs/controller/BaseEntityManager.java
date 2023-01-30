@@ -39,18 +39,18 @@ import net.solarnetwork.dao.GenericDao;
 import net.solarnetwork.domain.Differentiable;
 import net.solarnetwork.domain.Identity;
 import net.solarnetwork.domain.SortDescriptor;
-import net.solarnetwork.node.settings.SettingSpecifier;
-import net.solarnetwork.node.settings.SettingSpecifierProvider;
-import net.solarnetwork.node.settings.support.BasicGroupSettingSpecifier;
-import net.solarnetwork.node.settings.support.SettingsUtil;
+import net.solarnetwork.settings.SettingSpecifier;
+import net.solarnetwork.settings.SettingSpecifierProvider;
 import net.solarnetwork.settings.SettingsChangeObserver;
+import net.solarnetwork.settings.support.BasicGroupSettingSpecifier;
+import net.solarnetwork.settings.support.SettingUtils;
 
 /**
  * Abstract class to help with exposing a DAO as a list of settings that can be
  * managed.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends Entity<K> & Differentiable<T>, K, C extends Identity<K>>
 		implements SettingSpecifierProvider, SettingsChangeObserver {
@@ -174,8 +174,8 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 		List<SettingSpecifier> results = new ArrayList<>(1);
 
 		List<C> configs = getEntities();
-		results.add(SettingsUtil.dynamicListSettingSpecifier("entities", configs,
-				new SettingsUtil.KeyedListCallback<C>() {
+		results.add(SettingUtils.dynamicListSettingSpecifier("entities", configs,
+				new SettingUtils.KeyedListCallback<C>() {
 
 					@Override
 					public Collection<SettingSpecifier> mapListSettingKey(C value, int index,

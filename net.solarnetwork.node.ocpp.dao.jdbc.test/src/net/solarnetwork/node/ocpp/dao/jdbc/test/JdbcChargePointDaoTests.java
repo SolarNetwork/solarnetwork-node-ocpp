@@ -30,8 +30,6 @@ import static org.junit.Assert.assertThat;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.UUID;
-import javax.annotation.Resource;
-import javax.sql.DataSource;
 import org.junit.Before;
 import org.junit.Test;
 import net.solarnetwork.node.dao.jdbc.DatabaseSetup;
@@ -46,12 +44,9 @@ import net.solarnetwork.ocpp.domain.RegistrationStatus;
  * Test cases for the {@link JdbcChargePointDao} class.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class JdbcChargePointDaoTests extends AbstractNodeTransactionalTest {
-
-	@Resource(name = "dataSource")
-	private DataSource dataSource;
 
 	private JdbcChargePointDao dao;
 	private ChargePoint last;

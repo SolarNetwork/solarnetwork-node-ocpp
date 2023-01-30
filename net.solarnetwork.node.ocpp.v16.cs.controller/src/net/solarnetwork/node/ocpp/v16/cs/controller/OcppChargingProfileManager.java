@@ -27,15 +27,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.function.Function;
-import net.solarnetwork.node.settings.SettingSpecifier;
 import net.solarnetwork.ocpp.dao.ChargingProfileDao;
 import net.solarnetwork.ocpp.domain.ChargingProfile;
+import net.solarnetwork.settings.SettingSpecifier;
 
 /**
  * Manage {@link ChargingProfile} entities via settings.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class OcppChargingProfileManager
 		extends BaseEntityManager<ChargingProfileDao, ChargingProfile, UUID, ChargingProfileConfig> {
@@ -52,7 +52,7 @@ public class OcppChargingProfileManager
 	}
 
 	@Override
-	public String getSettingUID() {
+	public String getSettingUid() {
 		return "net.solarnetwork.node.ocpp.v16.cs.controller.OcppChargingProfileManager";
 	}
 

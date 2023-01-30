@@ -22,11 +22,11 @@
 
 package net.solarnetwork.node.ocpp.dao.jdbc.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import java.time.Instant;
 import java.util.Arrays;
@@ -35,8 +35,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.annotation.Resource;
-import javax.sql.DataSource;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.dao.DuplicateKeyException;
@@ -50,12 +48,9 @@ import net.solarnetwork.ocpp.domain.SystemUser;
  * Test cases for the {@link JdbcSystemUserDao} class.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class JdbcSystemUserDaoTests extends AbstractNodeTransactionalTest {
-
-	@Resource(name = "dataSource")
-	private DataSource dataSource;
 
 	private JdbcSystemUserDao dao;
 	private SystemUser last;
@@ -239,4 +234,42 @@ public class JdbcSystemUserDaoTests extends AbstractNodeTransactionalTest {
 		assertThat("Username matches", entity.getUsername(), equalTo("foobar"));
 		assertThat("Allowed charge points", entity.getAllowedChargePoints(), contains("one", "two"));
 	}
+
+	@Test
+	public void findByUsernameAndChargePoint_none() {
+		SystemUser entity = dao.getForUsernameAndChargePoint("foo", "one");
+		assertThat("No users", entity, nullValue());
+	}
+
+	@Test
+	public void findByUsernameAndChargePoint_noMatchUsername() {
+		insert();
+		SystemUser entity = dao.getForUsernameAndChargePoint("not a match", "one");
+		assertThat("No match", entity, nullValue());
+	}
+
+	@Test
+	public void findByUsernameAndChargePoint_withAllowedAnyChargePoint() {
+		findAll();
+		SystemUser entity = dao.getForUsernameAndChargePoint("b", "anything");
+		assertThat("Match", entity, notNullValue());
+		assertThat("Username matches with any charger", entity.getUsername(), equalTo("b"));
+	}
+
+	@Test
+	public void findByUsernameAndChargePoint_withAllowedChargePoints() {
+		findAll_withAllowedChargePoints();
+		SystemUser entity = dao.getForUsernameAndChargePoint("foobar", "one");
+		assertThat("Match", entity, notNullValue());
+		assertThat("Username matches with allowed charger", entity.getUsername(), equalTo("foobar"));
+		assertThat("Allowed charge points", entity.getAllowedChargePoints(), contains("one", "two"));
+	}
+
+	@Test
+	public void findByUsernameAndChargePoint_withAllowedChargePoints_noMatch() {
+		findAll_withAllowedChargePoints();
+		SystemUser entity = dao.getForUsernameAndChargePoint("foobar", "three");
+		assertThat("No match on allowed charge point", entity, nullValue());
+	}
+
 }

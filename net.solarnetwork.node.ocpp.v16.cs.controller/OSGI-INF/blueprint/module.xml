@@ -155,7 +155,7 @@
 	
 	<service ref="controller">
 		<interfaces>
-			<value>net.solarnetwork.node.settings.SettingSpecifierProvider</value>
+			<value>net.solarnetwork.settings.SettingSpecifierProvider</value>
 			<value>net.solarnetwork.ocpp.service.AuthorizationService</value>
 			<value>net.solarnetwork.ocpp.service.cs.ChargePointManager</value>
 		</interfaces>
@@ -165,7 +165,7 @@
 		</service-properties>
 	</service>
 	
-	<service interface="net.solarnetwork.node.settings.SettingSpecifierProvider">
+	<service interface="net.solarnetwork.settings.SettingSpecifierProvider">
 		<bean class="net.solarnetwork.node.ocpp.v16.cs.controller.OcppAuthorizationManager">
 			<osgix:managed-properties persistent-id="net.solarnetwork.node.ocpp.v16.cs.controller.OcppAuthorizationManager" 
 					autowire-on-update="true" update-method="configurationChanged"/>
@@ -178,7 +178,7 @@
 		</bean>
 	</service>
 
-	<service interface="net.solarnetwork.node.settings.SettingSpecifierProvider">
+	<service interface="net.solarnetwork.settings.SettingSpecifierProvider">
 		<bean class="net.solarnetwork.node.ocpp.v16.cs.controller.OcppChargingProfileManager">
 			<osgix:managed-properties persistent-id="net.solarnetwork.node.ocpp.v16.cs.controller.OcppChargingProfileManager" 
 					autowire-on-update="true" update-method="configurationChanged"/>
@@ -191,7 +191,7 @@
 		</bean>
 	</service>
 
-	<service interface="net.solarnetwork.node.settings.SettingSpecifierProvider">
+	<service interface="net.solarnetwork.settings.SettingSpecifierProvider">
 		<bean class="net.solarnetwork.node.ocpp.v16.cs.controller.OcppRegistrationManager">
 			<osgix:managed-properties persistent-id="net.solarnetwork.node.ocpp.v16.cs.controller.OcppRegistrationManager" 
 					autowire-on-update="true" update-method="configurationChanged"/>
@@ -204,7 +204,7 @@
 		</bean>
 	</service>
 	
-	<service interface="net.solarnetwork.node.settings.SettingSpecifierProvider">
+	<service interface="net.solarnetwork.settings.SettingSpecifierProvider">
 		<bean class="net.solarnetwork.node.ocpp.v16.cs.controller.OcppSystemUserManager">
 			<osgix:managed-properties persistent-id="net.solarnetwork.node.ocpp.v16.cs.controller.OcppSystemUserManager" 
 					autowire-on-update="true" update-method="configurationChanged"/>
@@ -218,7 +218,7 @@
 		</bean>
 	</service>
 
-	<service interface="net.solarnetwork.support.PasswordEncoder" ref="passwordEncoder" >
+	<service interface="net.solarnetwork.service.PasswordEncoder" ref="passwordEncoder" >
 		<service-properties>
 			<entry key="function" value="node"/>
 			<entry key="role" value="ocpp"/>

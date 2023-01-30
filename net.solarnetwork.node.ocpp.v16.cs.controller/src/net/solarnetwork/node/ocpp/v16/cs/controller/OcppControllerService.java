@@ -43,11 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionCallbackWithoutResult;
 import org.springframework.transaction.support.TransactionTemplate;
-import net.solarnetwork.node.settings.SettingSpecifier;
-import net.solarnetwork.node.settings.SettingSpecifierProvider;
-import net.solarnetwork.node.settings.support.BasicGroupSettingSpecifier;
-import net.solarnetwork.node.settings.support.BasicTitleSettingSpecifier;
-import net.solarnetwork.node.support.BaseIdentifiable;
+import net.solarnetwork.node.service.support.BaseIdentifiable;
 import net.solarnetwork.ocpp.dao.AuthorizationDao;
 import net.solarnetwork.ocpp.dao.ChargePointConnectorDao;
 import net.solarnetwork.ocpp.dao.ChargePointDao;
@@ -70,6 +66,10 @@ import net.solarnetwork.ocpp.service.ChargePointRouter;
 import net.solarnetwork.ocpp.service.cs.ChargePointManager;
 import net.solarnetwork.security.AuthorizationException;
 import net.solarnetwork.security.AuthorizationException.Reason;
+import net.solarnetwork.settings.SettingSpecifier;
+import net.solarnetwork.settings.SettingSpecifierProvider;
+import net.solarnetwork.settings.support.BasicGroupSettingSpecifier;
+import net.solarnetwork.settings.support.BasicTitleSettingSpecifier;
 import ocpp.domain.Action;
 import ocpp.domain.ErrorCodeException;
 import ocpp.v16.ActionErrorCode;
@@ -83,7 +83,7 @@ import ocpp.v16.cp.KeyValue;
  * API for an OCPP v1.6 local controller service.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class OcppControllerService extends BaseIdentifiable
 		implements ChargePointManager, AuthorizationService, SettingSpecifierProvider {
@@ -325,7 +325,7 @@ public class OcppControllerService extends BaseIdentifiable
 	}
 
 	@Override
-	public String getSettingUID() {
+	public String getSettingUid() {
 		return "net.solarnetwork.node.ocpp.v16.cs.controller";
 	}
 

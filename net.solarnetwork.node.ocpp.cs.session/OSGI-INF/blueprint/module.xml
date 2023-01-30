@@ -19,15 +19,16 @@
 	
 	<reference id="chargeSessionDao" interface="net.solarnetwork.ocpp.dao.ChargeSessionDao" filter="(function=node)"/>
 
-	<bean id="generalNodeDatumDao" class="net.solarnetwork.util.DynamicServiceTracker">
-		<property name="bundleContext" ref="bundleContext"/>
-		<property name="serviceClassName" value="net.solarnetwork.node.dao.DatumDao"/>
-		<property name="serviceFilter" value="(datumClassName=net.solarnetwork.node.domain.GeneralNodeDatum)"/>
+	<bean id="datumQueue" class="net.solarnetwork.common.osgi.service.DynamicServiceTracker">
+		<argument ref="bundleContext"/>
+		<property name="serviceClassName" value="net.solarnetwork.node.service.DatumQueue"/>
+		<property name="sticky" value="true"/>
 	</bean>
-	
-	<bean id="placeholderService" class="net.solarnetwork.util.DynamicServiceTracker">
-		<property name="bundleContext" ref="bundleContext"/>
-		<property name="serviceClassName" value="net.solarnetwork.node.PlaceholderService"/>
+
+	<bean id="placeholderService" class="net.solarnetwork.common.osgi.service.DynamicServiceTracker">
+		<argument ref="bundleContext"/>
+		<argument value="net.solarnetwork.node.service.PlaceholderService"/>
+		<property name="sticky" value="true"/>
 	</bean>
 	
 	<reference id="taskScheduler" interface="org.springframework.scheduling.TaskScheduler"
@@ -42,7 +43,7 @@
 
 	<service ref="manager">
 		<interfaces>
-			<value>net.solarnetwork.node.settings.SettingSpecifierProvider</value>
+			<value>net.solarnetwork.settings.SettingSpecifierProvider</value>
 			<value>net.solarnetwork.ocpp.service.cs.ChargeSessionManager</value>
 		</interfaces>
 		<service-properties>
@@ -56,7 +57,7 @@
 		<argument ref="authService"/>
 		<argument ref="chargePointDao"/>
 		<argument ref="chargeSessionDao"/>
-		<argument ref="generalNodeDatumDao"/>
+		<argument ref="datumQueue"/>
 		<property name="taskScheduler" ref="taskScheduler"/>
 		<property name="placeholderService" ref="placeholderService"/>
 		<property name="messageSource">

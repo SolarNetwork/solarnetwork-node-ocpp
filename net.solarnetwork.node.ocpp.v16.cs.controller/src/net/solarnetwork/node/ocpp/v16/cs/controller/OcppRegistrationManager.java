@@ -26,15 +26,15 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
-import net.solarnetwork.node.settings.SettingSpecifier;
 import net.solarnetwork.ocpp.dao.ChargePointDao;
 import net.solarnetwork.ocpp.domain.ChargePoint;
+import net.solarnetwork.settings.SettingSpecifier;
 
 /**
  * Manager for Charge Point registrations.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class OcppRegistrationManager
 		extends BaseEntityManager<ChargePointDao, ChargePoint, Long, ChargePointConfig> {
@@ -82,7 +82,7 @@ public class OcppRegistrationManager
 	}
 
 	@Override
-	public String getSettingUID() {
+	public String getSettingUid() {
 		return "net.solarnetwork.node.ocpp.v16.cs.controller.OcppRegistrationManager";
 	}
 

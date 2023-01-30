@@ -50,7 +50,7 @@ import net.solarnetwork.ocpp.domain.SystemUser;
  * JDBC implementation of {@link SystemUserDao}.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class JdbcSystemUserDao extends BaseJdbcGenericDao<SystemUser, Long> implements SystemUserDao {
 
@@ -61,6 +61,9 @@ public class JdbcSystemUserDao extends BaseJdbcGenericDao<SystemUser, Long> impl
 
 		/** Find by username. */
 		GetByUsername("get-username"),
+
+		/** Find by username and charge point. */
+		GetByUsernameAndChargePoint("get-username-and-cp"),
 
 		/** Insert an allowed charge point. */
 		InsertAllowedChargePoint("insert-cp"),
@@ -107,6 +110,12 @@ public class JdbcSystemUserDao extends BaseJdbcGenericDao<SystemUser, Long> impl
 	@Override
 	public SystemUser getForUsername(String username) {
 		return findFirst(getSqlResource(SqlResource.GetByUsername.getResource()), username);
+	}
+
+	@Override
+	public SystemUser getForUsernameAndChargePoint(String username, String chargePointIdentifier) {
+		return findFirst(getSqlResource(SqlResource.GetByUsernameAndChargePoint.getResource()), username,
+				username, chargePointIdentifier, username);
 	}
 
 	@Override

@@ -13,9 +13,9 @@
 		</service-properties>
 		<bean class="net.solarnetwork.ocpp.service.ChargePointBrokerTracker">
 			<argument>
-				<bean class="net.solarnetwork.util.DynamicServiceTracker">
-					<property name="bundleContext" ref="bundleContext"/>
-					<property name="serviceClassName" value="net.solarnetwork.ocpp.service.ChargePointBroker"/>
+				<bean class="net.solarnetwork.common.osgi.service.DynamicServiceTracker">
+					<argument ref="bundleContext"/>
+					<argument value="net.solarnetwork.ocpp.service.ChargePointBroker"/>
 				</bean>
 			</argument>
 		</bean>

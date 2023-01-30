@@ -35,8 +35,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import javax.annotation.Resource;
-import javax.sql.DataSource;
 import org.junit.Before;
 import org.junit.Test;
 import net.solarnetwork.dao.GenericDao;
@@ -56,12 +54,9 @@ import net.solarnetwork.ocpp.domain.UnitOfMeasure;
  * Test cases for the {@link JdbcChargingProfileDao} class.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class JdbcChargingProfileDaoTests extends AbstractNodeTransactionalTest {
-
-	@Resource(name = "dataSource")
-	private DataSource dataSource;
 
 	private JdbcChargingProfileDao dao;
 	private ChargingProfile last;

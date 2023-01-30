@@ -25,15 +25,15 @@ package net.solarnetwork.node.ocpp.v16.cs.controller;
 import java.time.Instant;
 import java.util.List;
 import java.util.function.Function;
-import net.solarnetwork.node.settings.SettingSpecifier;
 import net.solarnetwork.ocpp.dao.AuthorizationDao;
 import net.solarnetwork.ocpp.domain.Authorization;
+import net.solarnetwork.settings.SettingSpecifier;
 
 /**
  * Manage {@link Authorization} entities via settings.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class OcppAuthorizationManager
 		extends BaseEntityManager<AuthorizationDao, Authorization, Long, AuthorizationConfig> {
@@ -82,7 +82,7 @@ public class OcppAuthorizationManager
 	}
 
 	@Override
-	public String getSettingUID() {
+	public String getSettingUid() {
 		return "net.solarnetwork.node.ocpp.v16.cs.controller.OcppAuthorizationManager";
 	}
 

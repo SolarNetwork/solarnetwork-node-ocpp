@@ -34,8 +34,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
-import javax.annotation.Resource;
-import javax.sql.DataSource;
 import org.junit.Before;
 import org.junit.Test;
 import net.solarnetwork.node.dao.jdbc.DatabaseSetup;
@@ -57,12 +55,9 @@ import net.solarnetwork.ocpp.domain.UnitOfMeasure;
  * Test cases for the {@link JdbcChargeSessionDao}.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
-
-	@Resource(name = "dataSource")
-	private DataSource dataSource;
 
 	private JdbcChargePointDao chargePointDao;
 

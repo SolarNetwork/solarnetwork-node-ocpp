@@ -222,7 +222,7 @@ public class OcppControllerServiceTests {
 		expect(chargePointDao.getForIdentity(identity)).andReturn(null);
 
 		// save new charge point
-		Capture<ChargePoint> chargePointCaptor = new Capture<>(CaptureType.ALL);
+		Capture<ChargePoint> chargePointCaptor = Capture.newInstance(CaptureType.ALL);
 		long chargePointId = UUID.randomUUID().getMostSignificantBits();
 		expect(chargePointDao.save(capture(chargePointCaptor))).andReturn(chargePointId).times(2);
 
@@ -230,8 +230,8 @@ public class OcppControllerServiceTests {
 		expect(chargePointRouter.brokerForChargePoint(identity)).andReturn(chargePointBroker);
 
 		// send GetConfiguration message to broker
-		Capture<ActionMessage<Object>> actionCaptor = new Capture<>();
-		Capture<ActionMessageResultHandler<Object, Object>> resultHandlerCaptor = new Capture<>();
+		Capture<ActionMessage<Object>> actionCaptor = Capture.newInstance();
+		Capture<ActionMessageResultHandler<Object, Object>> resultHandlerCaptor = Capture.newInstance();
 		expect(chargePointBroker.sendMessageToChargePoint(capture(actionCaptor),
 				capture(resultHandlerCaptor))).andReturn(true);
 
@@ -255,7 +255,7 @@ public class OcppControllerServiceTests {
 
 		// insert new connector
 		int connectorCount = 2;
-		Capture<ChargePointConnector> connectorCaptor = new Capture<>(CaptureType.ALL);
+		Capture<ChargePointConnector> connectorCaptor = Capture.newInstance(CaptureType.ALL);
 		expect(chargePointConnectorDao.save(capture(connectorCaptor)))
 				.andReturn(new ChargePointConnectorKey(chargePointId, 1));
 		expect(chargePointConnectorDao.save(capture(connectorCaptor)))
@@ -327,8 +327,8 @@ public class OcppControllerServiceTests {
 		expect(chargePointRouter.brokerForChargePoint(identity)).andReturn(chargePointBroker);
 
 		// send GetConfiguration message to broker
-		Capture<ActionMessage<Object>> actionCaptor = new Capture<>();
-		Capture<ActionMessageResultHandler<Object, Object>> resultHandlerCaptor = new Capture<>();
+		Capture<ActionMessage<Object>> actionCaptor = Capture.newInstance();
+		Capture<ActionMessageResultHandler<Object, Object>> resultHandlerCaptor = Capture.newInstance();
 		expect(chargePointBroker.sendMessageToChargePoint(capture(actionCaptor),
 				capture(resultHandlerCaptor))).andReturn(true);
 
@@ -342,7 +342,7 @@ public class OcppControllerServiceTests {
 		});
 
 		// update connector count to 1
-		Capture<ChargePoint> chargePointCaptor = new Capture<>();
+		Capture<ChargePoint> chargePointCaptor = Capture.newInstance();
 		expect(chargePointDao.save(capture(chargePointCaptor))).andReturn(cp.getId());
 
 		// look for existing charge point connectors
@@ -353,7 +353,7 @@ public class OcppControllerServiceTests {
 
 		// remove extra connector
 		int connectorCount = 1;
-		Capture<ChargePointConnector> connectorCaptor = new Capture<>();
+		Capture<ChargePointConnector> connectorCaptor = Capture.newInstance();
 		chargePointConnectorDao.delete(capture(connectorCaptor));
 
 		// when

@@ -31,8 +31,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.UUID;
-import javax.annotation.Resource;
-import javax.sql.DataSource;
 import org.junit.Before;
 import org.junit.Test;
 import net.solarnetwork.node.dao.jdbc.DatabaseSetup;
@@ -44,12 +42,9 @@ import net.solarnetwork.ocpp.domain.Authorization;
  * Test cases for the {@link JdbcAuthorizationDao} class.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class JdbcAuthorizationDaoTests extends AbstractNodeTransactionalTest {
-
-	@Resource(name = "dataSource")
-	private DataSource dataSource;
 
 	private JdbcAuthorizationDao dao;
 	private Authorization last;

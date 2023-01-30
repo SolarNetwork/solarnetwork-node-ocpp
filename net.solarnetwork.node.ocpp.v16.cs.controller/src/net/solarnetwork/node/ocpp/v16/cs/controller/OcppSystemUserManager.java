@@ -27,16 +27,16 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
-import net.solarnetwork.node.settings.SettingSpecifier;
 import net.solarnetwork.ocpp.dao.SystemUserDao;
 import net.solarnetwork.ocpp.domain.SystemUser;
-import net.solarnetwork.support.PasswordEncoder;
+import net.solarnetwork.service.PasswordEncoder;
+import net.solarnetwork.settings.SettingSpecifier;
 
 /**
  * Manager for system users.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class OcppSystemUserManager
 		extends BaseEntityManager<SystemUserDao, SystemUser, Long, SystemUserConfig> {
@@ -58,7 +58,7 @@ public class OcppSystemUserManager
 	}
 
 	@Override
-	public String getSettingUID() {
+	public String getSettingUid() {
 		return "net.solarnetwork.node.ocpp.v16.cs.controller.OcppSystemUserManager";
 	}
 

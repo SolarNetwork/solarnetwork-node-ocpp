@@ -1,16 +1,16 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Name: Test
+Bundle-Name: OCPP ChargeSession SolarNetwork Integration Tests
 Bundle-SymbolicName: net.solarnetwork.node.ocpp.cs.session.test
-Bundle-Version: 0.2.0
+Bundle-Version: 2.0.0
 Bundle-Vendor: SolarNetwork
-Fragment-Host: net.solarnetwork.node.ocpp.cs.session;bundle-version="[0.2,1.0)"
+Fragment-Host: net.solarnetwork.node.ocpp.cs.session;bundle-version="[2.0,3.0)"
 Automatic-Module-Name: net.solarnetwork.node.ocpp.cs.session.test
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Import-Package: 
- net.solarnetwork.node.test;version="[1.6,2.0]",
- net.solarnetwork.test;version="[1.5,2.0)",
- org.easymock;version="[3.1,4.0)",
+ net.solarnetwork.node.test;version="[1.7,2.0]",
+ net.solarnetwork.test;version="[1.7,2.0)",
+ org.easymock;version="[3.6,4.0)",
  org.hamcrest;version="[1.3,2.0)",
  org.junit;version="[4.5,5.0)",
  org.junit.runner;version="[4.5,5.0)",

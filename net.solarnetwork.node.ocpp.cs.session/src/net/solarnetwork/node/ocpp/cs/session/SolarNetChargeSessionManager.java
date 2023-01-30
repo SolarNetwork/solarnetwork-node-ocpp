@@ -23,8 +23,8 @@
 package net.solarnetwork.node.ocpp.cs.session;
 
 import static java.util.Collections.singleton;
-import static net.solarnetwork.node.domain.Datum.REVERSE_ACCUMULATING_SUFFIX_KEY;
-import static net.solarnetwork.util.OptionalService.service;
+import static net.solarnetwork.domain.datum.Datum.REVERSE_ACCUMULATING_SUFFIX_KEY;
+import static net.solarnetwork.service.OptionalService.service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -47,17 +47,18 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import net.solarnetwork.domain.GeneralDatumSamplesType;
-import net.solarnetwork.node.PlaceholderService;
-import net.solarnetwork.node.dao.DatumDao;
-import net.solarnetwork.node.domain.ACEnergyDatum;
-import net.solarnetwork.node.domain.AtmosphericDatum;
-import net.solarnetwork.node.domain.Datum;
-import net.solarnetwork.node.domain.GeneralNodeDatum;
-import net.solarnetwork.node.settings.SettingSpecifier;
-import net.solarnetwork.node.settings.SettingSpecifierProvider;
-import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
-import net.solarnetwork.node.support.BaseIdentifiable;
+import net.solarnetwork.domain.datum.AtmosphericDatum;
+import net.solarnetwork.domain.datum.Datum;
+import net.solarnetwork.domain.datum.DatumSamples;
+import net.solarnetwork.domain.datum.DatumSamplesType;
+import net.solarnetwork.domain.datum.MutableDatumSamplesOperations;
+import net.solarnetwork.node.domain.datum.AcEnergyDatum;
+import net.solarnetwork.node.domain.datum.MutableNodeDatum;
+import net.solarnetwork.node.domain.datum.NodeDatum;
+import net.solarnetwork.node.domain.datum.SimpleDatum;
+import net.solarnetwork.node.service.DatumQueue;
+import net.solarnetwork.node.service.PlaceholderService;
+import net.solarnetwork.node.service.support.BaseIdentifiable;
 import net.solarnetwork.ocpp.dao.ChargePointDao;
 import net.solarnetwork.ocpp.dao.ChargeSessionDao;
 import net.solarnetwork.ocpp.dao.PurgePostedChargeSessionsTask;
@@ -77,9 +78,12 @@ import net.solarnetwork.ocpp.domain.UnitOfMeasure;
 import net.solarnetwork.ocpp.service.AuthorizationException;
 import net.solarnetwork.ocpp.service.AuthorizationService;
 import net.solarnetwork.ocpp.service.cs.ChargeSessionManager;
+import net.solarnetwork.service.OptionalService;
+import net.solarnetwork.settings.SettingSpecifier;
+import net.solarnetwork.settings.SettingSpecifierProvider;
 import net.solarnetwork.settings.SettingsChangeObserver;
+import net.solarnetwork.settings.support.BasicTextFieldSettingSpecifier;
 import net.solarnetwork.util.NumberUtils;
-import net.solarnetwork.util.OptionalService;
 import net.solarnetwork.util.StringUtils;
 
 /**
@@ -106,7 +110,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 	private final AuthorizationService authService;
 	private final ChargePointDao chargePointDao;
 	private final ChargeSessionDao chargeSessionDao;
-	private final OptionalService<DatumDao<GeneralNodeDatum>> datumDao;
+	private final OptionalService<DatumQueue> datumDao;
 	private String sourceIdTemplate = DEFAULT_SOURCE_ID_TEMPLATE;
 	private int maxTemperatureScale = DEFAULT_MAX_TEMPERATURE_SCALE;
 	private TaskScheduler taskScheduler;
@@ -128,7 +132,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 	 *        the DAO for saving Datum
 	 */
 	public SolarNetChargeSessionManager(AuthorizationService authService, ChargePointDao chargePointDao,
-			ChargeSessionDao chargeSessionDao, OptionalService<DatumDao<GeneralNodeDatum>> datumDao) {
+			ChargeSessionDao chargeSessionDao, OptionalService<DatumQueue> datumDao) {
 		super();
 		this.authService = authService;
 		this.chargePointDao = chargePointDao;
@@ -262,11 +266,11 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 				.build();
 		// @formatter:on
 		chargeSessionDao.addReadings(singleton(reading));
-		DatumDao<GeneralNodeDatum> dao = datumDao.service();
-		if ( dao != null ) {
-			GeneralNodeDatum d = datum(cp, sess, reading);
+		DatumQueue q = service(datumDao);
+		if ( q != null ) {
+			NodeDatum d = datum(cp, sess, reading);
 			if ( d != null ) {
-				dao.storeDatum(d);
+				q.offer(d);
 			}
 		}
 
@@ -340,14 +344,13 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 				null);
 	}
 
-	private GeneralNodeDatum datum(ChargePoint chargePoint, ChargeSession sess, SampledValue reading) {
-		GeneralNodeDatum d = new GeneralNodeDatum();
-		populateProperty(d, reading.getMeasurand(), reading.getUnit(), reading.getValue());
-		if ( d.getSamples() != null && !d.getSamples().isEmpty() ) {
-			d.setCreated(new Date(reading.getTimestamp().toEpochMilli()));
-			d.setSourceId(sourceId(chargePoint, sess.getConnectorId(), reading.getLocation(),
-					reading.getPhase()));
-			d.putStatusSampleValue(SESSION_ID_PROPERTY, sess.getId().toString());
+	private MutableNodeDatum datum(ChargePoint chargePoint, ChargeSession sess, SampledValue reading) {
+		DatumSamples s = new DatumSamples();
+		populateProperty(s, reading.getMeasurand(), reading.getUnit(), reading.getValue());
+		if ( !s.isEmpty() ) {
+			SimpleDatum d = SimpleDatum.nodeDatum(sourceId(chargePoint, sess.getConnectorId(),
+					reading.getLocation(), reading.getPhase()), reading.getTimestamp(), s);
+			d.putSampleValue(DatumSamplesType.Status, SESSION_ID_PROPERTY, sess.getId().toString());
 			return d;
 		}
 		return null;
@@ -361,7 +364,8 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void addChargingSessionReadings(Iterable<SampledValue> readings) {
+	public void addChargingSessionReadings(ChargePointIdentity chargePointId,
+			Iterable<SampledValue> readings) {
 		addReadings(readings, new HashMap<>(2), new HashMap<>(2));
 	}
 
@@ -395,15 +399,14 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 		}
 		if ( !newReadings.isEmpty() ) {
 			chargeSessionDao.addReadings(newReadings);
-			DatumDao<GeneralNodeDatum> dao = datumDao.service();
-			if ( dao != null ) {
+			DatumQueue q = service(datumDao);
+			if ( q != null ) {
 				// group readings by timestamp into Datum
-				GeneralNodeDatum d = null;
+				MutableNodeDatum d = null;
 				for ( SampledValue reading : newReadings ) {
-					if ( d == null
-							|| d.getCreated().getTime() != reading.getTimestamp().toEpochMilli() ) {
+					if ( d == null || !d.getTimestamp().equals(reading.getTimestamp()) ) {
 						if ( d != null ) {
-							dao.storeDatum(d);
+							q.offer(d);
 							d = null;
 						}
 
@@ -422,12 +425,12 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 						}
 						d = datum(cp, sessions.get(reading.getSessionId()), reading);
 					} else {
-						populateProperty(d, reading.getMeasurand(), reading.getUnit(),
-								reading.getValue());
+						populateProperty(d.asMutableSampleOperations(), reading.getMeasurand(),
+								reading.getUnit(), reading.getValue());
 					}
 				}
 				if ( d != null ) {
-					dao.storeDatum(d);
+					q.offer(d);
 				}
 			}
 		}
@@ -445,8 +448,8 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 				: StringUtils.expandTemplateString(sourceIdTemplate, params));
 	}
 
-	private void populateProperty(GeneralNodeDatum datum, Measurand measurand, UnitOfMeasure unit,
-			Object value) {
+	private void populateProperty(MutableDatumSamplesOperations s, Measurand measurand,
+			UnitOfMeasure unit, Object value) {
 		if ( value == null ) {
 			return;
 		}
@@ -465,7 +468,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 		num = normalizedUnit(num, unit);
 		String propName = propertyName(measurand);
 		if ( propName != null ) {
-			datum.putSampleValue(propertyType(measurand), propName, num);
+			s.putSampleValue(propertyType(measurand), propName, num);
 		}
 	}
 
@@ -504,7 +507,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 		}
 	}
 
-	private GeneralDatumSamplesType propertyType(Measurand measurand) {
+	private DatumSamplesType propertyType(Measurand measurand) {
 		switch (measurand) {
 			case EnergyActiveExportRegister:
 			case EnergyActiveImportRegister:
@@ -512,35 +515,35 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 			case EnergyReactiveImportRegister:
 			case PowerReactiveExport:
 			case PowerReactiveImport:
-				return GeneralDatumSamplesType.Accumulating;
+				return DatumSamplesType.Accumulating;
 
 			default:
-				return GeneralDatumSamplesType.Instantaneous;
+				return DatumSamplesType.Instantaneous;
 		}
 	}
 
 	private String propertyName(Measurand measurand) {
 		switch (measurand) {
 			case CurrentExport:
-				return ACEnergyDatum.CURRENT_KEY + REVERSE_ACCUMULATING_SUFFIX_KEY;
+				return AcEnergyDatum.CURRENT_KEY + REVERSE_ACCUMULATING_SUFFIX_KEY;
 
 			case CurrentImport:
-				return ACEnergyDatum.CURRENT_KEY;
+				return AcEnergyDatum.CURRENT_KEY;
 
 			case CurrentOffered:
-				return ACEnergyDatum.CURRENT_KEY + "Offered";
+				return AcEnergyDatum.CURRENT_KEY + "Offered";
 
 			case EnergyActiveExportInterval:
-				return ACEnergyDatum.WATT_HOUR_READING_KEY + "Diff" + REVERSE_ACCUMULATING_SUFFIX_KEY;
+				return AcEnergyDatum.WATT_HOUR_READING_KEY + "Diff" + REVERSE_ACCUMULATING_SUFFIX_KEY;
 
 			case EnergyActiveExportRegister:
-				return ACEnergyDatum.WATT_HOUR_READING_KEY + REVERSE_ACCUMULATING_SUFFIX_KEY;
+				return AcEnergyDatum.WATT_HOUR_READING_KEY + REVERSE_ACCUMULATING_SUFFIX_KEY;
 
 			case EnergyActiveImportInterval:
-				return ACEnergyDatum.WATT_HOUR_READING_KEY + "Diff";
+				return AcEnergyDatum.WATT_HOUR_READING_KEY + "Diff";
 
 			case EnergyActiveImportRegister:
-				return ACEnergyDatum.WATT_HOUR_READING_KEY;
+				return AcEnergyDatum.WATT_HOUR_READING_KEY;
 
 			case EnergyReactiveExportInterval:
 				return "reactiveEnergyDiff" + REVERSE_ACCUMULATING_SUFFIX_KEY;
@@ -555,25 +558,25 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 				return "reactiveEnergy";
 
 			case Frequency:
-				return ACEnergyDatum.FREQUENCY_KEY;
+				return AcEnergyDatum.FREQUENCY_KEY;
 
 			case PowerActiveExport:
-				return ACEnergyDatum.WATTS_KEY + REVERSE_ACCUMULATING_SUFFIX_KEY;
+				return AcEnergyDatum.WATTS_KEY + REVERSE_ACCUMULATING_SUFFIX_KEY;
 
 			case PowerActiveImport:
-				return ACEnergyDatum.WATTS_KEY;
+				return AcEnergyDatum.WATTS_KEY;
 
 			case PowerFactor:
-				return ACEnergyDatum.POWER_FACTOR_KEY;
+				return AcEnergyDatum.POWER_FACTOR_KEY;
 
 			case PowerOffered:
-				return ACEnergyDatum.WATTS_KEY + "Offered";
+				return AcEnergyDatum.WATTS_KEY + "Offered";
 
 			case PowerReactiveExport:
-				return ACEnergyDatum.REACTIVE_POWER_KEY + REVERSE_ACCUMULATING_SUFFIX_KEY;
+				return AcEnergyDatum.REACTIVE_POWER_KEY + REVERSE_ACCUMULATING_SUFFIX_KEY;
 
 			case PowerReactiveImport:
-				return ACEnergyDatum.REACTIVE_POWER_KEY;
+				return AcEnergyDatum.REACTIVE_POWER_KEY;
 
 			case RPM:
 				return "rpm";
@@ -585,7 +588,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 				return AtmosphericDatum.TEMPERATURE_KEY;
 
 			case Voltage:
-				return ACEnergyDatum.VOLTAGE_KEY;
+				return AcEnergyDatum.VOLTAGE_KEY;
 
 			default:
 				return null;
@@ -595,7 +598,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 	// SettingsSpecifierProvider
 
 	@Override
-	public String getSettingUID() {
+	public String getSettingUid() {
 		return "net.solarnetwork.node.ocpp.cs.session.datum";
 	}
 

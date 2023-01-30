@@ -28,17 +28,17 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import net.solarnetwork.domain.Identity;
-import net.solarnetwork.node.settings.SettingSpecifier;
-import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
-import net.solarnetwork.node.settings.support.BasicToggleSettingSpecifier;
 import net.solarnetwork.ocpp.domain.Authorization;
+import net.solarnetwork.settings.SettingSpecifier;
+import net.solarnetwork.settings.support.BasicTextFieldSettingSpecifier;
+import net.solarnetwork.settings.support.BasicToggleSettingSpecifier;
 import net.solarnetwork.util.DateUtils;
 
 /**
  * Configuration for an {@link Authorization}.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class AuthorizationConfig implements Identity<Long> {
 

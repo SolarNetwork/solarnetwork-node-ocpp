@@ -60,9 +60,9 @@
 		<property name="eventAdmin" ref="txEventAdmin"/>
 	</bean>
 	
-	<bean id="txEventAdmin" class="net.solarnetwork.util.StaticOptionalService">
+	<bean id="txEventAdmin" class="net.solarnetwork.service.StaticOptionalService">
 		<argument>
-			<bean class="net.solarnetwork.support.TransactionSynchronizationEventAdminAdapter">
+			<bean class="net.solarnetwork.common.osgi.event.TransactionSynchronizationEventAdminAdapter">
 				<argument ref="eventAdmin"/>
 			</bean>
 		</argument>
