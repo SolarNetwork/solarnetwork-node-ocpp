@@ -39,6 +39,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
@@ -274,8 +275,9 @@ public class SolarNetChargeSessionManagerTests {
 		assertThat("Energy prop", datum.asSampleOperations().getSampleLong(DatumSamplesType.Accumulating,
 				AcEnergyDatum.WATT_HOUR_READING_KEY), equalTo(info.getMeterStart()));
 		assertThat("Datum prop session ID",
-				datum.asSampleOperations().getSampleString(DatumSamplesType.Status,
-						SolarNetChargeSessionManager.SESSION_ID_PROPERTY),
+				datum.asSampleOperations().getSampleString(
+						SolarNetChargeSessionManager.DatumProperty.SessionId.getClassification(),
+						SolarNetChargeSessionManager.DatumProperty.SessionId.getPropertyName()),
 				equalTo(sess.getId().toString()));
 	}
 
@@ -340,8 +342,8 @@ public class SolarNetChargeSessionManagerTests {
 		// get ChargePoint
 		expect(chargePointDao.getForIdentity(chargePointId)).andReturn(cp);
 
-		ChargeSession sess = new ChargeSession(UUID.randomUUID(), Instant.now(), idTag, cp.getId(),
-				connectorId, transactionId);
+		ChargeSession sess = new ChargeSession(UUID.randomUUID(), Instant.now().minusSeconds(60), idTag,
+				cp.getId(), connectorId, transactionId);
 		expect(chargeSessionDao.getIncompleteChargeSessionForTransaction(cp.getId(), transactionId))
 				.andReturn(sess);
 
@@ -374,13 +376,13 @@ public class SolarNetChargeSessionManagerTests {
 		Capture<NodeDatum> datumCaptor = Capture.newInstance();
 		expect(datumQueue.offer(capture(datumCaptor))).andReturn(true);
 
-		// when
+		// WHEN
 		replayAll();
 
 		// @formatter:off
 		ChargeSessionEndInfo info = ChargeSessionEndInfo.builder()
 				.withTimestampEnd(Instant.now())
-				.withAuthorizationId(idTag)
+				.withAuthorizationId(idTag+":END")
 				.withChargePointId(chargePointId)
 				.withTransactionId(transactionId)
 				.withMeterEnd(54321)
@@ -389,7 +391,7 @@ public class SolarNetChargeSessionManagerTests {
 		// @formatter:on
 		manager.endChargingSession(info);
 
-		// then
+		// THEN
 
 		// @formatter:off
 		SampledValue endReading = SampledValue.builder()
@@ -412,8 +414,9 @@ public class SolarNetChargeSessionManagerTests {
 		// session should be update with end/posted dates
 		ChargeSession updated = updatedCaptor.getValue();
 		assertThat("Session ID same", updated.getId(), equalTo(sess.getId()));
+		assertThat("Start auth ID unchanged", updated.getAuthId(), equalTo(idTag));
 		assertThat("End date set", updated.getEnded(), equalTo(info.getTimestampEnd()));
-		assertThat("End auth ID set", updated.getAuthId(), equalTo(info.getAuthorizationId()));
+		assertThat("End auth ID set", updated.getEndAuthId(), equalTo(info.getAuthorizationId()));
 		assertThat("Posted date set", updated.getPosted(), notNullValue());
 
 		NodeDatum datum = datumCaptor.getValue();
@@ -423,10 +426,45 @@ public class SolarNetChargeSessionManagerTests {
 				equalTo(String.format("/ocpp/cp/%s/%d/%s", identifier, connectorId, Location.Outlet)));
 		assertThat("Energy prop", datum.asSampleOperations().getSampleLong(DatumSamplesType.Accumulating,
 				AcEnergyDatum.WATT_HOUR_READING_KEY), equalTo(info.getMeterEnd()));
+		assertThat("Datum prop auth ID",
+				datum.asSampleOperations().getSampleString(
+						SolarNetChargeSessionManager.DatumProperty.AuthorizationToken
+								.getClassification(),
+						SolarNetChargeSessionManager.DatumProperty.AuthorizationToken.getPropertyName()),
+				equalTo(idTag));
 		assertThat("Datum prop session ID",
-				datum.asSampleOperations().getSampleString(DatumSamplesType.Status,
-						SolarNetChargeSessionManager.SESSION_ID_PROPERTY),
+				datum.asSampleOperations().getSampleString(
+						SolarNetChargeSessionManager.DatumProperty.SessionId.getClassification(),
+						SolarNetChargeSessionManager.DatumProperty.SessionId.getPropertyName()),
 				equalTo(sess.getId().toString()));
+		assertThat("Datum prop tx ID",
+				datum.asSampleOperations().getSampleString(
+						SolarNetChargeSessionManager.DatumProperty.TransactionId.getClassification(),
+						SolarNetChargeSessionManager.DatumProperty.TransactionId.getPropertyName()),
+				equalTo(String.valueOf(transactionId)));
+		assertThat("Datum prop session end date",
+				datum.asSampleOperations().getSampleString(
+						SolarNetChargeSessionManager.DatumProperty.SessionEndDate.getClassification(),
+						SolarNetChargeSessionManager.DatumProperty.SessionEndDate.getPropertyName()),
+				equalTo(String.valueOf(endReading.getTimestamp().toEpochMilli())));
+		assertThat("Datum prop session end auth ID",
+				datum.asSampleOperations().getSampleString(
+						SolarNetChargeSessionManager.DatumProperty.SessionEndAuthorizationToken
+								.getClassification(),
+						SolarNetChargeSessionManager.DatumProperty.SessionEndAuthorizationToken
+								.getPropertyName()),
+				equalTo(info.getAuthorizationId()));
+		assertThat("Datum prop session end reason",
+				datum.asSampleOperations().getSampleString(
+						SolarNetChargeSessionManager.DatumProperty.SessionEndReason.getClassification(),
+						SolarNetChargeSessionManager.DatumProperty.SessionEndReason.getPropertyName()),
+				equalTo(info.getReason().name()));
+		assertThat("Datum prop session duration",
+				datum.asSampleOperations().getSampleString(
+						SolarNetChargeSessionManager.DatumProperty.SessionDuration.getClassification(),
+						SolarNetChargeSessionManager.DatumProperty.SessionDuration.getPropertyName()),
+				equalTo(String.valueOf(
+						Duration.between(sess.getCreated(), info.getTimestampEnd()).getSeconds())));
 	}
 
 	@Test
@@ -440,7 +478,7 @@ public class SolarNetChargeSessionManagerTests {
 		int transactionId = 123;
 
 		// get ChargePoint
-		expect(chargePointDao.get(cp.getId())).andReturn(cp);
+		expect(chargePointDao.getForIdentity(cp.chargePointIdentity())).andReturn(cp);
 
 		// get current session
 		ChargeSession sess = new ChargeSession(UUID.randomUUID(), Instant.now(), idTag, cp.getId(),
@@ -565,7 +603,7 @@ public class SolarNetChargeSessionManagerTests {
 		int transactionId = 123;
 
 		// get ChargePoint
-		expect(chargePointDao.get(cp.getId())).andReturn(cp);
+		expect(chargePointDao.getForIdentity(cp.chargePointIdentity())).andReturn(cp);
 
 		// get current session
 		ChargeSession sess = new ChargeSession(UUID.randomUUID(), Instant.now(), idTag, cp.getId(),

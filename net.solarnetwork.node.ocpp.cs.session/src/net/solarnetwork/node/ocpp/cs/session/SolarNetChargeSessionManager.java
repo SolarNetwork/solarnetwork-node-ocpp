@@ -27,12 +27,14 @@ import static net.solarnetwork.domain.datum.Datum.REVERSE_ACCUMULATING_SUFFIX_KE
 import static net.solarnetwork.service.OptionalService.service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -91,13 +93,72 @@ import net.solarnetwork.util.StringUtils;
  * session transaction data.
  * 
  * @author matt
- * @version 1.1
+ * @version 2.0
  */
 public class SolarNetChargeSessionManager extends BaseIdentifiable
 		implements ChargeSessionManager, SettingSpecifierProvider, SettingsChangeObserver {
 
-	/** A datum property name for a charging session ID. */
-	public static final String SESSION_ID_PROPERTY = "sessionId";
+	/**
+	 * Datum property name enumeration.
+	 */
+	public enum DatumProperty {
+
+		/** An authorization token, e.g. RFID ID. */
+		AuthorizationToken("token", DatumSamplesType.Status),
+
+		/** The reservation ID. */
+		ReservationId("reservationId", DatumSamplesType.Status),
+
+		/** A charging session ID. */
+		SessionId("sessionId", DatumSamplesType.Status),
+
+		/** The session duration, in seconds. */
+		SessionDuration("duration", DatumSamplesType.Status),
+
+		/**
+		 * The session end authorization token, if different from the starting
+		 * token.
+		 */
+		SessionEndAuthorizationToken("endToken", DatumSamplesType.Status),
+
+		/** The session end date. */
+		SessionEndDate("endDate", DatumSamplesType.Status),
+
+		/** The session end reason. */
+		SessionEndReason("endReason", DatumSamplesType.Status),
+
+		/** The charging session transaction ID. */
+		TransactionId("transactionId", DatumSamplesType.Status),
+
+		;
+
+		private final String propertyName;
+		private final DatumSamplesType classification;
+
+		private DatumProperty(String propertyName, DatumSamplesType classification) {
+			this.propertyName = propertyName;
+			this.classification = classification;
+		}
+
+		/**
+		 * Get the property name.
+		 * 
+		 * @return the property name
+		 */
+		public String getPropertyName() {
+			return propertyName;
+		}
+
+		/**
+		 * Get the property classification.
+		 * 
+		 * @return the classification
+		 */
+		public DatumSamplesType getClassification() {
+			return classification;
+		}
+
+	}
 
 	/** The default {@code sourceIdTemplate} value. */
 	public static final String DEFAULT_SOURCE_ID_TEMPLATE = "/ocpp/cp/{chargerIdentifier}/{connectorId}/{location}";
@@ -281,6 +342,10 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 	@Override
 	public ChargeSession getActiveChargingSession(ChargePointIdentity identifier, int transactionId)
 			throws AuthorizationException {
+		if ( transactionId < 1 ) {
+			// illegal transaction ID value
+			return null;
+		}
 		ChargePoint cp = chargePoint(identifier, null);
 		return chargeSessionDao.getIncompleteChargeSessionForTransaction(cp.getId(), transactionId);
 	}
@@ -336,21 +401,62 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 		readings.add(reading);
 		Map<UUID, ChargeSession> sessions = new HashMap<>(2);
 		sessions.put(sess.getId(), sess);
-		Map<Long, ChargePoint> chargePoints = new HashMap<>(2);
-		chargePoints.put(cp.getId(), cp);
-		addReadings(readings, sessions, chargePoints);
+
+		ChargePointIdentity cpIdent = cp.chargePointIdentity();
+		Map<ChargePointIdentity, ChargePoint> chargePoints = new HashMap<>(2);
+		chargePoints.put(cpIdent, cp);
+		addReadings(cpIdent, readings, sessions, chargePoints);
 
 		return new AuthorizationInfo(info.getAuthorizationId(), AuthorizationStatus.Accepted, null,
 				null);
 	}
 
 	private MutableNodeDatum datum(ChargePoint chargePoint, ChargeSession sess, SampledValue reading) {
+		String sourceId = sourceId(chargePoint, (sess != null ? sess.getConnectorId() : 0),
+				reading.getLocation(), reading.getPhase());
+		return datum(sourceId, chargePoint, sess, reading);
+	}
+
+	private MutableNodeDatum datum(String sourceId, ChargePoint chargePoint, ChargeSession sess,
+			SampledValue reading) {
 		DatumSamples s = new DatumSamples();
-		populateProperty(s, reading.getMeasurand(), reading.getUnit(), reading.getValue());
+		populateProperty(s, reading.getMeasurand(), reading.getUnit(), reading.getPhase(),
+				reading.getValue());
 		if ( !s.isEmpty() ) {
-			SimpleDatum d = SimpleDatum.nodeDatum(sourceId(chargePoint, sess.getConnectorId(),
-					reading.getLocation(), reading.getPhase()), reading.getTimestamp(), s);
-			d.putSampleValue(DatumSamplesType.Status, SESSION_ID_PROPERTY, sess.getId().toString());
+			SimpleDatum d = SimpleDatum.nodeDatum(sourceId, reading.getTimestamp(), s);
+			if ( sess != null ) {
+				d.getSamples().putSampleValue(DatumProperty.AuthorizationToken.getClassification(),
+						DatumProperty.AuthorizationToken.getPropertyName(), sess.getAuthId());
+				// TODO - implement support for reservation ID
+				//d.getSamples().putSampleValue(DatumProperty.ReservationId.getClassification(),
+				//		DatumProperty.ReservationId.getPropertyName(), sess.getReservationId());
+				d.getSamples().putSampleValue(DatumProperty.SessionId.getClassification(),
+						DatumProperty.SessionId.getPropertyName(), sess.getId().toString());
+				d.getSamples().putSampleValue(DatumProperty.TransactionId.getClassification(),
+						DatumProperty.TransactionId.getPropertyName(),
+						String.valueOf(sess.getTransactionId()));
+				if ( sess.getEnded() != null ) {
+					d.getSamples().putSampleValue(DatumProperty.SessionEndDate.getClassification(),
+							DatumProperty.SessionEndDate.getPropertyName(),
+							sess.getEnded().toEpochMilli());
+				}
+				d.getSamples().putSampleValue(
+						DatumProperty.SessionEndAuthorizationToken.getClassification(),
+						DatumProperty.SessionEndAuthorizationToken.getPropertyName(),
+						sess.getEndAuthId());
+				if ( sess.getEndReason() != null ) {
+					d.getSamples().putSampleValue(DatumProperty.SessionEndReason.getClassification(),
+							DatumProperty.SessionEndReason.getPropertyName(),
+							sess.getEndReason().toString());
+				}
+				if ( sess.getCreated() != null
+						&& (sess.getEnded() != null || reading.getTimestamp() != null) ) {
+					Duration dur = Duration.between(sess.getCreated(),
+							sess.getEnded() != null ? sess.getEnded() : reading.getTimestamp());
+					d.getSamples().putSampleValue(DatumProperty.SessionDuration.getClassification(),
+							DatumProperty.SessionDuration.getPropertyName(), dur.getSeconds());
+				}
+			}
 			return d;
 		}
 		return null;
@@ -366,11 +472,13 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 	@Override
 	public void addChargingSessionReadings(ChargePointIdentity chargePointId,
 			Iterable<SampledValue> readings) {
-		addReadings(readings, new HashMap<>(2), new HashMap<>(2));
+		addReadings(chargePointId, readings, new HashMap<>(2), new HashMap<>(2));
 	}
 
-	private void addReadings(Iterable<SampledValue> readings, Map<UUID, ChargeSession> sessions,
-			Map<Long, ChargePoint> chargePoints) {
+	// NOTE that the Map implementations passed here MUST support null key and values,
+	// in order to support meter values not associated with a charge session
+	private void addReadings(ChargePointIdentity chargePointId, Iterable<SampledValue> readings,
+			Map<UUID, ChargeSession> sessions, Map<ChargePointIdentity, ChargePoint> chargePoints) {
 		if ( readings == null ) {
 			return;
 		}
@@ -379,59 +487,68 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 				.collect(Collectors.toList());
 		List<SampledValue> newReadings = new ArrayList<>();
 		for ( SampledValue r : sorted ) {
-			Set<SampledValue> current = currentReadings.get(r.getSessionId());
+			final UUID sessionId = r.getSessionId(); // may be null
+			Set<SampledValue> current = currentReadings.get(sessionId);
 			if ( current == null ) {
-				ChargeSession sess = sessions.get(r.getSessionId());
-				if ( sess == null ) {
-					sess = chargeSessionDao.get(r.getSessionId());
-					if ( sess == null ) {
-						throw new AuthorizationException("No active charging session found.",
-								new AuthorizationInfo(null, AuthorizationStatus.Invalid, null, null));
-					}
-					sessions.put(r.getSessionId(), sess);
+				if ( sessionId != null && !sessions.containsKey(sessionId) ) {
+					sessions.put(sessionId, chargeSessionDao.get(sessionId));
 				}
-				current = new HashSet<>(getChargingSessionReadings(r.getSessionId()));
-				currentReadings.put(r.getSessionId(), current);
+				current = (sessionId != null ? new HashSet<>(getChargingSessionReadings(sessionId))
+						: new HashSet<>(4));
+				currentReadings.put(sessionId, current);
 			}
 			if ( !current.contains(r) ) {
 				newReadings.add(r);
 			}
 		}
 		if ( !newReadings.isEmpty() ) {
-			chargeSessionDao.addReadings(newReadings);
-			DatumQueue q = service(datumDao);
-			if ( q != null ) {
-				// group readings by timestamp into Datum
-				MutableNodeDatum d = null;
-				for ( SampledValue reading : newReadings ) {
-					if ( d == null || !d.getTimestamp().equals(reading.getTimestamp()) ) {
-						if ( d != null ) {
-							q.offer(d);
-							d = null;
-						}
+			// readings may not have a session associated, but we can only persist session-related
+			// readings so filter the non-session related readings out here
+			List<SampledValue> sessionReadings = newReadings.stream()
+					.filter(r -> r.getSessionId() != null).collect(Collectors.toList());
+			if ( !sessionReadings.isEmpty() ) {
+				chargeSessionDao.addReadings(sessionReadings);
+			}
 
-						ChargeSession s = sessions.get(reading.getSessionId());
-						ChargePoint cp = chargePoints.get(s.getChargePointId());
-						if ( cp == null ) {
-							cp = chargePointDao.get(s.getChargePointId());
-							if ( cp == null ) {
-								throw new AuthorizationException(
-										String.format("ChargePoint %d not available.",
-												s.getChargePointId()),
-										new AuthorizationInfo(s.getAuthId(),
-												AuthorizationStatus.Invalid));
-							}
-							chargePoints.put(cp.getId(), cp);
-						}
-						d = datum(cp, sessions.get(reading.getSessionId()), reading);
-					} else {
-						populateProperty(d.asMutableSampleOperations(), reading.getMeasurand(),
-								reading.getUnit(), reading.getValue());
+			DatumQueue q = service(datumDao);
+			if ( q == null ) {
+				return;
+			}
+			// group readings by timestamp and source ID into Datum
+			Map<String, MutableNodeDatum> datumBySourceId = new LinkedHashMap<>(4);
+			for ( SampledValue reading : newReadings ) {
+				ChargePoint cp = chargePoints.get(chargePointId);
+				if ( cp == null ) {
+					cp = chargePointDao.getForIdentity(chargePointId);
+					if ( cp == null ) {
+						throw new AuthorizationException(
+								String.format("ChargePoint %s not available.", chargePointId),
+								new AuthorizationInfo(chargePointId.getIdentifier(),
+										AuthorizationStatus.Invalid));
 					}
+					chargePoints.put(chargePointId, cp);
 				}
-				if ( d != null ) {
-					q.offer(d);
+				final UUID sessionId = reading.getSessionId(); // may be null
+				final ChargeSession s = sessions.get(sessionId);
+				final String sourceId = sourceId(cp, s != null ? s.getConnectorId() : 0,
+						reading.getLocation(), reading.getPhase());
+				MutableNodeDatum d = datumBySourceId.get(sourceId);
+				if ( d == null || !d.getTimestamp().equals(reading.getTimestamp()) ) {
+					if ( d != null ) {
+						q.offer(d);
+						datumBySourceId.remove(sourceId);
+						d = null;
+					}
+
+					d = datum(sourceId, cp, s, reading);
+					datumBySourceId.put(sourceId, d);
+				} else {
+					populateProperty(d.asMutableSampleOperations(), reading.getMeasurand(),
+							reading.getUnit(), reading.getPhase(), reading.getValue());
 				}
+			}
+			for ( MutableNodeDatum d : datumBySourceId.values() ) {
+				q.offer(d);
 			}
 		}
 	}
@@ -449,7 +566,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 	}
 
 	private void populateProperty(MutableDatumSamplesOperations s, Measurand measurand,
-			UnitOfMeasure unit, Object value) {
+			UnitOfMeasure unit, Phase phase, Object value) {
 		if ( value == null ) {
 			return;
 		}
@@ -466,7 +583,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 			}
 		}
 		num = normalizedUnit(num, unit);
-		String propName = propertyName(measurand);
+		String propName = propertyName(measurand, phase);
 		if ( propName != null ) {
 			s.putSampleValue(propertyType(measurand), propName, num);
 		}
@@ -488,7 +605,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 			}
 
 			case K: {
-				BigDecimal celsius = num.subtract(new BigDecimal("-273.15"));
+				BigDecimal celsius = num.subtract(new BigDecimal("273.15"));
 				if ( maxTemperatureScale >= 0 && celsius.scale() > maxTemperatureScale ) {
 					celsius = celsius.setScale(maxTemperatureScale, RoundingMode.HALF_UP);
 				}
@@ -520,6 +637,51 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 			default:
 				return DatumSamplesType.Instantaneous;
 		}
+	}
+
+	private String propertyName(Measurand measurand, Phase phase) {
+		if ( phase == null || phase == Phase.Unknown ) {
+			return propertyName(measurand);
+		}
+		StringBuilder buf = new StringBuilder(propertyName(measurand));
+		buf.append('_');
+		switch (phase) {
+			case N:
+				buf.append('n');
+				break;
+
+			case L1:
+			case L1N:
+				buf.append('a');
+				break;
+
+			case L2:
+			case L2N:
+				buf.append('b');
+				break;
+
+			case L3:
+			case L3N:
+				buf.append('c');
+				break;
+
+			case L1L2:
+				buf.append("ab");
+				break;
+
+			case L2L3:
+				buf.append("bc");
+				break;
+
+			case L3L1:
+				buf.append("ca");
+				break;
+
+			case Unknown:
+				// unreachable
+				break;
+		}
+		return buf.toString();
 	}
 
 	private String propertyName(Measurand measurand) {
