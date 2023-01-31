@@ -30,8 +30,6 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import javax.annotation.Resource;
-import javax.sql.DataSource;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,9 +55,6 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 	private static final String TEST_ID_TAG = "test.tag";
 	private static final String TEST_SOCKET_ID = "test.socket";
 	private static final int TEST_TRANSACTION_ID = 789;
-
-	@Resource(name = "dataSource")
-	private DataSource dataSource;
 
 	private JdbcChargeSessionDao dao;
 	private ChargeSession lastSession;

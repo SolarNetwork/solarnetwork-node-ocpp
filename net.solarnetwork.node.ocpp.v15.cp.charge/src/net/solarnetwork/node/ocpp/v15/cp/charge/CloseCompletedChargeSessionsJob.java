@@ -24,16 +24,15 @@ package net.solarnetwork.node.ocpp.v15.cp.charge;
 
 import java.util.List;
 import java.util.ListIterator;
-import org.quartz.DisallowConcurrentExecution;
-import org.quartz.JobExecutionContext;
-import org.quartz.PersistJobDataAfterExecution;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
-import net.solarnetwork.node.job.AbstractJob;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeSession;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeSessionManager;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeSessionMeterReading;
+import net.solarnetwork.util.ObjectUtils;
 import ocpp.v15.cs.Measurand;
 
 /**
@@ -41,20 +40,91 @@ import ocpp.v15.cs.Measurand;
  * finished because of a lack of power being drawn on the associated socket.
  * 
  * @author matt
- * @version 1.1
+ * @version 2.0
  */
-@PersistJobDataAfterExecution
-@DisallowConcurrentExecution
-public class CloseCompletedChargeSessionsJob extends AbstractJob {
+public class CloseCompletedChargeSessionsJob implements Runnable {
 
-	private ChargeSessionManager service;
-	private TransactionTemplate transactionTemplate;
-	private long maxAgeLastReading = (15 * 60 * 1000L);
-	private int readingEnergyCount = 5;
-	private long maxEnergy = 5;
+	private static final Logger log = LoggerFactory.getLogger(CloseCompletedChargeSessionsJob.class);
+
+	private final ChargeSessionManager service;
+	private final TransactionTemplate transactionTemplate;
+	private final long maxAgeLastReading;
+	private final int readingEnergyCount;
+	private final long maxEnergy;
+
+	/**
+	 * Constructor.
+	 * 
+	 * @param service
+	 *        the service.
+	 * @param transactionTemplate
+	 *        the transaction template
+	 */
+	public CloseCompletedChargeSessionsJob(ChargeSessionManager service,
+			TransactionTemplate transactionTemplate) {
+		this(service, transactionTemplate, 15 * 60 * 1000L);
+	}
+
+	/**
+	 * Constructor.
+	 * 
+	 * @param service
+	 *        the service.
+	 * @param transactionTemplate
+	 *        the transaction template
+	 * @param maxAgeLastReading
+	 *        the maximum age in milliseconds from the last meter reading
+	 *        captured for that session (or the date the session started, if no
+	 *        readings are available); if this threshold is passed then the
+	 *        session will be closed
+	 * @param readingEnergyCount
+	 *        the number of meter readings to consider when calculating the
+	 *        effective energy drawn on the socket
+	 * @param maxEnergy
+	 *        the maximum energy, in Wh, a charge session can draw over
+	 *        {@code readingEnergyCount} readings to be considered for closing;
+	 *        if the energy drawn is higher than this, the session will not be
+	 *        closed
+	 */
+	public CloseCompletedChargeSessionsJob(ChargeSessionManager service,
+			TransactionTemplate transactionTemplate, long maxAgeLastReading) {
+		this(service, transactionTemplate, maxAgeLastReading, 5, 5L);
+	}
+
+	/**
+	 * Constructor.
+	 * 
+	 * @param service
+	 *        the service.
+	 * @param transactionTemplate
+	 *        the transaction template
+	 * @param maxAgeLastReading
+	 *        the maximum age in milliseconds from the last meter reading
+	 *        captured for that session (or the date the session started, if no
+	 *        readings are available); if this threshold is passed then the
+	 *        session will be closed
+	 * @param readingEnergyCount
+	 *        the number of meter readings to consider when calculating the
+	 *        effective energy drawn on the socket
+	 * @param maxEnergy
+	 *        the maximum energy, in Wh, a charge session can draw over
+	 *        {@code readingEnergyCount} readings to be considered for closing;
+	 *        if the energy drawn is higher than this, the session will not be
+	 *        closed
+	 */
+	public CloseCompletedChargeSessionsJob(ChargeSessionManager service,
+			TransactionTemplate transactionTemplate, long maxAgeLastReading, int readingEnergyCount,
+			long maxEnergy) {
+		super();
+		this.service = ObjectUtils.requireNonNullArgument(service, "service");
+		this.transactionTemplate = transactionTemplate;
+		this.maxAgeLastReading = maxAgeLastReading;
+		this.readingEnergyCount = readingEnergyCount;
+		this.maxEnergy = maxEnergy;
+	}
 
 	@Override
-	protected void executeInternal(JobExecutionContext jobContext) throws Exception {
+	public void run() {
 		if ( service == null ) {
 			log.warn(
 					"No ChargeSessionManager available, cannot close active charge sessions that appear to be completed");
@@ -134,62 +204,6 @@ public class CloseCompletedChargeSessionsJob extends AbstractJob {
 			}
 		}
 
-	}
-
-	/**
-	 * Set the charge session manager to use.
-	 * 
-	 * @param service
-	 *        The service to use.
-	 */
-	public void setService(ChargeSessionManager service) {
-		this.service = service;
-	}
-
-	/**
-	 * A transaction template to use.
-	 * 
-	 * @param transactionTemplate
-	 *        The template to use.
-	 */
-	public void setTransactionTemplate(TransactionTemplate transactionTemplate) {
-		this.transactionTemplate = transactionTemplate;
-	}
-
-	/**
-	 * Set the number of meter readings to consider when calculating the
-	 * effective energy drawn on the socket.
-	 * 
-	 * @param readingEnergyCount
-	 *        The reading average count.
-	 */
-	public void setReadingEnergyCount(int readingEnergyCount) {
-		this.readingEnergyCount = readingEnergyCount;
-	}
-
-	/**
-	 * The maximum energy, in Wh, a charge session can draw over
-	 * {@code readingEnergyCount} readings to be considered for closing. If the
-	 * energy drawn is higher than this, the session will not be closed.
-	 * 
-	 * @param maxEnergy
-	 *        The maximum energy to consider for closing a session, in Wh.
-	 */
-	public void setMaxEnergy(long maxEnergy) {
-		this.maxEnergy = maxEnergy;
-	}
-
-	/**
-	 * Set the maximum age in milliseconds from the last meter reading captured
-	 * for that session (or the date the session started, if no readings are
-	 * available). If this threshold is passed then the session will be closed.
-	 * 
-	 * @param maxAgeLastReading
-	 *        The maximum time lapse allowed between meter readings, in
-	 *        milliseconds.
-	 */
-	public void setMaxAgeLastReading(long maxAgeLastReading) {
-		this.maxAgeLastReading = maxAgeLastReading;
 	}
 
 }

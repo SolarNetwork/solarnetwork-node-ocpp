@@ -22,13 +22,13 @@
 
 package net.solarnetwork.node.ocpp.v15.cp.mock;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import org.osgi.service.event.Event;
@@ -37,18 +37,18 @@ import org.osgi.service.event.EventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
-import net.solarnetwork.node.DatumDataSource;
-import net.solarnetwork.node.MultiDatumDataSource;
-import net.solarnetwork.node.domain.ACEnergyDatum;
-import net.solarnetwork.node.domain.ACPhase;
-import net.solarnetwork.node.domain.Datum;
-import net.solarnetwork.node.domain.GeneralNodeACEnergyDatum;
+import net.solarnetwork.domain.AcPhase;
+import net.solarnetwork.domain.datum.DatumSamples;
+import net.solarnetwork.node.domain.datum.NodeDatum;
+import net.solarnetwork.node.domain.datum.SimpleAcEnergyDatum;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeSessionManager;
-import net.solarnetwork.node.settings.SettingSpecifier;
-import net.solarnetwork.node.settings.SettingSpecifierProvider;
-import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
-import net.solarnetwork.util.ClassUtils;
-import net.solarnetwork.util.OptionalService;
+import net.solarnetwork.node.service.DatumDataSource;
+import net.solarnetwork.node.service.DatumEvents;
+import net.solarnetwork.node.service.MultiDatumDataSource;
+import net.solarnetwork.service.OptionalService;
+import net.solarnetwork.settings.SettingSpecifier;
+import net.solarnetwork.settings.SettingSpecifierProvider;
+import net.solarnetwork.settings.support.BasicTextFieldSettingSpecifier;
 
 /**
  * Mock implementation of {@link DatumDataSource} to simulate a power meter used
@@ -57,8 +57,8 @@ import net.solarnetwork.util.OptionalService;
  * @author matt
  * @version 1.0
  */
-public class MockMeterDataSource implements DatumDataSource<GeneralNodeACEnergyDatum>,
-		MultiDatumDataSource<GeneralNodeACEnergyDatum>, SettingSpecifierProvider, EventHandler {
+public class MockMeterDataSource
+		implements DatumDataSource, MultiDatumDataSource, SettingSpecifierProvider, EventHandler {
 
 	private OptionalService<EventAdmin> eventAdmin;
 	private MessageSource messageSource;
@@ -72,7 +72,7 @@ public class MockMeterDataSource implements DatumDataSource<GeneralNodeACEnergyD
 	private double chargingWattsRandomness = 0.1;
 	private boolean charging;
 
-	private GeneralNodeACEnergyDatum sample;
+	private SimpleAcEnergyDatum sample;
 
 	private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -93,18 +93,17 @@ public class MockMeterDataSource implements DatumDataSource<GeneralNodeACEnergyD
 		return (now.getTime() - cal.getTimeInMillis()) / (1000L * 60);
 	}
 
-	private GeneralNodeACEnergyDatum getCurrentSample() {
-		GeneralNodeACEnergyDatum currSample = sample;
+	private SimpleAcEnergyDatum getCurrentSample() {
+		SimpleAcEnergyDatum currSample = sample;
 		if ( isSampleExpired(currSample) ) {
-			GeneralNodeACEnergyDatum newSample = new GeneralNodeACEnergyDatum();
-			newSample.setCreated(new Date());
-			newSample.setSourceId(uid);
-			newSample.setPhase(ACPhase.Total);
+			SimpleAcEnergyDatum newSample = new SimpleAcEnergyDatum(uid, Instant.now(),
+					new DatumSamples());
+			newSample.setAcPhase(AcPhase.Total);
 			if ( currSample == null ) {
 				newSample.setWattHourReading(mockMeter.get());
 			} else {
-				double diffHours = ((newSample.getCreated().getTime()
-						- currSample.getCreated().getTime()) / (double) (1000 * 60 * 60));
+				double diffHours = ((newSample.getTimestamp().toEpochMilli()
+						- currSample.getTimestamp().toEpochMilli()) / (double) (1000 * 60 * 60));
 				double power;
 				if ( charging ) {
 					power = chargingWatts;
@@ -131,11 +130,11 @@ public class MockMeterDataSource implements DatumDataSource<GeneralNodeACEnergyD
 		return currSample;
 	}
 
-	private boolean isSampleExpired(GeneralNodeACEnergyDatum datum) {
+	private boolean isSampleExpired(SimpleAcEnergyDatum datum) {
 		if ( datum == null ) {
 			return true;
 		}
-		final long lastReadDiff = System.currentTimeMillis() - datum.getCreated().getTime();
+		final long lastReadDiff = System.currentTimeMillis() - datum.getTimestamp().toEpochMilli();
 		if ( lastReadDiff > sampleCacheMs ) {
 			return true;
 		}
@@ -143,17 +142,7 @@ public class MockMeterDataSource implements DatumDataSource<GeneralNodeACEnergyD
 	}
 
 	@Override
-	public String getUID() {
-		return uid;
-	}
-
-	@Override
-	public String getGroupUID() {
-		return groupUID;
-	}
-
-	@Override
-	public String getSettingUID() {
+	public String getSettingUid() {
 		return "net.solarnetwork.node.ocpp.v15.cp.mock.meter";
 	}
 
@@ -187,27 +176,27 @@ public class MockMeterDataSource implements DatumDataSource<GeneralNodeACEnergyD
 	}
 
 	@Override
-	public Class<? extends GeneralNodeACEnergyDatum> getMultiDatumType() {
+	public Class<? extends NodeDatum> getMultiDatumType() {
 		return getDatumType();
 	}
 
 	@Override
-	public Collection<GeneralNodeACEnergyDatum> readMultipleDatum() {
+	public Collection<NodeDatum> readMultipleDatum() {
 		return Collections.singletonList(readCurrentDatum());
 	}
 
 	@Override
-	public Class<? extends GeneralNodeACEnergyDatum> getDatumType() {
-		return GeneralNodeACEnergyDatum.class;
+	public Class<? extends NodeDatum> getDatumType() {
+		return SimpleAcEnergyDatum.class;
 	}
 
 	@Override
-	public GeneralNodeACEnergyDatum readCurrentDatum() {
-		final long start = System.currentTimeMillis();
-		final GeneralNodeACEnergyDatum d = getCurrentSample();
-		if ( d.getCreated().getTime() >= start ) {
+	public NodeDatum readCurrentDatum() {
+		final Instant start = Instant.now();
+		final SimpleAcEnergyDatum d = getCurrentSample();
+		if ( d.getTimestamp().isAfter(start) ) {
 			// we read from the meter
-			postDatumCapturedEvent(d, ACEnergyDatum.class);
+			postDatumCapturedEvent(d);
 		}
 		return d;
 	}
@@ -216,50 +205,21 @@ public class MockMeterDataSource implements DatumDataSource<GeneralNodeACEnergyD
 	 * Post a {@link DatumDataSource#EVENT_TOPIC_DATUM_CAPTURED} {@link Event}.
 	 * 
 	 * <p>
-	 * This method calls {@link #createDatumCapturedEvent(Datum, Class)} to
+	 * This method calls {@link DatumEvents#datumCapturedEvent(NodeDatum)} to
 	 * create the actual Event, which may be overridden by extending classes.
 	 * </p>
 	 * 
 	 * @param datum
-	 *        the {@link Datum} to post the event for
-	 * @param eventDatumType
-	 *        the Datum class to use for the
-	 *        {@link DatumDataSource#EVENT_DATUM_CAPTURED_DATUM_TYPE} property
-	 * @since 1.3
+	 *        the datum to post the event for
+	 * @since 2.0
 	 */
-	protected final void postDatumCapturedEvent(final Datum datum,
-			final Class<? extends Datum> eventDatumType) {
-		EventAdmin ea = (eventAdmin == null ? null : eventAdmin.service());
+	protected final void postDatumCapturedEvent(final NodeDatum datum) {
+		EventAdmin ea = OptionalService.service(eventAdmin);
 		if ( ea == null || datum == null ) {
 			return;
 		}
-		Event event = createDatumCapturedEvent(datum, eventDatumType);
+		Event event = DatumEvents.datumCapturedEvent(datum);
 		ea.postEvent(event);
-	}
-
-	/**
-	 * Create a new {@link DatumDataSource#EVENT_TOPIC_DATUM_CAPTURED}
-	 * {@link Event} object out of a {@link Datum}.
-	 * 
-	 * <p>
-	 * This method will populate all simple properties of the given
-	 * {@link Datum} into the event properties, along with the
-	 * {@link Datum#DATUM_TYPE_PROPERTY}.
-	 * 
-	 * @param datum
-	 *        the datum to create the event for
-	 * @param eventDatumType
-	 *        the Datum class to use for the {@link Datum#DATUM_TYPE_PROPERTY}
-	 *        property
-	 * @return the new Event instance
-	 * @since 1.3
-	 */
-	protected Event createDatumCapturedEvent(final Datum datum,
-			final Class<? extends Datum> eventDatumType) {
-		Map<String, Object> props = ClassUtils.getSimpleBeanProperties(datum, null);
-		props.put(Datum.DATUM_TYPE_PROPERTY, eventDatumType.getName());
-		log.debug("Created {} event with props {}", DatumDataSource.EVENT_TOPIC_DATUM_CAPTURED, props);
-		return new Event(DatumDataSource.EVENT_TOPIC_DATUM_CAPTURED, props);
 	}
 
 	@Override
@@ -289,6 +249,7 @@ public class MockMeterDataSource implements DatumDataSource<GeneralNodeACEnergyD
 		this.messageSource = messageSource;
 	}
 
+	@Override
 	public String getUid() {
 		return uid;
 	}
@@ -297,7 +258,12 @@ public class MockMeterDataSource implements DatumDataSource<GeneralNodeACEnergyD
 		this.uid = uid;
 	}
 
-	public void setGroupUID(String groupUID) {
+	@Override
+	public String getGroupUid() {
+		return groupUID;
+	}
+
+	public void setGroupUid(String groupUID) {
 		this.groupUID = groupUID;
 	}
 

@@ -40,7 +40,7 @@ import net.solarnetwork.node.ocpp.v15.cp.AuthorizationDao;
 import net.solarnetwork.node.ocpp.v15.cp.CentralSystemServiceFactory;
 import net.solarnetwork.node.ocpp.v15.cp.auth.DefaultAuthorizationManager;
 import net.solarnetwork.node.test.AbstractNodeTest;
-import net.solarnetwork.util.StaticOptionalService;
+import net.solarnetwork.service.StaticOptionalService;
 import ocpp.v15.cs.AuthorizationStatus;
 import ocpp.v15.cs.AuthorizeRequest;
 import ocpp.v15.cs.AuthorizeResponse;
@@ -107,12 +107,12 @@ public class DefaultAuthorizationManagerTests extends AbstractNodeTest {
 		// not found in DAO, so query central system
 		expect(centralSystem.chargeBoxIdentity()).andReturn(TEST_CHARGE_BOX_IDENT);
 		expect(centralSystem.service()).andReturn(client);
-		Capture<AuthorizeRequest> reqCapture = new Capture<AuthorizeRequest>();
+		Capture<AuthorizeRequest> reqCapture = Capture.newInstance();
 		AuthorizeResponse authResp = newAuthResponse(AuthorizationStatus.ACCEPTED);
 		expect(client.authorize(capture(reqCapture), eq(TEST_CHARGE_BOX_IDENT))).andReturn(authResp);
 
 		// cache result in DAO
-		Capture<Authorization> authCapture = new Capture<Authorization>();
+		Capture<Authorization> authCapture = Capture.newInstance();
 		authorizationDao.storeAuthorization(capture(authCapture));
 
 		replayAll();
@@ -150,12 +150,12 @@ public class DefaultAuthorizationManagerTests extends AbstractNodeTest {
 		// invalid in DAO but no expiry date, so query central system
 		expect(centralSystem.chargeBoxIdentity()).andReturn(TEST_CHARGE_BOX_IDENT);
 		expect(centralSystem.service()).andReturn(client);
-		Capture<AuthorizeRequest> reqCapture = new Capture<AuthorizeRequest>();
+		Capture<AuthorizeRequest> reqCapture = Capture.newInstance();
 		AuthorizeResponse authResp = newAuthResponse(AuthorizationStatus.INVALID);
 		expect(client.authorize(capture(reqCapture), eq(TEST_CHARGE_BOX_IDENT))).andReturn(authResp);
 
 		// cache result in DAO
-		Capture<Authorization> authCapture = new Capture<Authorization>();
+		Capture<Authorization> authCapture = Capture.newInstance();
 		authorizationDao.storeAuthorization(capture(authCapture));
 
 		replayAll();
@@ -208,12 +208,12 @@ public class DefaultAuthorizationManagerTests extends AbstractNodeTest {
 		// invalid in DAO but expiry date in past, so query central system (which says accepted)
 		expect(centralSystem.chargeBoxIdentity()).andReturn(TEST_CHARGE_BOX_IDENT);
 		expect(centralSystem.service()).andReturn(client);
-		Capture<AuthorizeRequest> reqCapture = new Capture<AuthorizeRequest>();
+		Capture<AuthorizeRequest> reqCapture = Capture.newInstance();
 		AuthorizeResponse authResp = newAuthResponse(AuthorizationStatus.ACCEPTED);
 		expect(client.authorize(capture(reqCapture), eq(TEST_CHARGE_BOX_IDENT))).andReturn(authResp);
 
 		// cache result in DAO
-		Capture<Authorization> authCapture = new Capture<Authorization>();
+		Capture<Authorization> authCapture = Capture.newInstance();
 		authorizationDao.storeAuthorization(capture(authCapture));
 
 		replayAll();

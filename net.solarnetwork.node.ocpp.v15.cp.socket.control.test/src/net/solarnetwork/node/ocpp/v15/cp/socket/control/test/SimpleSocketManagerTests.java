@@ -28,22 +28,25 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import org.easymock.Capture;
 import org.easymock.CaptureType;
 import org.easymock.EasyMock;
+import org.easymock.IAnswer;
 import org.junit.Before;
 import org.junit.Test;
 import org.osgi.service.event.Event;
 import org.osgi.service.event.EventAdmin;
+import net.solarnetwork.domain.InstructionStatus.InstructionState;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeSession;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeSessionManager;
 import net.solarnetwork.node.ocpp.v15.cp.socket.control.SimpleSocketManager;
 import net.solarnetwork.node.reactor.Instruction;
+import net.solarnetwork.node.reactor.InstructionExecutionService;
 import net.solarnetwork.node.reactor.InstructionHandler;
-import net.solarnetwork.node.reactor.InstructionStatus.InstructionState;
-import net.solarnetwork.util.StaticOptionalService;
+import net.solarnetwork.node.reactor.InstructionStatus;
+import net.solarnetwork.node.reactor.InstructionUtils;
+import net.solarnetwork.service.StaticOptionalService;
 
 /**
  * Test cases for the {@link SimpleSocketManager} class.
@@ -54,7 +57,7 @@ import net.solarnetwork.util.StaticOptionalService;
 public class SimpleSocketManagerTests {
 
 	private ChargeSessionManager chargeSessionManager;
-	private InstructionHandler instructionHandler;
+	private InstructionExecutionService instructionHandler;
 	private EventAdmin eventAdmin;
 
 	private SimpleSocketManager manager;
@@ -63,12 +66,12 @@ public class SimpleSocketManagerTests {
 	public void setup() {
 		chargeSessionManager = EasyMock.createMock(ChargeSessionManager.class);
 		eventAdmin = EasyMock.createMock(EventAdmin.class);
-		instructionHandler = EasyMock.createMock(InstructionHandler.class);
+		instructionHandler = EasyMock.createMock(InstructionExecutionService.class);
 
 		manager = new SimpleSocketManager();
 		manager.setChargeSessionManager(chargeSessionManager);
-		manager.setEventAdmin(new StaticOptionalService<EventAdmin>(eventAdmin));
-		manager.setInstructionHandlers(Collections.singleton(instructionHandler));
+		manager.setEventAdmin(new StaticOptionalService<>(eventAdmin));
+		manager.setInstructionService(new StaticOptionalService<>(instructionHandler));
 	}
 
 	private void replayAll() {
@@ -84,15 +87,22 @@ public class SimpleSocketManagerTests {
 		List<String> socketIds = Arrays.asList("/socket/test/1", "/socket/test/2");
 		expect(chargeSessionManager.availableSocketIds()).andReturn(socketIds);
 
-		Capture<Instruction> instructionCapt = new Capture<Instruction>(CaptureType.ALL);
-		Capture<Event> eventCapt = new Capture<Event>(CaptureType.ALL);
+		Capture<Instruction> instructionCapt = Capture.newInstance(CaptureType.ALL);
+		Capture<Event> eventCapt = Capture.newInstance(CaptureType.ALL);
 
 		for ( String socketId : socketIds ) {
 			expect(chargeSessionManager.activeChargeSession(socketId)).andReturn(null);
-			expect(instructionHandler.handlesTopic(InstructionHandler.TOPIC_SET_CONTROL_PARAMETER))
-					.andReturn(true);
-			expect(instructionHandler.processInstruction(capture(instructionCapt)))
-					.andReturn(InstructionState.Completed);
+			expect(instructionHandler.executeInstruction(capture(instructionCapt)))
+					.andAnswer(new IAnswer<InstructionStatus>() {
+
+						@Override
+						public InstructionStatus answer() throws Throwable {
+							Instruction instr = instructionCapt.getValues()
+									.get(instructionCapt.getValues().size() - 1);
+							return InstructionUtils.createStatus(instr, InstructionState.Completed);
+						}
+
+					});
 			eventAdmin.postEvent(capture(eventCapt));
 		}
 
@@ -125,16 +135,23 @@ public class SimpleSocketManagerTests {
 		ChargeSession activeSession = new ChargeSession();
 		expect(chargeSessionManager.availableSocketIds()).andReturn(socketIds);
 
-		Capture<Instruction> instructionCapt = new Capture<Instruction>(CaptureType.ALL);
-		Capture<Event> eventCapt = new Capture<Event>(CaptureType.ALL);
+		Capture<Instruction> instructionCapt = Capture.newInstance(CaptureType.ALL);
+		Capture<Event> eventCapt = Capture.newInstance(CaptureType.ALL);
 
 		for ( String socketId : socketIds ) {
 			expect(chargeSessionManager.activeChargeSession(socketId))
 					.andReturn(socketId.endsWith("1") ? activeSession : null);
-			expect(instructionHandler.handlesTopic(InstructionHandler.TOPIC_SET_CONTROL_PARAMETER))
-					.andReturn(true);
-			expect(instructionHandler.processInstruction(capture(instructionCapt)))
-					.andReturn(InstructionState.Completed);
+			expect(instructionHandler.executeInstruction(capture(instructionCapt)))
+					.andAnswer(new IAnswer<InstructionStatus>() {
+
+						@Override
+						public InstructionStatus answer() throws Throwable {
+							Instruction instr = instructionCapt.getValues()
+									.get(instructionCapt.getValues().size() - 1);
+							return InstructionUtils.createStatus(instr, InstructionState.Completed);
+						}
+
+					});
 			eventAdmin.postEvent(capture(eventCapt));
 		}
 

@@ -22,10 +22,7 @@
 
 package net.solarnetwork.node.ocpp.v15.cp.kiosk.web;
 
-import org.quartz.DisallowConcurrentExecution;
-import org.quartz.JobExecutionContext;
-import org.quartz.PersistJobDataAfterExecution;
-import net.solarnetwork.node.job.AbstractJob;
+import net.solarnetwork.util.ObjectUtils;
 
 /**
  * Job to run to refresh the kiosk data model.
@@ -33,20 +30,24 @@ import net.solarnetwork.node.job.AbstractJob;
  * @author matt
  * @version 1.0
  */
-@PersistJobDataAfterExecution
-@DisallowConcurrentExecution
-public class KioskDataServiceRefreshJob extends AbstractJob {
+public class KioskDataServiceRefreshJob implements Runnable {
 
-	private KioskDataService dataService;
+	private final KioskDataService dataService;
 
-	@Override
-	protected void executeInternal(JobExecutionContext jobContext) throws Exception {
-		assert dataService != null;
-		dataService.refreshKioskData();
+	/**
+	 * Constructor.
+	 * 
+	 * @param dataService
+	 *        the service
+	 */
+	public KioskDataServiceRefreshJob(KioskDataService dataService) {
+		super();
+		this.dataService = ObjectUtils.requireNonNullArgument(dataService, "dataService");
 	}
 
-	public void setDataService(KioskDataService dataService) {
-		this.dataService = dataService;
+	@Override
+	public void run() {
+		dataService.refreshKioskData();
 	}
 
 }

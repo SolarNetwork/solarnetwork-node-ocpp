@@ -25,11 +25,10 @@ package net.solarnetwork.node.ocpp.v15.cp.impl;
 import java.net.URL;
 import java.security.Principal;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.Future;
 import javax.net.ssl.SSLSocketFactory;
 import javax.xml.namespace.QName;
 import javax.xml.ws.BindingProvider;
@@ -38,30 +37,20 @@ import javax.xml.ws.soap.AddressingFeature;
 import org.osgi.framework.Version;
 import org.osgi.service.event.Event;
 import org.osgi.service.event.EventHandler;
-import org.quartz.JobBuilder;
-import org.quartz.JobDataMap;
-import org.quartz.JobDetail;
-import org.quartz.JobKey;
-import org.quartz.Scheduler;
-import org.quartz.SchedulerException;
-import org.quartz.SimpleScheduleBuilder;
-import org.quartz.SimpleTrigger;
-import org.quartz.TriggerBuilder;
-import org.quartz.TriggerKey;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
-import net.solarnetwork.node.IdentityService;
+import org.springframework.scheduling.TaskScheduler;
 import net.solarnetwork.node.ocpp.v15.cp.CentralSystemServiceFactory;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeConfiguration;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeConfigurationDao;
-import net.solarnetwork.node.settings.SettingSpecifier;
-import net.solarnetwork.node.settings.SettingSpecifierProvider;
-import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
-import net.solarnetwork.node.settings.support.BasicTitleSettingSpecifier;
-import net.solarnetwork.node.settings.support.BasicToggleSettingSpecifier;
-import net.solarnetwork.support.SSLService;
-import net.solarnetwork.util.OptionalService;
+import net.solarnetwork.node.service.IdentityService;
+import net.solarnetwork.node.service.support.BaseIdentifiable;
+import net.solarnetwork.service.OptionalService;
+import net.solarnetwork.service.SSLService;
+import net.solarnetwork.settings.SettingSpecifier;
+import net.solarnetwork.settings.SettingSpecifierProvider;
+import net.solarnetwork.settings.support.BasicTextFieldSettingSpecifier;
+import net.solarnetwork.settings.support.BasicTitleSettingSpecifier;
+import net.solarnetwork.settings.support.BasicToggleSettingSpecifier;
 import ocpp.v15.cs.BootNotificationRequest;
 import ocpp.v15.cs.BootNotificationResponse;
 import ocpp.v15.cs.CentralSystemService;
@@ -75,9 +64,9 @@ import ocpp.xml.support.WSAddressingFromHandler;
  * the service.
  * 
  * @author matt
- * @version 1.3
+ * @version 2.0
  */
-public class ConfigurableCentralSystemServiceFactory
+public class ConfigurableCentralSystemServiceFactory extends BaseIdentifiable
 		implements CentralSystemServiceFactory, SettingSpecifierProvider, EventHandler {
 
 	/** The name used to schedule the {@link HeartbeatJob} as. */
@@ -96,8 +85,6 @@ public class ConfigurableCentralSystemServiceFactory
 	public static final String DEFAULT_SSL_SOCKET_FACTORY_REQUEST_CONTEXT_KEY = "com.sun.xml.internal.ws.transport.https.client.SSLSocketFactory";
 
 	private String url = "http://localhost:9000/";
-	private String uid = "OCPP Central System";
-	private String groupUID;
 	private String chargePointModel = "SolarNode";
 	private String chargePointVendor = "SolarNetwork";
 	private String firmwareVersion;
@@ -107,7 +94,7 @@ public class ConfigurableCentralSystemServiceFactory
 	private OptionalService<IdentityService> identityService;
 	private OptionalService<SSLService> sslService;
 	private String sslSocketFactoryRequestContextKey = DEFAULT_SSL_SOCKET_FACTORY_REQUEST_CONTEXT_KEY;
-	private Scheduler scheduler;
+	private OptionalService<TaskScheduler> scheduler;
 
 	private CentralSystemService service;
 	private boolean useFromAddress;
@@ -115,9 +102,15 @@ public class ConfigurableCentralSystemServiceFactory
 	private final HMACHandler hmacHandler = new HMACHandler();
 	private BootNotificationResponse bootNotificationResponse;
 	private Throwable bootNotificationError;
-	private SimpleTrigger heartbeatTrigger;
+	private Future<?> heartbeatTrigger;
 
-	private final Logger log = LoggerFactory.getLogger(getClass());
+	/**
+	 * Constructor.
+	 */
+	public ConfigurableCentralSystemServiceFactory() {
+		super();
+		setUid("OCPP Central System");
+	}
 
 	@Override
 	public CentralSystemService service() {
@@ -145,7 +138,7 @@ public class ConfigurableCentralSystemServiceFactory
 	private synchronized void configureHeartbeatIfNeeded() {
 		if ( heartbeatTrigger == null ) {
 			// we use the heartbeat job to also re-try the initial boot notification if that has failed
-			configureHeartbeat(30, SimpleTrigger.REPEAT_INDEFINITELY);
+			configureHeartbeat(30);
 		}
 	}
 
@@ -163,7 +156,7 @@ public class ConfigurableCentralSystemServiceFactory
 	 * Shutdown the OCPP client, releasing any associated resources.
 	 */
 	public void shutdown() {
-		configureHeartbeat(0, 0);
+		configureHeartbeat(0);
 		bootNotificationResponse = null;
 		bootNotificationError = null;
 	}
@@ -313,90 +306,29 @@ public class ConfigurableCentralSystemServiceFactory
 		}
 		log.info("OCPP BootNotification reply: {} @ {}; heartbeat {}s", response.getStatus(),
 				response.getCurrentTime(), response.getHeartbeatInterval());
-		if ( RegistrationStatus.ACCEPTED == response.getStatus() && configureHeartbeat(
-				response.getHeartbeatInterval(), SimpleTrigger.REPEAT_INDEFINITELY) ) {
+		if ( RegistrationStatus.ACCEPTED == response.getStatus()
+				&& configureHeartbeat(response.getHeartbeatInterval()) ) {
 			bootNotificationResponse = response;
 		} else {
 			bootNotificationResponse = null;
 		}
 	}
 
-	private synchronized boolean configureHeartbeat(final int heartbeatInterval, final int repeatCount) {
-		Scheduler sched = scheduler;
+	private synchronized boolean configureHeartbeat(final int heartbeatInterval) {
+		TaskScheduler sched = OptionalService.service(this.scheduler);
 		if ( sched == null ) {
 			log.warn("No scheduler avaialable, cannot schedule heartbeat job");
 			return false;
 		}
-		final JobKey jobKey = new JobKey(HEARTBEAT_JOB_NAME, SCHEDULER_GROUP);
-		final long repeatInterval = heartbeatInterval * 1000L;
-		SimpleTrigger trigger = heartbeatTrigger;
-		if ( trigger != null ) {
-			// check if heartbeatInterval actually changed
-			if ( trigger.getRepeatInterval() == repeatInterval
-					&& trigger.getRepeatCount() == repeatCount ) {
-				log.debug("Heartbeat interval unchanged at {}s", heartbeatInterval);
-				return true;
-			}
-			// trigger has changed!
-			if ( heartbeatInterval == 0 ) {
-				try {
-					sched.unscheduleJob(trigger.getKey());
-					log.info("Unscheduled OCPP heartbeat job");
-				} catch ( SchedulerException e ) {
-					log.error("Error unscheduling OCPP heartbeat job", e);
-				} finally {
-					heartbeatTrigger = null;
-				}
-			} else {
-				trigger = TriggerBuilder.newTrigger().withIdentity(trigger.getKey()).forJob(jobKey)
-						.usingJobData(new JobDataMap(Collections.singletonMap("service", this)))
-						.withSchedule(repeatCount < 1
-								? SimpleScheduleBuilder.repeatSecondlyForever(heartbeatInterval)
-								: SimpleScheduleBuilder.repeatSecondlyForTotalCount(repeatCount,
-										heartbeatInterval))
-						.build();
-				try {
-					sched.rescheduleJob(trigger.getKey(), trigger);
-					log.info("Rescheduled OCPP heartbeat job for {}s", heartbeatInterval);
-				} catch ( SchedulerException e ) {
-					log.error("Error rescheduling OCPP heartbeat job", e);
-				} finally {
-					heartbeatTrigger = trigger;
-				}
-			}
-			return true;
-		} else if ( heartbeatInterval < 1 ) {
-			// nothing to do
+		if ( heartbeatTrigger != null && !heartbeatTrigger.isDone() ) {
+			heartbeatTrigger.cancel(true);
+		}
+		if ( heartbeatInterval < 1 ) {
 			return true;
 		}
-
-		synchronized ( sched ) {
-			try {
-				JobDetail jobDetail = sched.getJobDetail(jobKey);
-				if ( jobDetail == null ) {
-					jobDetail = JobBuilder.newJob(HeartbeatJob.class).withIdentity(jobKey).storeDurably()
-							.build();
-					sched.addJob(jobDetail, true);
-				}
-				final TriggerKey triggerKey = new TriggerKey(this.url, SCHEDULER_GROUP);
-				trigger = TriggerBuilder.newTrigger().withIdentity(triggerKey).forJob(jobKey)
-						.startAt(new Date(System.currentTimeMillis() + repeatInterval))
-						.usingJobData(new JobDataMap(Collections.singletonMap("service", this)))
-						.withSchedule((repeatCount < 1
-								? SimpleScheduleBuilder.repeatSecondlyForever(heartbeatInterval)
-								: SimpleScheduleBuilder.repeatSecondlyForTotalCount(repeatCount,
-										heartbeatInterval))
-												.withMisfireHandlingInstructionNextWithExistingCount())
-						.build();
-				sched.scheduleJob(trigger);
-				log.info("Scheduled OCPP heartbeat job for {}s", heartbeatInterval);
-				heartbeatTrigger = trigger;
-				return true;
-			} catch ( Exception e ) {
-				log.error("Error scheduling OCPP heartbeat job", e);
-				return false;
-			}
-		}
+		HeartbeatJob job = new HeartbeatJob(this);
+		heartbeatTrigger = sched.scheduleWithFixedDelay(job, heartbeatInterval * 1000L);
+		return true;
 	}
 
 	@Override
@@ -414,14 +346,14 @@ public class ConfigurableCentralSystemServiceFactory
 	private void handleChargeConfigurationUpdated() {
 		ChargeConfiguration config = chargeConfigurationDao.getChargeConfiguration();
 		if ( config.getHeartBeatInterval() >= 0 ) {
-			configureHeartbeat(config.getHeartBeatInterval(), SimpleTrigger.REPEAT_INDEFINITELY);
+			configureHeartbeat(config.getHeartBeatInterval());
 		}
 	}
 
 	// SettingSpecifierProvider
 
 	@Override
-	public String getSettingUID() {
+	public String getSettingUid() {
 		return "net.solarnetwork.node.ocpp.v15.cp.central";
 	}
 
@@ -435,8 +367,8 @@ public class ConfigurableCentralSystemServiceFactory
 		ConfigurableCentralSystemServiceFactory defaults = new ConfigurableCentralSystemServiceFactory();
 		List<SettingSpecifier> results = new ArrayList<SettingSpecifier>(3);
 		results.add(new BasicTitleSettingSpecifier("info", getInfoMessage(), true));
-		results.add(new BasicTextFieldSettingSpecifier("uid", String.valueOf(defaults.uid)));
-		results.add(new BasicTextFieldSettingSpecifier("groupUID", defaults.groupUID));
+		results.add(new BasicTextFieldSettingSpecifier("uid", String.valueOf(defaults.getUid())));
+		results.add(new BasicTextFieldSettingSpecifier("groupUID", defaults.getGroupUid()));
 		results.add(new BasicTextFieldSettingSpecifier("url", defaults.url));
 		results.add(new BasicTextFieldSettingSpecifier("chargePointModel", defaults.chargePointModel));
 		results.add(new BasicTextFieldSettingSpecifier("chargePointVendor", defaults.chargePointVendor));
@@ -492,28 +424,6 @@ public class ConfigurableCentralSystemServiceFactory
 
 	// Accessors
 
-	@Override
-	public String getUID() {
-		return getUid();
-	}
-
-	public String getUid() {
-		return uid;
-	}
-
-	public void setUid(String uid) {
-		this.uid = uid;
-	}
-
-	@Override
-	public String getGroupUID() {
-		return groupUID;
-	}
-
-	public void setGroupUID(String groupUID) {
-		this.groupUID = groupUID;
-	}
-
 	/**
 	 * Get the absolute web service URL to the OCPP central system.
 	 * 
@@ -549,6 +459,7 @@ public class ConfigurableCentralSystemServiceFactory
 	 * @param messageSource
 	 *        The message source to use.
 	 */
+	@Override
 	public void setMessageSource(MessageSource messageSource) {
 		this.messageSource = messageSource;
 	}
@@ -603,16 +514,6 @@ public class ConfigurableCentralSystemServiceFactory
 	 */
 	public void setVersion(Version version) {
 		setFirmwareVersion(version == null ? "" : version.toString());
-	}
-
-	/**
-	 * Set the Scheduler to use for the {@link HeartbeatJob}.
-	 * 
-	 * @param scheduler
-	 *        The scheduler to use.
-	 */
-	public void setScheduler(Scheduler scheduler) {
-		this.scheduler = scheduler;
 	}
 
 	/**

@@ -37,13 +37,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.context.MessageSource;
-import net.solarnetwork.node.SystemService;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeConfigurationDao;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeSession;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeSessionManager;
 import net.solarnetwork.node.ocpp.v15.cp.support.SimpleChargeConfiguration;
 import net.solarnetwork.node.ocpp.v15.cp.web.ChargePointService_v15;
-import net.solarnetwork.util.StaticOptionalService;
+import net.solarnetwork.node.service.SystemService;
+import net.solarnetwork.service.StaticOptionalService;
 import ocpp.v15.ConfigurationKey;
 import ocpp.v15.cp.AvailabilityStatus;
 import ocpp.v15.cp.AvailabilityType;
@@ -72,7 +72,7 @@ import ocpp.v15.cp.UnlockStatus;
  * Unit tests for the {@link ChargePointService_v15} class.
  * 
  * @author matt
- * @version 1.1
+ * @version 2.0
  */
 public class ChargePointService_v15Tests {
 
@@ -167,7 +167,7 @@ public class ChargePointService_v15Tests {
 		expect(chargeConfigurationDao.getChargeConfiguration()).andReturn(config);
 
 		// update
-		Capture<SimpleChargeConfiguration> configCapture = new Capture<SimpleChargeConfiguration>();
+		Capture<SimpleChargeConfiguration> configCapture = Capture.newInstance();
 		chargeConfigurationDao.storeChargeConfiguration(EasyMock.capture(configCapture));
 
 		replayAll();
@@ -211,7 +211,7 @@ public class ChargePointService_v15Tests {
 		expect(chargeConfigurationDao.getChargeConfiguration()).andReturn(config);
 
 		// update
-		Capture<SimpleChargeConfiguration> configCapture = new Capture<SimpleChargeConfiguration>();
+		Capture<SimpleChargeConfiguration> configCapture = Capture.newInstance();
 		chargeConfigurationDao.storeChargeConfiguration(EasyMock.capture(configCapture));
 
 		replayAll();
@@ -290,7 +290,7 @@ public class ChargePointService_v15Tests {
 	public void changeAvailabilitySingleConnectorDisabled() {
 		expect(chargeSessionManager.socketIdForConnectorId(TEST_CONNECTOR_ID)).andReturn(TEST_SOCKET_ID);
 
-		Capture<Collection<String>> socketIdsCapture = new Capture<Collection<String>>();
+		Capture<Collection<String>> socketIdsCapture = Capture.newInstance();
 		chargeSessionManager.configureSocketEnabledState(EasyMock.capture(socketIdsCapture),
 				EasyMock.eq(false));
 
@@ -332,7 +332,7 @@ public class ChargePointService_v15Tests {
 		// check for active session on socket (and indicate there isn't)
 		expect(chargeSessionManager.activeChargeSession(TEST_SOCKET_ID)).andReturn(null);
 
-		Capture<Collection<String>> socketIdsCapture = new Capture<Collection<String>>();
+		Capture<Collection<String>> socketIdsCapture = Capture.newInstance();
 		chargeSessionManager.configureSocketEnabledState(EasyMock.capture(socketIdsCapture),
 				EasyMock.eq(true));
 
@@ -366,7 +366,7 @@ public class ChargePointService_v15Tests {
 		// complete session
 		chargeSessionManager.completeChargeSession(TEST_ID_TAG, TEST_SESSION_ID);
 
-		Capture<Collection<String>> socketIdsCapture = new Capture<Collection<String>>();
+		Capture<Collection<String>> socketIdsCapture = Capture.newInstance();
 		chargeSessionManager.configureSocketEnabledState(EasyMock.capture(socketIdsCapture),
 				EasyMock.eq(true));
 

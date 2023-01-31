@@ -22,8 +22,6 @@
 
 package net.solarnetwork.node.ocpp.v15.cp.dao.test;
 
-import javax.annotation.Resource;
-import javax.sql.DataSource;
 import org.easymock.Capture;
 import org.easymock.EasyMock;
 import org.junit.After;
@@ -38,7 +36,7 @@ import net.solarnetwork.node.ocpp.v15.cp.ChargeConfiguration;
 import net.solarnetwork.node.ocpp.v15.cp.dao.SettingsChargeConfigurationDao;
 import net.solarnetwork.node.ocpp.v15.cp.support.SimpleChargeConfiguration;
 import net.solarnetwork.node.test.AbstractNodeTransactionalTest;
-import net.solarnetwork.util.StaticOptionalService;
+import net.solarnetwork.service.StaticOptionalService;
 import ocpp.v15.ConfigurationKey;
 
 /**
@@ -51,9 +49,6 @@ public class SettingsChargeConfigurationDaoTests extends AbstractNodeTransaction
 
 	private static final int TEST_HEART_BEAT_INTERVAL = 600;
 	private static final int TEST_METER_VALUE_SAMPLE_INTERVAL = 30;
-
-	@Resource(name = "dataSource")
-	private DataSource dataSource;
 
 	private JdbcSettingDao settingDao;
 
@@ -89,7 +84,7 @@ public class SettingsChargeConfigurationDaoTests extends AbstractNodeTransaction
 
 	@Test
 	public void insert() {
-		Capture<Event> eventCapture = new Capture<Event>();
+		Capture<Event> eventCapture = Capture.newInstance();
 		eventAdmin.postEvent(EasyMock.capture(eventCapture));
 		replayAll();
 
@@ -124,7 +119,7 @@ public class SettingsChargeConfigurationDaoTests extends AbstractNodeTransaction
 		insert();
 
 		EasyMock.reset(eventAdmin);
-		Capture<Event> eventCapture = new Capture<Event>();
+		Capture<Event> eventCapture = Capture.newInstance();
 		eventAdmin.postEvent(EasyMock.capture(eventCapture));
 		replayAll();
 

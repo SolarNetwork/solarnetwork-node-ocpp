@@ -11,7 +11,7 @@
 		http://www.springframework.org/schema/beans
 		http://www.springframework.org/schema/beans/spring-beans-4.2.xsd">
 	
-	<bean id="generalNodeDatumDao" class="net.solarnetwork.util.DynamicServiceTracker">
+	<bean id="generalNodeDatumDao" class="net.solarnetwork.common.osgi.service.DynamicServiceTracker">
 		<property name="bundleContext" ref="bundleContext"/>
 		<property name="serviceClassName" value="net.solarnetwork.node.dao.DatumDao"/>
 		<property name="serviceFilter" value="(datumClassName=net.solarnetwork.node.domain.GeneralNodeDatum)"/>
@@ -36,19 +36,19 @@
 		<property name="messageSource" ref="messageSource"/>
 	</bean>
 
-	<bean id="eventAdmin" class="net.solarnetwork.util.DynamicServiceTracker">
+	<bean id="eventAdmin" class="net.solarnetwork.common.osgi.service.DynamicServiceTracker">
 		<property name="bundleContext" ref="bundleContext"/>
 		<property name="serviceClassName" value="org.osgi.service.event.EventAdmin"/>
 	</bean>
 	
 	<!-- Published Services -->
 	
-	<service ref="settingsFactory" interface="net.solarnetwork.node.settings.SettingSpecifierProviderFactory"/>
+	<service ref="settingsFactory" interface="net.solarnetwork.settings.SettingSpecifierProviderFactory"/>
 	
 	<osgix:managed-service-factory factory-pid="net.solarnetwork.node.ocpp.v15.cp.mock.meter" autowire-on-update="true">
 		<osgix:interfaces>
 			<beans:value>net.solarnetwork.node.job.ManagedTriggerAndJobDetail</beans:value>
-			<beans:value>net.solarnetwork.node.settings.SettingSpecifierProvider</beans:value>
+			<beans:value>net.solarnetwork.settings.SettingSpecifierProvider</beans:value>
 			<beans:value>net.solarnetwork.node.job.ServiceProvider</beans:value>
 		</osgix:interfaces>
 		<osgix:service-properties>
@@ -93,7 +93,7 @@
 							</property>
 							<property name="properties">
 								<map>
-									<entry key="datumClassName" value="net.solarnetwork.node.domain.ACEnergyDatum"/>
+									<entry key="datumClassName" value="net.solarnetwork.node.domain.datum.AcEnergyDatum"/>
 									<entry key="#{T(org.osgi.service.event.EventConstants).EVENT_TOPIC}">
 										<beans:array value-type="java.lang.String">
 											<beans:value>#{T(net.solarnetwork.node.ocpp.v15.cp.ChargeSessionManager).EVENT_TOPIC_SOCKET_ACTIVATED}</beans:value>
@@ -121,11 +121,11 @@
 		<property name="messageSource" ref="rfidMessageSource"/>
 	</bean>
 	
-	<service ref="rfidSettingsFactory" interface="net.solarnetwork.node.settings.SettingSpecifierProviderFactory"/>
+	<service ref="rfidSettingsFactory" interface="net.solarnetwork.settings.SettingSpecifierProviderFactory"/>
 	
 	<osgix:managed-service-factory factory-pid="net.solarnetwork.node.ocpp.v15.cp.mock.rfid" autowire-on-update="true">
 		<osgix:interfaces>
-			<beans:value>net.solarnetwork.node.settings.SettingSpecifierProvider</beans:value>
+			<beans:value>net.solarnetwork.settings.SettingSpecifierProvider</beans:value>
 		</osgix:interfaces>
 		<osgix:service-properties>
 			<beans:entry key="settingPid" value="net.solarnetwork.node.ocpp.v15.cp.mock.rfid"/>

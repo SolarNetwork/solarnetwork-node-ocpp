@@ -23,35 +23,23 @@
 package net.solarnetwork.node.ocpp.v15.cp.support;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.concurrent.ScheduledFuture;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.quartz.Job;
-import org.quartz.JobBuilder;
-import org.quartz.JobDataMap;
-import org.quartz.JobDetail;
-import org.quartz.JobKey;
-import org.quartz.Scheduler;
-import org.quartz.SchedulerException;
-import org.quartz.SimpleScheduleBuilder;
-import org.quartz.SimpleTrigger;
-import org.quartz.TriggerBuilder;
-import org.quartz.TriggerKey;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.MessageSource;
-import net.solarnetwork.node.Identifiable;
+import org.springframework.scheduling.TaskScheduler;
 import net.solarnetwork.node.ocpp.v15.cp.CentralSystemServiceFactory;
-import net.solarnetwork.node.settings.SettingSpecifier;
-import net.solarnetwork.node.settings.SettingSpecifierProvider;
-import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
-import net.solarnetwork.node.settings.support.BasicTitleSettingSpecifier;
-import net.solarnetwork.util.FilterableService;
+import net.solarnetwork.node.service.support.BaseIdentifiable;
+import net.solarnetwork.service.FilterableService;
+import net.solarnetwork.service.Identifiable;
+import net.solarnetwork.settings.SettingSpecifier;
+import net.solarnetwork.settings.SettingSpecifierProvider;
+import net.solarnetwork.settings.support.BasicTextFieldSettingSpecifier;
+import net.solarnetwork.settings.support.BasicTitleSettingSpecifier;
 
 /**
  * A base helper class for services that require use of
@@ -69,20 +57,15 @@ import net.solarnetwork.util.FilterableService;
  * </p>
  * 
  * @author matt
- * @version 1.1
+ * @version 2.0
  */
-public abstract class CentralSystemServiceFactorySupport
+public abstract class CentralSystemServiceFactorySupport extends BaseIdentifiable
 		implements SettingSpecifierProvider, Identifiable {
 
 	private CentralSystemServiceFactory centralSystem;
-	private MessageSource messageSource;
-	private String uid;
-	private String groupUID;
 
 	private final DatatypeFactory datatypeFactory;
 	private final GregorianCalendar utcCalendar;
-
-	protected final Logger log = LoggerFactory.getLogger(getClass());
 
 	/**
 	 * Default constructor.
@@ -187,41 +170,18 @@ public abstract class CentralSystemServiceFactorySupport
 		return null;
 	}
 
-	@Override
-	public final MessageSource getMessageSource() {
-		return messageSource;
-	}
-
-	/**
-	 * Set the {@link MessageSource} to use for resolving settings messages.
-	 * 
-	 * @param messageSource
-	 *        The message source to use.
-	 */
-	public final void setMessageSource(MessageSource messageSource) {
-		this.messageSource = messageSource;
-	}
-
-	public String getUid() {
-		return uid;
-	}
-
-	public void setUid(String uid) {
-		this.uid = uid;
-	}
-
 	/**
 	 * Returns the {@code uid} value if configured, or else falls back to
 	 * returning {@link CentralSystemServiceFactory#getUID()}.
 	 */
 	@Override
-	public final String getUID() {
-		String id = getUid();
+	public final String getUid() {
+		String id = super.getUid();
 		if ( id == null ) {
 			CentralSystemServiceFactory system = centralSystem;
 			if ( system != null ) {
 				try {
-					id = system.getUID();
+					id = system.getUid();
 				} catch ( RuntimeException e ) {
 					log.debug("Error getting central system UID: {}", e.getMessage());
 				}
@@ -235,13 +195,13 @@ public abstract class CentralSystemServiceFactorySupport
 	 * returning {@link CentralSystemServiceFactory#getGroupUID()}.
 	 */
 	@Override
-	public final String getGroupUID() {
-		String id = groupUID;
+	public final String getGroupUid() {
+		String id = super.getGroupUid();
 		if ( id == null ) {
 			CentralSystemServiceFactory system = centralSystem;
 			if ( system != null ) {
 				try {
-					id = system.getGroupUID();
+					id = system.getGroupUid();
 				} catch ( RuntimeException e ) {
 					log.debug("Error getting central system Group UID: {}", e.getMessage());
 				}
@@ -263,85 +223,30 @@ public abstract class CentralSystemServiceFactorySupport
 	 *        {@code 0} or less to unschedule the job.
 	 * @param currTrigger
 	 *        The current job trigger, or {@code null} if not scheduled.
-	 * @param jobKey
-	 *        The key to use for the scheduled job.
-	 * @param jobClass
-	 *        The class of the {@code Job} to schedule.
-	 * @param jobData
-	 *        A map of data to associate with the job.
+	 * @param job
+	 *        the job to run.
 	 * @param jobDescription
 	 *        A description to use for the job. This value is included in log
 	 *        messages.
 	 * @return The scheduled job trigger, or {@code null} if an error occurs or
 	 *         the job is unscheduled.
-	 * @since 1.1
+	 * @since 2.0
 	 */
-	protected SimpleTrigger scheduleIntervalJob(final Scheduler scheduler, final int interval,
-			final SimpleTrigger currTrigger, final JobKey jobKey, final Class<? extends Job> jobClass,
-			final JobDataMap jobData, final String jobDescription) {
+	protected ScheduledFuture<?> scheduleIntervalJob(final TaskScheduler scheduler, final int interval,
+			final ScheduledFuture<?> currTrigger, final Runnable job, final String jobDescription) {
 		if ( scheduler == null ) {
 			log.warn("No scheduler avaialable, cannot schedule {} job", jobDescription);
 			return null;
 		}
-		SimpleTrigger trigger = currTrigger;
-		if ( trigger != null ) {
-			// check if interval actually changed
-			if ( trigger.getRepeatInterval() == interval ) {
-				log.debug("{} job interval unchanged at {}s", jobDescription, interval);
-				return currTrigger;
-			}
-			// trigger has changed!
-			if ( interval == 0 ) {
-				try {
-					scheduler.unscheduleJob(trigger.getKey());
-				} catch ( SchedulerException e ) {
-					log.error("Error unscheduling {} job", jobDescription, e);
-				} finally {
-					trigger = null;
-				}
-			} else {
-				trigger = TriggerBuilder.newTrigger().withIdentity(trigger.getKey()).forJob(jobKey)
-						.startAt(new Date(System.currentTimeMillis() + interval)).usingJobData(jobData)
-						.withSchedule(SimpleScheduleBuilder.repeatSecondlyForever(interval)).build();
-				try {
-					scheduler.rescheduleJob(trigger.getKey(), trigger);
-				} catch ( SchedulerException e ) {
-					log.error("Error rescheduling {} job", jobDescription, e);
-				}
-			}
-			return trigger;
+		if ( currTrigger != null && !currTrigger.isDone() ) {
+			currTrigger.cancel(true);
 		}
 
-		if ( interval == 0 ) {
-			// asked to unschedule, but not scheduled so nothing more to do
+		if ( interval < 1 ) {
 			return null;
 		}
 
-		synchronized ( scheduler ) {
-			try {
-				JobDetail jobDetail = scheduler.getJobDetail(jobKey);
-				if ( jobDetail == null ) {
-					jobDetail = JobBuilder.newJob(jobClass).withIdentity(jobKey).storeDurably().build();
-					scheduler.addJob(jobDetail, true);
-				}
-				final TriggerKey triggerKey = new TriggerKey(jobKey.getName() + getUID(),
-						jobKey.getGroup());
-				trigger = TriggerBuilder.newTrigger().withIdentity(triggerKey).forJob(jobKey)
-						.startAt(new Date(System.currentTimeMillis() + interval)).usingJobData(jobData)
-						.withSchedule(SimpleScheduleBuilder.repeatSecondlyForever(interval)
-								.withMisfireHandlingInstructionNextWithExistingCount())
-						.build();
-				scheduler.scheduleJob(trigger);
-				return trigger;
-			} catch ( Exception e ) {
-				log.error("Error scheduling {} job", jobDescription, e);
-				return null;
-			}
-		}
-	}
-
-	public void setGroupUID(String groupUID) {
-		this.groupUID = groupUID;
+		return scheduler.scheduleWithFixedDelay(job, interval * 1000L);
 	}
 
 }

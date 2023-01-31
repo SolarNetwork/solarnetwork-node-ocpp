@@ -1,19 +1,22 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
+Automatic-Module-Name: net.solarnetwork.node.ocpp.v15.cp.auth
 Bundle-Name: OCPP 1.5 Charge Point Authorization Support
 Bundle-Description: Authorize scanned OCPP ID tags with OCPP Central System for charging.
 Bundle-SymbolicName: net.solarnetwork.node.ocpp.v15.cp.auth
-Bundle-Version: 1.0.0
+Bundle-Version: 2.0.0
 Bundle-Vendor: SolarNetwork
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Import-Package: 
- net.solarnetwork.node.ocpp.v15.cp;version="[1.0,2.0)",
- net.solarnetwork.node.ocpp.v15.cp.support;version="[1.0,2.0)",
- net.solarnetwork.node.settings;version="[1.6,2.0)",
- net.solarnetwork.node.settings.support;version="[1.4,2.0)",
- net.solarnetwork.util;version="[1.40,2.0)",
+ net.solarnetwork.node.ocpp.v15.cp;version="[2.0,3.0)",
+ net.solarnetwork.node.ocpp.v15.cp.support;version="[2.0,3.0)",
+ net.solarnetwork.node.service.support;version="[1.2,2.0)",
+ net.solarnetwork.service;version="[1.0,2.0)",
+ net.solarnetwork.service.support;version="[1.1,2.0)",
+ net.solarnetwork.settings;version="[2.1,3.0)",
+ net.solarnetwork.settings.support;version="[2.1,3.0)",
+ net.solarnetwork.util;version="[2.6,3.0)",
  ocpp.v15.cs;version="[2.0,3.0)",
- org.eclipse.gemini.blueprint.compendium.cm;version="[2.0,3.0)",
  org.slf4j;version="[1.7,2.0)",
- org.springframework.context;version="[4.2,5.0)",
- org.springframework.context.support;version="[4.2,5.0)"
+ org.springframework.context;version="[4.3,5.0)",
+ org.springframework.context.support;version="[4.3,5.0)"

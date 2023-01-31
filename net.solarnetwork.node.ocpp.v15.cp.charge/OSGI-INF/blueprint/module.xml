@@ -27,7 +27,7 @@
 	
 	<reference id="socketDao" interface="net.solarnetwork.node.ocpp.v15.cp.SocketDao"/>
 
-	<bean id="eventAdmin" class="net.solarnetwork.util.DynamicServiceTracker">
+	<bean id="eventAdmin" class="net.solarnetwork.common.osgi.service.DynamicServiceTracker">
 		<property name="bundleContext" ref="bundleContext"/>
 		<property name="serviceClassName" value="org.osgi.service.event.EventAdmin"/>
 	</bean>
@@ -49,12 +49,12 @@
 
 	<!-- Published Services -->
 	
-	<service ref="settingsFactory" interface="net.solarnetwork.node.settings.SettingSpecifierProviderFactory"/>
+	<service ref="settingsFactory" interface="net.solarnetwork.settings.SettingSpecifierProviderFactory"/>
 	
 	<osgix:managed-service-factory factory-pid="net.solarnetwork.node.ocpp.v15.cp.charge" autowire-on-update="true">
 		<osgix:interfaces>
 			<beans:value>net.solarnetwork.node.ocpp.v15.cp.ChargeSessionManager</beans:value>
-			<beans:value>net.solarnetwork.node.settings.SettingSpecifierProvider</beans:value>
+			<beans:value>net.solarnetwork.settings.SettingSpecifierProvider</beans:value>
 			<beans:value>org.osgi.service.event.EventHandler</beans:value>
 		</osgix:interfaces>
 		<osgix:service-properties>
@@ -101,10 +101,10 @@
 				</bean>
 			</property>
 			<property name="meterDataSource">
-				<bean id="generalNodeDatumDao" class="net.solarnetwork.util.DynamicServiceTracker">
+				<bean id="generalNodeDatumDao" class="net.solarnetwork.common.osgi.service.DynamicServiceTracker">
 					<property name="bundleContext" ref="bundleContext"/>
 					<property name="serviceClassName" value="net.solarnetwork.node.DatumDataSource"/>
-					<property name="serviceFilter" value="(datumClassName=net.solarnetwork.node.domain.ACEnergyDatum)"/>
+					<property name="serviceFilter" value="(datumClassName=net.solarnetwork.node.domain.datum.AcEnergyDatum)"/>
 					<property name="propertyFilters">
 						<map>
 							<entry key="groupUID" value="OCPP Meter"/>

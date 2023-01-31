@@ -32,12 +32,10 @@ import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.quartz.JobExecutionException;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeSession;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeSessionManager;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeSessionMeterReading;
 import net.solarnetwork.node.ocpp.v15.cp.charge.CloseCompletedChargeSessionsJob;
-import net.solarnetwork.node.test.AbstractNodeTest;
 import ocpp.v15.cs.AuthorizationStatus;
 import ocpp.v15.cs.Measurand;
 
@@ -45,9 +43,9 @@ import ocpp.v15.cs.Measurand;
  * Unit tests for the {@link CloseCompletedChargeSessionsJob} class.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
-public class CloseCompletedChargeSessionsJobTests extends AbstractNodeTest {
+public class CloseCompletedChargeSessionsJobTests {
 
 	private static final String TEST_SOCKET_ID = "/socket/test";
 	private static final List<String> TEST_SOCKET_IDS = Arrays.asList(TEST_SOCKET_ID);
@@ -61,10 +59,8 @@ public class CloseCompletedChargeSessionsJobTests extends AbstractNodeTest {
 
 	@Before
 	public void setup() {
-		job = new CloseCompletedChargeSessionsJob();
-		job.setThrowExceptions(true);
 		manager = EasyMock.createMock(ChargeSessionManager.class);
-		job.setService(manager);
+		job = new CloseCompletedChargeSessionsJob(manager, null);
 	}
 
 	@After
@@ -77,11 +73,11 @@ public class CloseCompletedChargeSessionsJobTests extends AbstractNodeTest {
 	}
 
 	@Test
-	public void activeSessionNone() throws JobExecutionException {
+	public void activeSessionNone() {
 		expect(manager.availableSocketIds()).andReturn(TEST_SOCKET_IDS);
 		expect(manager.activeChargeSession(TEST_SOCKET_ID)).andReturn(null);
 		replayAll();
-		job.execute(null);
+		job.run();
 	}
 
 	private ChargeSession createChargeSession(Date date) {
@@ -96,27 +92,27 @@ public class CloseCompletedChargeSessionsJobTests extends AbstractNodeTest {
 	}
 
 	@Test
-	public void activeSessionNoReadingsNotStale() throws JobExecutionException {
+	public void activeSessionNoReadingsNotStale() {
 		ChargeSession session = createChargeSession(new Date(System.currentTimeMillis() - 60000L));
-		List<ChargeSessionMeterReading> readings = new ArrayList<ChargeSessionMeterReading>();
+		List<ChargeSessionMeterReading> readings = new ArrayList<>();
 		expect(manager.availableSocketIds()).andReturn(TEST_SOCKET_IDS);
 		expect(manager.activeChargeSession(TEST_SOCKET_ID)).andReturn(session);
 		expect(manager.meterReadingsForChargeSession(TEST_SESSION_ID)).andReturn(readings);
 		replayAll();
-		job.execute(null);
+		job.run();
 	}
 
 	@Test
-	public void activeSessionNoReadingsStale() throws JobExecutionException {
+	public void activeSessionNoReadingsStale() {
 		ChargeSession session = createChargeSession(
 				new Date(System.currentTimeMillis() - (30 * 60 * 1000L)));
-		List<ChargeSessionMeterReading> readings = new ArrayList<ChargeSessionMeterReading>();
+		List<ChargeSessionMeterReading> readings = new ArrayList<>();
 		expect(manager.availableSocketIds()).andReturn(TEST_SOCKET_IDS);
 		expect(manager.activeChargeSession(TEST_SOCKET_ID)).andReturn(session);
 		expect(manager.meterReadingsForChargeSession(TEST_SESSION_ID)).andReturn(readings);
 		manager.completeChargeSession(TEST_ID_TAG, TEST_SESSION_ID);
 		replayAll();
-		job.execute(null);
+		job.run();
 	}
 
 	private void addReadings(List<ChargeSessionMeterReading> readings, Date date, Long wH,
@@ -135,22 +131,22 @@ public class CloseCompletedChargeSessionsJobTests extends AbstractNodeTest {
 	}
 
 	@Test
-	public void activeSessionTooFewReadings() throws JobExecutionException {
+	public void activeSessionTooFewReadings() {
 		ChargeSession session = createChargeSession(new Date(System.currentTimeMillis() - 60000L));
-		List<ChargeSessionMeterReading> readings = new ArrayList<ChargeSessionMeterReading>();
+		List<ChargeSessionMeterReading> readings = new ArrayList<>();
 		addReadings(readings, new Date(), 0L, 5.0);
 		expect(manager.availableSocketIds()).andReturn(TEST_SOCKET_IDS);
 		expect(manager.activeChargeSession(TEST_SOCKET_ID)).andReturn(session);
 		expect(manager.meterReadingsForChargeSession(TEST_SESSION_ID)).andReturn(readings);
 		replayAll();
-		job.execute(null);
+		job.run();
 	}
 
 	@Test
-	public void activeSessionReadingAboveMaxEnergy() throws JobExecutionException {
+	public void activeSessionReadingAboveMaxEnergy() {
 		final long now = System.currentTimeMillis();
 		ChargeSession session = createChargeSession(new Date(now - (30 * 60 * 1000L)));
-		List<ChargeSessionMeterReading> readings = new ArrayList<ChargeSessionMeterReading>();
+		List<ChargeSessionMeterReading> readings = new ArrayList<>();
 		long t = now - (10 * 60 * 1000L);
 		long wh = 0;
 		for ( int i = 0; i < 10; i++, t += 60000L, wh += 100 ) {
@@ -160,14 +156,14 @@ public class CloseCompletedChargeSessionsJobTests extends AbstractNodeTest {
 		expect(manager.activeChargeSession(TEST_SOCKET_ID)).andReturn(session);
 		expect(manager.meterReadingsForChargeSession(TEST_SESSION_ID)).andReturn(readings);
 		replayAll();
-		job.execute(null);
+		job.run();
 	}
 
 	@Test
-	public void activeSessionReadingBelowMaxEnergy() throws JobExecutionException {
+	public void activeSessionReadingBelowMaxEnergy() {
 		final long now = System.currentTimeMillis();
 		ChargeSession session = createChargeSession(new Date(now - (30 * 60 * 1000L)));
-		List<ChargeSessionMeterReading> readings = new ArrayList<ChargeSessionMeterReading>();
+		List<ChargeSessionMeterReading> readings = new ArrayList<>();
 		long t = now - (10 * 60 * 1000L);
 		long wh = 0;
 		for ( int i = 0; i < 10; i++, t += 60000L, wh += (i % 2 == 0 ? 0 : 1) ) {
@@ -178,7 +174,7 @@ public class CloseCompletedChargeSessionsJobTests extends AbstractNodeTest {
 		expect(manager.meterReadingsForChargeSession(TEST_SESSION_ID)).andReturn(readings);
 		manager.completeChargeSession(TEST_ID_TAG, TEST_SESSION_ID);
 		replayAll();
-		job.execute(null);
+		job.run();
 	}
 
 }

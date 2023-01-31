@@ -24,8 +24,8 @@ package net.solarnetwork.node.ocpp.v15.cp.charge.rfid;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.solarnetwork.node.settings.SettingSpecifier;
-import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
+import net.solarnetwork.settings.SettingSpecifier;
+import net.solarnetwork.settings.support.BasicTextFieldSettingSpecifier;
 
 /**
  * A mapping of a RFID UID value with an associated socket ID.

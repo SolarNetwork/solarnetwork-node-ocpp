@@ -22,36 +22,62 @@
 
 package net.solarnetwork.node.ocpp.v15.cp.charge;
 
-import org.quartz.DisallowConcurrentExecution;
-import org.quartz.JobExecutionContext;
-import org.quartz.PersistJobDataAfterExecution;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
-import net.solarnetwork.node.job.AbstractJob;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeSessionManager;
+import net.solarnetwork.util.ObjectUtils;
 
 /**
  * Job to periodically look for offline charge sessions that need to be posted
  * to the central system.
  * 
  * @author matt
- * @version 2.0
+ * @version 3.0
  */
-@PersistJobDataAfterExecution
-@DisallowConcurrentExecution
-public class PostOfflineChargeSessionsJob extends AbstractJob {
+public class PostOfflineChargeSessionsJob implements Runnable {
 
-	private ChargeSessionManager service;
-	private TransactionTemplate transactionTemplate;
-	private int maximum = 5;
+	private static final Logger log = LoggerFactory.getLogger(PostOfflineChargeSessionsJob.class);
+
+	private final ChargeSessionManager service;
+	private final TransactionTemplate transactionTemplate;
+	private final int maximum;
+
+	/**
+	 * Constructor.
+	 * 
+	 * @param service
+	 *        the service.
+	 * @param transactionTemplate
+	 *        the transaction template
+	 */
+	public PostOfflineChargeSessionsJob(ChargeSessionManager service,
+			TransactionTemplate transactionTemplate) {
+		this(service, transactionTemplate, 5);
+	}
+
+	/**
+	 * Constructor.
+	 * 
+	 * @param service
+	 *        the service.
+	 * @param transactionTemplate
+	 *        the transaction template
+	 * @param maximum
+	 *        the maximum to post
+	 */
+	public PostOfflineChargeSessionsJob(ChargeSessionManager service,
+			TransactionTemplate transactionTemplate, int maximum) {
+		super();
+		this.service = ObjectUtils.requireNonNullArgument(service, "service");
+		this.transactionTemplate = transactionTemplate;
+		this.maximum = maximum;
+	}
 
 	@Override
-	protected void executeInternal(JobExecutionContext jobContext) throws Exception {
-		if ( service == null ) {
-			log.warn("No ChargeSessionManager available, cannot post offline charge sessions.");
-			return;
-		}
+	public void run() {
 		if ( transactionTemplate != null ) {
 			transactionTemplate.execute(new TransactionCallback<Object>() {
 
@@ -69,37 +95,6 @@ public class PostOfflineChargeSessionsJob extends AbstractJob {
 	private void postCompletedOfflineSessions() {
 		final int posted = service.postCompleteOfflineSessions(maximum);
 		log.info("{} completed offline charge sessions posted to OCPP central system", posted);
-	}
-
-	/**
-	 * Set the charge session manager to use.
-	 * 
-	 * @param service
-	 *        The service to use.
-	 */
-	public void setService(ChargeSessionManager service) {
-		this.service = service;
-	}
-
-	/**
-	 * A transaction template to use.
-	 * 
-	 * @param transactionTemplate
-	 *        The template to use.
-	 */
-	public void setTransactionTemplate(TransactionTemplate transactionTemplate) {
-		this.transactionTemplate = transactionTemplate;
-	}
-
-	/**
-	 * Set the maximum number of offline sessions to attempt to post during a
-	 * single execution of the job.
-	 * 
-	 * @param maximum
-	 *        The maximum number to attempt to post.
-	 */
-	public void setMaximum(int maximum) {
-		this.maximum = maximum;
 	}
 
 }

@@ -29,9 +29,9 @@ import net.solarnetwork.node.ocpp.v15.cp.Authorization;
 import net.solarnetwork.node.ocpp.v15.cp.AuthorizationDao;
 import net.solarnetwork.node.ocpp.v15.cp.AuthorizationManager;
 import net.solarnetwork.node.ocpp.v15.cp.support.CentralSystemServiceFactorySupport;
-import net.solarnetwork.node.settings.SettingSpecifier;
-import net.solarnetwork.node.settings.support.BasicToggleSettingSpecifier;
-import net.solarnetwork.util.OptionalService;
+import net.solarnetwork.service.OptionalService;
+import net.solarnetwork.settings.SettingSpecifier;
+import net.solarnetwork.settings.support.BasicToggleSettingSpecifier;
 import ocpp.v15.cs.AuthorizationStatus;
 import ocpp.v15.cs.AuthorizeRequest;
 import ocpp.v15.cs.AuthorizeResponse;
@@ -41,7 +41,7 @@ import ocpp.v15.cs.AuthorizeResponse;
  * supports local caching of ID tags.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class DefaultAuthorizationManager extends CentralSystemServiceFactorySupport
 		implements AuthorizationManager {
@@ -114,7 +114,7 @@ public class DefaultAuthorizationManager extends CentralSystemServiceFactorySupp
 	// SettingSpecifierProvider
 
 	@Override
-	public String getSettingUID() {
+	public String getSettingUid() {
 		return "net.solarnetwork.node.ocpp.v15.cp.auth";
 	}
 

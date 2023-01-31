@@ -23,36 +23,62 @@
 package net.solarnetwork.node.ocpp.v15.cp.charge;
 
 import java.util.Calendar;
-import org.quartz.DisallowConcurrentExecution;
-import org.quartz.JobExecutionContext;
-import org.quartz.PersistJobDataAfterExecution;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
-import net.solarnetwork.node.job.AbstractJob;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeSessionManager;
+import net.solarnetwork.util.ObjectUtils;
 
 /**
  * Job to delete old charge sessions that have been uploaded.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  * @since 0.6
  */
-@PersistJobDataAfterExecution
-@DisallowConcurrentExecution
-public class PurgePostedChargeSessionsJob extends AbstractJob {
+public class PurgePostedChargeSessionsJob implements Runnable {
 
-	private ChargeSessionManager service;
-	private TransactionTemplate transactionTemplate;
-	private int minPurgeUploadedSessionDays = 1;
+	private static final Logger log = LoggerFactory.getLogger(PurgePostedChargeSessionsJob.class);
+
+	private final ChargeSessionManager service;
+	private final TransactionTemplate transactionTemplate;
+	private final int minPurgeUploadedSessionDays;
+
+	/**
+	 * Constructor.
+	 * 
+	 * @param service
+	 *        the service
+	 * @param transactionTemplate
+	 *        the transaction template
+	 */
+	public PurgePostedChargeSessionsJob(ChargeSessionManager service,
+			TransactionTemplate transactionTemplate) {
+		this(service, transactionTemplate, 1);
+	}
+
+	/**
+	 * Constructor.
+	 * 
+	 * @param service
+	 *        the service
+	 * @param transactionTemplate
+	 *        the transaction template
+	 * @param minPurgeUploadedSessionDays
+	 *        the minimum purge expiration days
+	 */
+	public PurgePostedChargeSessionsJob(ChargeSessionManager service,
+			TransactionTemplate transactionTemplate, int minPurgeUploadedSessionDays) {
+		super();
+		this.service = ObjectUtils.requireNonNullArgument(service, "service");
+		this.transactionTemplate = transactionTemplate;
+		this.minPurgeUploadedSessionDays = minPurgeUploadedSessionDays;
+	}
 
 	@Override
-	protected void executeInternal(JobExecutionContext jobContext) throws Exception {
-		if ( service == null ) {
-			log.warn("No ChargeSessionManager available, cannot purge posted charge sessions");
-			return;
-		}
+	public void run() {
 		if ( transactionTemplate != null ) {
 			transactionTemplate.execute(new TransactionCallback<Object>() {
 
@@ -74,37 +100,6 @@ public class PurgePostedChargeSessionsJob extends AbstractJob {
 		int result = service.deletePostedChargeSessions(c.getTime());
 		log.info("Purged {} uploaded OCPP charge session at least {} days old", result,
 				minPurgeUploadedSessionDays);
-	}
-
-	/**
-	 * Set the charge session manager to use.
-	 * 
-	 * @param service
-	 *        The service to use.
-	 */
-	public void setService(ChargeSessionManager service) {
-		this.service = service;
-	}
-
-	/**
-	 * A transaction template to use.
-	 * 
-	 * @param transactionTemplate
-	 *        The template to use.
-	 */
-	public void setTransactionTemplate(TransactionTemplate transactionTemplate) {
-		this.transactionTemplate = transactionTemplate;
-	}
-
-	/**
-	 * Set the minimum number of days past upload a session must be before
-	 * qualifying for purging.
-	 * 
-	 * @param minPurgeUploadedSessionDays
-	 *        the number of days
-	 */
-	public void setMinPurgeUploadedSessionDays(int minPurgeUploadedSessionDays) {
-		this.minPurgeUploadedSessionDays = minPurgeUploadedSessionDays;
 	}
 
 }

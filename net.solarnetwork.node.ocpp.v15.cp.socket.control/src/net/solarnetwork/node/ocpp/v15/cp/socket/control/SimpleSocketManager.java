@@ -25,7 +25,6 @@ package net.solarnetwork.node.ocpp.v15.cp.socket.control;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import org.osgi.service.event.Event;
@@ -33,22 +32,22 @@ import org.osgi.service.event.EventAdmin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
-import net.solarnetwork.node.Identifiable;
+import net.solarnetwork.domain.InstructionStatus;
+import net.solarnetwork.domain.InstructionStatus.InstructionState;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeSession;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeSessionManager;
 import net.solarnetwork.node.ocpp.v15.cp.OCPPException;
 import net.solarnetwork.node.ocpp.v15.cp.SocketManager;
 import net.solarnetwork.node.reactor.Instruction;
+import net.solarnetwork.node.reactor.InstructionExecutionService;
 import net.solarnetwork.node.reactor.InstructionHandler;
-import net.solarnetwork.node.reactor.InstructionStatus;
-import net.solarnetwork.node.reactor.InstructionStatus.InstructionState;
-import net.solarnetwork.node.reactor.support.BasicInstruction;
-import net.solarnetwork.node.reactor.support.InstructionUtils;
-import net.solarnetwork.node.settings.SettingSpecifier;
-import net.solarnetwork.node.settings.SettingSpecifierProvider;
-import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
-import net.solarnetwork.util.FilterableService;
-import net.solarnetwork.util.OptionalService;
+import net.solarnetwork.node.reactor.InstructionUtils;
+import net.solarnetwork.service.FilterableService;
+import net.solarnetwork.service.Identifiable;
+import net.solarnetwork.service.OptionalService;
+import net.solarnetwork.settings.SettingSpecifier;
+import net.solarnetwork.settings.SettingSpecifierProvider;
+import net.solarnetwork.settings.support.BasicTextFieldSettingSpecifier;
 
 /**
  * Implementation of {@link SocketManager} that uses the
@@ -59,11 +58,11 @@ import net.solarnetwork.util.OptionalService;
  * configured {@link ChargeSessionManager}.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class SimpleSocketManager implements SocketManager, SettingSpecifierProvider {
 
-	private Collection<InstructionHandler> instructionHandlers = Collections.emptyList();
+	private OptionalService<InstructionExecutionService> instructionService;
 	private OptionalService<EventAdmin> eventAdmin;
 
 	private ChargeSessionManager chargeSessionManager;
@@ -74,36 +73,37 @@ public class SimpleSocketManager implements SocketManager, SettingSpecifierProvi
 
 	@Override
 	public boolean adjustSocketEnabledState(String socketId, boolean enabled) {
-		final BasicInstruction instr = new BasicInstruction(
-				InstructionHandler.TOPIC_SET_CONTROL_PARAMETER, new Date(),
-				Instruction.LOCAL_INSTRUCTION_ID, Instruction.LOCAL_INSTRUCTION_ID, null);
-		instr.addParameter(socketId, String.valueOf(enabled));
+		InstructionExecutionService service = OptionalService.service(instructionService);
+		if ( service == null ) {
+			return false;
+		}
+		final Instruction instr = InstructionUtils.createSetControlValueLocalInstruction(socketId,
+				String.valueOf(enabled));
 		log.debug("Requesting socket {} to be {}", socketId, enabled ? "enabled" : "disabled");
-		InstructionStatus.InstructionState result = InstructionUtils
-				.handleInstruction(instructionHandlers, instr);
+		InstructionStatus result = service.executeInstruction(instr);
 		log.debug("Request for socket {} to be {} resulted in {}", socketId,
 				enabled ? "enabled" : "disabled", result);
 		if ( result == null ) {
-			result = InstructionStatus.InstructionState.Declined;
+			return false;
 		}
-		if ( result == InstructionStatus.InstructionState.Completed ) {
+		if ( result.getInstructionState() == InstructionStatus.InstructionState.Completed ) {
 			String eventTopic = (enabled ? ChargeSessionManager.EVENT_TOPIC_SOCKET_ACTIVATED
 					: ChargeSessionManager.EVENT_TOPIC_SOCKET_DEACTIVATED);
 			Map<String, Object> eventProps = Collections
 					.singletonMap(ChargeSessionManager.EVENT_PROPERTY_SOCKET_ID, (Object) socketId);
 			postEvent(eventTopic, eventProps);
 		}
-		return (result != null && result != InstructionState.Declined);
+		return (result.getInstructionState() != InstructionState.Declined);
 	}
 
 	@Override
-	public String getUID() {
-		return (chargeSessionManager != null ? chargeSessionManager.getUID() : null);
+	public String getUid() {
+		return (chargeSessionManager != null ? chargeSessionManager.getUid() : null);
 	}
 
 	@Override
-	public String getGroupUID() {
-		return (chargeSessionManager != null ? chargeSessionManager.getGroupUID() : null);
+	public String getGroupUid() {
+		return (chargeSessionManager != null ? chargeSessionManager.getGroupUid() : null);
 	}
 
 	private void postEvent(String topic, Map<String, Object> props) {
@@ -118,7 +118,7 @@ public class SimpleSocketManager implements SocketManager, SettingSpecifierProvi
 	}
 
 	@Override
-	public String getSettingUID() {
+	public String getSettingUid() {
 		return "net.solarnetwork.node.ocpp.v15.cp.socket.control";
 	}
 
@@ -218,18 +218,13 @@ public class SimpleSocketManager implements SocketManager, SettingSpecifierProvi
 	}
 
 	/**
-	 * Set the collection of instruction handlers to process the
-	 * {@link InstructionHandler#TOPIC_SET_CONTROL_PARAMETER} instruction for
-	 * changing socket states.
+	 * Set the instruction execution service.
 	 * 
-	 * @param instructionHandlers
-	 *        The handlers to use.
+	 * @param service
+	 *        the service to use
 	 */
-	public void setInstructionHandlers(Collection<InstructionHandler> instructionHandlers) {
-		if ( instructionHandlers == null ) {
-			instructionHandlers = Collections.emptyList();
-		}
-		this.instructionHandlers = instructionHandlers;
+	public void setInstructionService(OptionalService<InstructionExecutionService> service) {
+		this.instructionService = service;
 	}
 
 	public void setMessageSource(MessageSource messageSource) {

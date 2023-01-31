@@ -39,12 +39,12 @@ import net.solarnetwork.node.ocpp.v15.cp.ChargeSession;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeSessionManager;
 import net.solarnetwork.node.ocpp.v15.cp.OCPPException;
 import net.solarnetwork.node.ocpp.v15.cp.SocketManager;
-import net.solarnetwork.node.settings.SettingSpecifier;
-import net.solarnetwork.node.settings.SettingSpecifierProvider;
-import net.solarnetwork.node.settings.support.BasicGroupSettingSpecifier;
-import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
-import net.solarnetwork.node.settings.support.SettingsUtil;
-import net.solarnetwork.util.FilterableService;
+import net.solarnetwork.service.FilterableService;
+import net.solarnetwork.settings.SettingSpecifier;
+import net.solarnetwork.settings.SettingSpecifierProvider;
+import net.solarnetwork.settings.support.BasicGroupSettingSpecifier;
+import net.solarnetwork.settings.support.BasicTextFieldSettingSpecifier;
+import net.solarnetwork.settings.support.SettingUtils;
 
 /**
  * Listen for RFID "message received" events and initiate/conclude OCPP charge
@@ -73,7 +73,7 @@ import net.solarnetwork.util.FilterableService;
  * automatically ended and the socket for that session disabled.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class RfidChargeSessionManager implements EventHandler, SettingSpecifierProvider {
 
@@ -245,7 +245,7 @@ public class RfidChargeSessionManager implements EventHandler, SettingSpecifierP
 	}
 
 	@Override
-	public String getSettingUID() {
+	public String getSettingUid() {
 		return "net.solarnetwork.node.ocpp.v15.cp.charge.rfid";
 	}
 
@@ -269,8 +269,8 @@ public class RfidChargeSessionManager implements EventHandler, SettingSpecifierP
 
 		// dynamic list of RfidSocketMapping
 		List<RfidSocketMapping> mappings = getRfidSocketMappings();
-		BasicGroupSettingSpecifier mappingsGroup = SettingsUtil.dynamicListSettingSpecifier(
-				"rfidSocketMappings", mappings, new SettingsUtil.KeyedListCallback<RfidSocketMapping>() {
+		BasicGroupSettingSpecifier mappingsGroup = SettingUtils.dynamicListSettingSpecifier(
+				"rfidSocketMappings", mappings, new SettingUtils.KeyedListCallback<RfidSocketMapping>() {
 
 					@Override
 					public Collection<SettingSpecifier> mapListSettingKey(RfidSocketMapping value,

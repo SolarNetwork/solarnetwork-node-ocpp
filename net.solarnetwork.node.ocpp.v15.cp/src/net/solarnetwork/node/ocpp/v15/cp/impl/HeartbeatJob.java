@@ -23,11 +23,10 @@
 package net.solarnetwork.node.ocpp.v15.cp.impl;
 
 import javax.xml.ws.WebServiceException;
-import org.quartz.DisallowConcurrentExecution;
-import org.quartz.JobExecutionContext;
-import org.quartz.PersistJobDataAfterExecution;
-import net.solarnetwork.node.job.AbstractJob;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import net.solarnetwork.node.ocpp.v15.cp.CentralSystemServiceFactory;
+import net.solarnetwork.util.ObjectUtils;
 import ocpp.v15.cs.CentralSystemService;
 import ocpp.v15.cs.HeartbeatRequest;
 import ocpp.v15.cs.HeartbeatResponse;
@@ -37,20 +36,27 @@ import ocpp.v15.cs.HeartbeatResponse;
  * is alive and has network connectivity.
  * 
  * @author matt
- * @version 2.0
+ * @version 3.0
  */
-@PersistJobDataAfterExecution
-@DisallowConcurrentExecution
-public class HeartbeatJob extends AbstractJob {
+public class HeartbeatJob implements Runnable {
 
-	private CentralSystemServiceFactory service;
+	private static final Logger log = LoggerFactory.getLogger(HeartbeatJob.class);
+
+	private final CentralSystemServiceFactory service;
+
+	/**
+	 * Constructor.
+	 * 
+	 * @param service
+	 *        the service factory to use
+	 */
+	public HeartbeatJob(CentralSystemServiceFactory service) {
+		super();
+		this.service = ObjectUtils.requireNonNullArgument(service, "service");
+	}
 
 	@Override
-	protected void executeInternal(JobExecutionContext jobContext) throws Exception {
-		if ( service == null ) {
-			log.warn("No CentralSystemServiceFactory available, cannot post heartbeat message.");
-			return;
-		}
+	public void run() {
 		try {
 			if ( !service.isBootNotificationPosted() ) {
 				service.postBootNotification();
@@ -68,16 +74,6 @@ public class HeartbeatJob extends AbstractJob {
 		} catch ( WebServiceException e ) {
 			log.warn("Error communicating with OCPP central system: {}", e.getMessage());
 		}
-	}
-
-	/**
-	 * Set the OCPP central service factory to use.
-	 * 
-	 * @param service
-	 *        The service to use.
-	 */
-	public void setService(CentralSystemServiceFactory service) {
-		this.service = service;
 	}
 
 }

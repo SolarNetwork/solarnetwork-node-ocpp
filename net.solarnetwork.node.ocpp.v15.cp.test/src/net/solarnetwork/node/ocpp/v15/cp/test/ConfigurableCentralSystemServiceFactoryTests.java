@@ -30,15 +30,15 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import net.solarnetwork.node.ocpp.v15.cp.impl.ConfigurableCentralSystemServiceFactory;
-import net.solarnetwork.support.SSLService;
-import net.solarnetwork.util.StaticOptionalService;
+import net.solarnetwork.service.SSLService;
+import net.solarnetwork.service.StaticOptionalService;
 import ocpp.v15.cs.CentralSystemService;
 
 /**
  * Test cases for the {@link ConfigurableCentralSystemServiceFactory} class.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class ConfigurableCentralSystemServiceFactoryTests {
 

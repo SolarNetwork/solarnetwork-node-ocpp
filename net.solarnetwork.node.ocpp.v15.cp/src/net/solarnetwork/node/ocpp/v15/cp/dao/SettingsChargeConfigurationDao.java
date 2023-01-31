@@ -34,7 +34,7 @@ import net.solarnetwork.node.dao.SettingDao;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeConfiguration;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeConfigurationDao;
 import net.solarnetwork.node.ocpp.v15.cp.support.SimpleChargeConfiguration;
-import net.solarnetwork.util.OptionalService;
+import net.solarnetwork.service.OptionalService;
 import ocpp.v15.ConfigurationKey;
 
 /**
@@ -46,7 +46,7 @@ import ocpp.v15.ConfigurationKey;
  * {@link ConfigurationKey#getName()} values.
  * 
  * @author matt
- * @version 1.1
+ * @version 2.0
  * @since 0.6
  */
 public class SettingsChargeConfigurationDao implements ChargeConfigurationDao {

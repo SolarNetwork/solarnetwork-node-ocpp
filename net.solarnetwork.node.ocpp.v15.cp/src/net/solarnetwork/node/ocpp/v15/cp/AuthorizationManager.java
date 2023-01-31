@@ -22,7 +22,7 @@
 
 package net.solarnetwork.node.ocpp.v15.cp;
 
-import net.solarnetwork.node.Identifiable;
+import net.solarnetwork.service.Identifiable;
 import ocpp.v15.cs.AuthorizationStatus;
 
 /**
@@ -30,7 +30,7 @@ import ocpp.v15.cs.AuthorizationStatus;
  * caching and/or synchronization with the OCPP central system.
  * 
  * @author matt
- * @version 1.1
+ * @version 2.0
  */
 public interface AuthorizationManager extends Identifiable {
 

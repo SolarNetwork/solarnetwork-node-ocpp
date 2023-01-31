@@ -22,35 +22,45 @@
 
 package net.solarnetwork.node.ocpp.v15.cp.charge;
 
-import org.quartz.DisallowConcurrentExecution;
-import org.quartz.JobExecutionContext;
-import org.quartz.PersistJobDataAfterExecution;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
-import net.solarnetwork.node.job.AbstractJob;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeSessionManager;
+import net.solarnetwork.util.ObjectUtils;
 
 /**
  * Job to periodically post charge session meter values.
  * 
  * @author matt
- * @version 1.1
+ * @version 2.0
  */
-@PersistJobDataAfterExecution
-@DisallowConcurrentExecution
-public class PostActiveChargeSessionsMeterValuesJob extends AbstractJob {
+public class PostActiveChargeSessionsMeterValuesJob implements Runnable {
 
-	private ChargeSessionManager service;
-	private TransactionTemplate transactionTemplate;
+	private static final Logger log = LoggerFactory
+			.getLogger(PostActiveChargeSessionsMeterValuesJob.class);
+
+	private final ChargeSessionManager service;
+	private final TransactionTemplate transactionTemplate;
+
+	/**
+	 * Constructor.
+	 * 
+	 * @param service
+	 *        the service.
+	 * @param transactionTemplate
+	 *        the transaction template
+	 */
+	public PostActiveChargeSessionsMeterValuesJob(ChargeSessionManager service,
+			TransactionTemplate transactionTemplate) {
+		super();
+		this.service = ObjectUtils.requireNonNullArgument(service, "service");
+		this.transactionTemplate = transactionTemplate;
+	}
 
 	@Override
-	protected void executeInternal(JobExecutionContext jobContext) throws Exception {
-		if ( service == null ) {
-			log.warn(
-					"No ChargeSessionManager available, cannot post active charge sessions meter values.");
-			return;
-		}
+	public void run() {
 		if ( transactionTemplate != null ) {
 			transactionTemplate.execute(new TransactionCallback<Object>() {
 
@@ -64,26 +74,6 @@ public class PostActiveChargeSessionsMeterValuesJob extends AbstractJob {
 			service.postActiveChargeSessionsMeterValues();
 		}
 		log.debug("Completed posting active charge sessions meter values to OCPP central system");
-	}
-
-	/**
-	 * Set the charge session manager to use.
-	 * 
-	 * @param service
-	 *        The service to use.
-	 */
-	public void setService(ChargeSessionManager service) {
-		this.service = service;
-	}
-
-	/**
-	 * A transaction template to use.
-	 * 
-	 * @param transactionTemplate
-	 *        The template to use.
-	 */
-	public void setTransactionTemplate(TransactionTemplate transactionTemplate) {
-		this.transactionTemplate = transactionTemplate;
 	}
 
 }

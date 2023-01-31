@@ -23,11 +23,10 @@
 package net.solarnetwork.node.ocpp.v15.cp.charge;
 
 import java.util.Map;
-import net.solarnetwork.node.DatumDataSource;
-import net.solarnetwork.node.domain.ACEnergyDatum;
 import net.solarnetwork.node.ocpp.v15.cp.AuthorizationManager;
-import net.solarnetwork.util.FilterableService;
-import net.solarnetwork.util.OptionalServiceCollection;
+import net.solarnetwork.node.service.DatumDataSource;
+import net.solarnetwork.service.FilterableService;
+import net.solarnetwork.service.OptionalServiceCollection;
 
 /**
  * API to expose the configurable bean properties of
@@ -35,7 +34,7 @@ import net.solarnetwork.util.OptionalServiceCollection;
  * picks up these methods to allow Configuration Admin to call them.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public interface ChargeSessionManager_v15Settings {
 
@@ -43,19 +42,19 @@ public interface ChargeSessionManager_v15Settings {
 	 * Initialize the OCPP client. Call this once after all properties
 	 * configured.
 	 */
-	public void startup();
+	void startup();
 
 	/**
 	 * Shutdown the OCPP client, releasing any associated resources.
 	 */
-	public void shutdown();
+	void shutdown();
 
 	/**
 	 * Get a configurable collection of data sources for meter readings.
 	 * 
 	 * @return The configurable collection of data sources.
 	 */
-	public OptionalServiceCollection<DatumDataSource<ACEnergyDatum>> getMeterDataSource();
+	OptionalServiceCollection<DatumDataSource> getMeterDataSource();
 
 	/**
 	 * Get a {@link FilterableService} for the {@link AuthorizationManager}.
@@ -63,7 +62,7 @@ public interface ChargeSessionManager_v15Settings {
 	 * @return A version of the AuthorizationManager that also implements
 	 *         {@link FilterableService}.
 	 */
-	public FilterableService getFilterableAuthManager();
+	FilterableService getFilterableAuthManager();
 
 	/**
 	 * Set a {@code socketConnectorMapping} Map via an encoded String value.

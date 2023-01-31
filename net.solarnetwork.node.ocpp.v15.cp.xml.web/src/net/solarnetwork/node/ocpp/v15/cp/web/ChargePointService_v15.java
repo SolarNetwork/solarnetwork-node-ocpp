@@ -34,18 +34,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import net.solarnetwork.node.SystemService;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeConfiguration;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeConfigurationDao;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeSession;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeSessionManager;
 import net.solarnetwork.node.ocpp.v15.cp.support.SimpleChargeConfiguration;
-import net.solarnetwork.node.settings.SettingSpecifier;
-import net.solarnetwork.node.settings.SettingSpecifierProvider;
-import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
-import net.solarnetwork.node.settings.support.BasicTitleSettingSpecifier;
-import net.solarnetwork.util.FilterableService;
-import net.solarnetwork.util.OptionalService;
+import net.solarnetwork.node.service.SystemService;
+import net.solarnetwork.service.FilterableService;
+import net.solarnetwork.service.OptionalService;
+import net.solarnetwork.settings.SettingSpecifier;
+import net.solarnetwork.settings.SettingSpecifierProvider;
+import net.solarnetwork.settings.support.BasicTextFieldSettingSpecifier;
+import net.solarnetwork.settings.support.BasicTitleSettingSpecifier;
 import ocpp.v15.ConfigurationKey;
 import ocpp.v15.cp.AvailabilityStatus;
 import ocpp.v15.cp.AvailabilityType;
@@ -347,7 +347,7 @@ public class ChargePointService_v15 implements ChargePointService, SettingSpecif
 	}
 
 	@Override
-	public String getSettingUID() {
+	public String getSettingUid() {
 		return "net.solarnetwork.node.ocpp.v15.cp.web.chargepoint";
 	}
 
@@ -375,7 +375,7 @@ public class ChargePointService_v15 implements ChargePointService, SettingSpecif
 		ChargeSessionManager mgr = chargeSessionManager;
 		String managerUID = null;
 		try {
-			managerUID = (mgr != null ? mgr.getUID() : null);
+			managerUID = (mgr != null ? mgr.getUid() : null);
 		} catch ( RuntimeException e ) {
 			log.warn("ChargeSessionManager UID unavailable: {}", e.getMessage());
 		}

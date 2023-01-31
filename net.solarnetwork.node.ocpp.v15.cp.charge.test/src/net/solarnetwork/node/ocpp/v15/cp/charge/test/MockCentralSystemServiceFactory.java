@@ -29,7 +29,7 @@ import ocpp.v15.cs.CentralSystemService;
  * Mock implementation of {@link CentralSystemServiceFactory} to help testing.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class MockCentralSystemServiceFactory implements CentralSystemServiceFactory {
 
@@ -40,23 +40,37 @@ public class MockCentralSystemServiceFactory implements CentralSystemServiceFact
 
 	/**
 	 * Constructor.
+	 * 
+	 * @param uid
+	 *        the UID
+	 * @param groupUid
+	 *        the group UID
+	 * @param service
+	 *        the service
+	 * @param chargeBoxIdentity
+	 *        the identity
 	 */
-	public MockCentralSystemServiceFactory(String uid, String groupUID, CentralSystemService service,
+	public MockCentralSystemServiceFactory(String uid, String groupUid, CentralSystemService service,
 			String chargeBoxIdentity) {
 		super();
 		this.uid = uid;
-		this.groupUID = groupUID;
+		this.groupUID = groupUid;
 		this.service = service;
 		this.chargeBoxIdentity = chargeBoxIdentity;
 	}
 
 	@Override
-	public String getUID() {
+	public String getDisplayName() {
+		return "Mock Central System";
+	}
+
+	@Override
+	public String getUid() {
 		return uid;
 	}
 
 	@Override
-	public String getGroupUID() {
+	public String getGroupUid() {
 		return groupUID;
 	}
 

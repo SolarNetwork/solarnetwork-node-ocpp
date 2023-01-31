@@ -25,7 +25,6 @@ package net.solarnetwork.node.ocpp.v15.cp.kiosk.web;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -34,39 +33,33 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.osgi.service.event.Event;
 import org.osgi.service.event.EventHandler;
-import org.quartz.JobBuilder;
-import org.quartz.JobDataMap;
-import org.quartz.JobDetail;
-import org.quartz.JobKey;
-import org.quartz.Scheduler;
-import org.quartz.SchedulerException;
-import org.quartz.SimpleScheduleBuilder;
-import org.quartz.SimpleTrigger;
-import org.quartz.TriggerBuilder;
-import org.quartz.TriggerKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
-import net.solarnetwork.node.DatumDataSource;
-import net.solarnetwork.node.domain.ACEnergyDatum;
+import org.springframework.scheduling.TaskScheduler;
+import net.solarnetwork.domain.datum.DatumSamplesType;
+import net.solarnetwork.domain.datum.EnergyDatum;
+import net.solarnetwork.node.domain.datum.NodeDatum;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeSession;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeSessionManager;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeSessionMeterReading;
-import net.solarnetwork.node.settings.SettingSpecifier;
-import net.solarnetwork.node.settings.SettingSpecifierProvider;
-import net.solarnetwork.node.settings.support.BasicGroupSettingSpecifier;
-import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
-import net.solarnetwork.node.settings.support.SettingsUtil;
-import net.solarnetwork.util.DynamicServiceUnavailableException;
-import net.solarnetwork.util.FilterableService;
-import net.solarnetwork.util.OptionalService;
+import net.solarnetwork.node.service.DatumDataSource;
+import net.solarnetwork.service.DynamicServiceUnavailableException;
+import net.solarnetwork.service.FilterableService;
+import net.solarnetwork.service.OptionalService;
+import net.solarnetwork.settings.SettingSpecifier;
+import net.solarnetwork.settings.SettingSpecifierProvider;
+import net.solarnetwork.settings.support.BasicGroupSettingSpecifier;
+import net.solarnetwork.settings.support.BasicTextFieldSettingSpecifier;
+import net.solarnetwork.settings.support.SettingUtils;
 import net.solarnetwork.util.StringUtils;
 import ocpp.v15.cs.Measurand;
 import ocpp.v15.cs.ReadingContext;
@@ -103,7 +96,7 @@ public class DefaultKioskDataService
 	private final Map<String, Map<String, Object>> socketDataMap;
 
 	// a cache of socket ID -> data source for meter data
-	private final Map<String, DatumDataSource<ACEnergyDatum>> socketMeterDataSources;
+	private final Map<String, DatumDataSource> socketMeterDataSources;
 
 	// last seen PV generation power, by source ID
 	private final ConcurrentMap<String, AtomicInteger> pvPowerMap;
@@ -113,27 +106,27 @@ public class DefaultKioskDataService
 
 	private List<SocketConfiguration> socketConfigurations;
 	private Set<String> pvSourceIdSet;
-	private Collection<DatumDataSource<ACEnergyDatum>> meterDataSources;
+	private Collection<DatumDataSource> meterDataSources;
 	private ChargeSessionManager chargeSessionManager;
 	private OptionalService<SimpMessageSendingOperations> messageSendingOps;
-	private Scheduler scheduler;
+	private TaskScheduler scheduler;
 	private MessageSource messageSource;
 	private TaskExecutor taskExecutor;
-	private SimpleTrigger refreshKioskDataTrigger;
+	private ScheduledFuture<?> refreshKioskDataTrigger;
 	private final AtomicBoolean sessionDataRefreshNeeded = new AtomicBoolean(true);
 
 	private final Logger log = LoggerFactory.getLogger(getClass());
 
 	public DefaultKioskDataService() {
 		super();
-		socketMeterDataSources = new HashMap<String, DatumDataSource<ACEnergyDatum>>(2);
-		socketDataMap = new ConcurrentHashMap<String, Map<String, Object>>(2);
-		socketConfigurations = new ArrayList<SocketConfiguration>(2);
-		pvSourceIdSet = new LinkedHashSet<String>(1);
-		pvPowerMap = new ConcurrentHashMap<String, AtomicInteger>(2);
-		pvDataMap = new HashMap<String, Object>(2);
+		socketMeterDataSources = new HashMap<>(2);
+		socketDataMap = new ConcurrentHashMap<>(2);
+		socketConfigurations = new ArrayList<>(2);
+		pvSourceIdSet = new LinkedHashSet<>(1);
+		pvPowerMap = new ConcurrentHashMap<>(2);
+		pvDataMap = new HashMap<>(2);
 		pvDataMap.put("power", new AtomicInteger(0));
-		Map<String, Object> kData = new LinkedHashMap<String, Object>(8);
+		Map<String, Object> kData = new LinkedHashMap<>(8);
 		kData.put("socketData", socketDataMap);
 		kData.put("pvData", pvDataMap);
 		kioskData = Collections.unmodifiableMap(kData);
@@ -413,10 +406,10 @@ public class DefaultKioskDataService
 
 			// get socket activation state
 
-			DatumDataSource<ACEnergyDatum> meterDataSource = socketMeterDataSources.get(socketId);
+			DatumDataSource meterDataSource = socketMeterDataSources.get(socketId);
 			if ( meterDataSource == null ) {
-				for ( DatumDataSource<ACEnergyDatum> ds : meterDataSources ) {
-					if ( socketConf.getMeterDataSourceUID().equals(ds.getUID()) ) {
+				for ( DatumDataSource ds : meterDataSources ) {
+					if ( socketConf.getMeterDataSourceUID().equals(ds.getUid()) ) {
 						meterDataSource = ds;
 						// cache the data source mapping as we don't expect it to change
 						socketMeterDataSources.put(socketId, ds);
@@ -431,85 +424,37 @@ public class DefaultKioskDataService
 			}
 
 			// get meter readings for this socket
-			ACEnergyDatum meterData = meterDataSource.readCurrentDatum();
+			NodeDatum meterData = meterDataSource.readCurrentDatum();
 			if ( meterData != null ) {
-				updateSessionData(sessionData, meterData.getWatts(), meterData.getWattHourReading(),
-						null);
+				Integer w = meterData.asSampleOperations()
+						.getSampleInteger(DatumSamplesType.Instantaneous, EnergyDatum.WATTS_KEY);
+				Long wh = meterData.asSampleOperations().getSampleLong(DatumSamplesType.Accumulating,
+						EnergyDatum.WATT_HOUR_READING_KEY);
+				updateSessionData(sessionData, w, wh, null);
 			}
 		}
 	}
 
 	private boolean configureKioskRefreshJob(final long interval) {
-		final Scheduler sched = scheduler;
+		final TaskScheduler sched = scheduler;
 		if ( sched == null ) {
 			log.warn("No scheduler avaialable, cannot schedule OCPP kiosk refresh job");
 			return false;
 		}
-		final JobKey jobKey = new JobKey(KIOSK_REFRESH_JOB_NAME, SCHEDULER_GROUP);
-		final TriggerKey triggerKey = new TriggerKey(KIOSK_REFRESH_JOB_NAME, SCHEDULER_GROUP);
-		SimpleTrigger trigger = refreshKioskDataTrigger;
-		if ( trigger != null ) {
-			// check if interval actually changed
-			if ( trigger.getRepeatInterval() == interval ) {
-				log.debug("OCPP kiosk refresh interval unchanged at {}s", interval);
-				return true;
-			}
-			// trigger has changed!
-			if ( interval == 0 ) {
-				try {
-					sched.deleteJob(jobKey);
-					log.info("Unscheduled OCPP kiosk refresh job");
-				} catch ( SchedulerException e ) {
-					log.error("Error unscheduling OCPP kiosk refresh job", e);
-				} finally {
-					refreshKioskDataTrigger = null;
-				}
-			} else {
-				trigger = TriggerBuilder.newTrigger().withIdentity(trigger.getKey()).forJob(jobKey)
-						.withSchedule(
-								SimpleScheduleBuilder.repeatMinutelyForever((int) (interval / (60000L))))
-						.build();
-				try {
-					sched.rescheduleJob(trigger.getKey(), trigger);
-				} catch ( SchedulerException e ) {
-					log.error("Error rescheduling Loxone datum logger job", e);
-				} finally {
-					refreshKioskDataTrigger = null;
-				}
-			}
-			return true;
-		} else if ( interval == 0 ) {
+		if ( refreshKioskDataTrigger != null && !refreshKioskDataTrigger.isDone() ) {
+			refreshKioskDataTrigger.cancel(true);
+			refreshKioskDataTrigger = null;
+		}
+		if ( interval < 1 ) {
 			return true;
 		}
-
-		synchronized ( sched ) {
-			try {
-				JobDetail jobDetail = sched.getJobDetail(jobKey);
-				if ( jobDetail == null ) {
-					jobDetail = JobBuilder.newJob(KioskDataServiceRefreshJob.class).withIdentity(jobKey)
-							.storeDurably().build();
-					sched.addJob(jobDetail, true);
-				}
-				trigger = TriggerBuilder.newTrigger().withIdentity(triggerKey).forJob(jobKey)
-						.startAt(new Date(System.currentTimeMillis() + interval))
-						.usingJobData(new JobDataMap(Collections.singletonMap("dataService", this)))
-						.withSchedule(
-								SimpleScheduleBuilder.repeatSecondlyForever((int) (interval / (1000L)))
-										.withMisfireHandlingInstructionNextWithExistingCount())
-						.build();
-				sched.scheduleJob(trigger);
-				log.info("Scheduled OCPP kiosk refresh job to run every {} seconds", (interval / 1000));
-				refreshKioskDataTrigger = trigger;
-				return true;
-			} catch ( Exception e ) {
-				log.error("Error scheduling OCPP kiosk refresh job", e);
-				return false;
-			}
-		}
+		refreshKioskDataTrigger = sched.scheduleWithFixedDelay(new KioskDataServiceRefreshJob(this),
+				interval * 1000L);
+		return true;
 	}
 
 	@Override
-	public String getSettingUID() {
+	public String getSettingUid() {
 		return getClass().getName();
 	}
 
@@ -536,9 +481,9 @@ public class DefaultKioskDataService
 
 		// dynamic list of SocketConfiguration
 		Collection<SocketConfiguration> socketConfs = getSocketConfigurations();
-		BasicGroupSettingSpecifier socketConfsGroup = SettingsUtil.dynamicListSettingSpecifier(
+		BasicGroupSettingSpecifier socketConfsGroup = SettingUtils.dynamicListSettingSpecifier(
 				"socketConfigurations", socketConfs,
-				new SettingsUtil.KeyedListCallback<SocketConfiguration>() {
+				new SettingUtils.KeyedListCallback<SocketConfiguration>() {
 
 					@Override
 					public Collection<SettingSpecifier> mapListSettingKey(SocketConfiguration value,
@@ -554,7 +499,8 @@ public class DefaultKioskDataService
 
 	public FilterableService getFilterableChargeSessionManager() {
 		return (chargeSessionManager instanceof FilterableService
-				? (FilterableService) chargeSessionManager : null);
+				? (FilterableService) chargeSessionManager
+				: null);
 	}
 
 	/**
@@ -564,7 +510,7 @@ public class DefaultKioskDataService
 	 * @param meterDataSources
 	 *        The collection of meter data sources.
 	 */
-	public void setMeterDataSources(Collection<DatumDataSource<ACEnergyDatum>> meterDataSources) {
+	public void setMeterDataSources(Collection<DatumDataSource> meterDataSources) {
 		this.meterDataSources = meterDataSources;
 	}
 
@@ -626,7 +572,7 @@ public class DefaultKioskDataService
 		this.messageSendingOps = messageSendingOps;
 	}
 
-	public void setScheduler(Scheduler scheduler) {
+	public void setScheduler(TaskScheduler scheduler) {
 		this.scheduler = scheduler;
 	}
 

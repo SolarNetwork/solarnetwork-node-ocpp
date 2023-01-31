@@ -22,66 +22,33 @@
 
 package net.solarnetwork.node.ocpp.v15.cp.socket.control;
 
-import java.util.ArrayList;
-import java.util.List;
-import org.quartz.DisallowConcurrentExecution;
-import org.quartz.JobExecutionContext;
-import org.quartz.PersistJobDataAfterExecution;
-import org.springframework.context.MessageSource;
-import net.solarnetwork.node.settings.KeyedSettingSpecifier;
-import net.solarnetwork.node.settings.SettingSpecifier;
-import net.solarnetwork.node.settings.SettingSpecifierProvider;
+import net.solarnetwork.util.ObjectUtils;
 
 /**
  * Job to examine charge sessions and make sure their corresponding socket state
  * is valid.
  * 
  * @author matt
- * @version 2.0
+ * @version 3.0
  */
-@PersistJobDataAfterExecution
-@DisallowConcurrentExecution
-public class SocketStateJob extends net.solarnetwork.node.job.AbstractJob
-		implements SettingSpecifierProvider {
+public class SocketStateJob implements Runnable {
 
-	private SimpleSocketManager socketManager;
+	private final SimpleSocketManager socketManager;
+
+	/**
+	 * Constructor.
+	 * 
+	 * @param socketManager
+	 *        the manager
+	 */
+	public SocketStateJob(SimpleSocketManager socketManager) {
+		super();
+		this.socketManager = ObjectUtils.requireNonNullArgument(socketManager, "socketManager");
+	}
 
 	@Override
-	protected void executeInternal(JobExecutionContext jobContext) throws Exception {
+	public void run() {
 		socketManager.verifyAllSockets();
-	}
-
-	@Override
-	public String getSettingUID() {
-		return "net.solarnetwork.node.ocpp.v15.cp.socket.control";
-	}
-
-	@Override
-	public String getDisplayName() {
-		return socketManager.getDisplayName();
-	}
-
-	@Override
-	public MessageSource getMessageSource() {
-		return socketManager.getMessageSource();
-	}
-
-	@Override
-	public List<SettingSpecifier> getSettingSpecifiers() {
-		List<SettingSpecifier> result = new ArrayList<SettingSpecifier>();
-		for ( SettingSpecifier spec : socketManager.getSettingSpecifiers() ) {
-			if ( spec instanceof KeyedSettingSpecifier<?> ) {
-				KeyedSettingSpecifier<?> keyedSpec = (KeyedSettingSpecifier<?>) spec;
-				result.add(keyedSpec.mappedTo("socketManager."));
-			} else {
-				result.add(spec);
-			}
-		}
-		return result;
-	}
-
-	public void setSocketManager(SimpleSocketManager socketManager) {
-		this.socketManager = socketManager;
 	}
 
 }

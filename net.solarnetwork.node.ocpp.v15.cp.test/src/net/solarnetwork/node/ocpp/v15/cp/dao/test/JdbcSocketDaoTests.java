@@ -23,8 +23,6 @@
 package net.solarnetwork.node.ocpp.v15.cp.dao.test;
 
 import java.util.Date;
-import javax.annotation.Resource;
-import javax.sql.DataSource;
 import net.solarnetwork.node.dao.jdbc.DatabaseSetup;
 import net.solarnetwork.node.ocpp.v15.cp.Socket;
 import net.solarnetwork.node.ocpp.v15.cp.dao.JdbcSocketDao;
@@ -42,9 +40,6 @@ import org.junit.Test;
 public class JdbcSocketDaoTests extends AbstractNodeTransactionalTest {
 
 	private static final String TEST_SOCKET_ID = "test.socket";
-
-	@Resource(name = "dataSource")
-	private DataSource dataSource;
 
 	private JdbcSocketDao dao;
 	private Socket lastSocket;

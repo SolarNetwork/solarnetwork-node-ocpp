@@ -25,17 +25,17 @@
 	
 	<!-- Support -->
 
-	<bean id="eventAdmin" class="net.solarnetwork.util.DynamicServiceTracker">
+	<bean id="eventAdmin" class="net.solarnetwork.common.osgi.service.DynamicServiceTracker">
 		<property name="bundleContext" ref="bundleContext"/>
 		<property name="serviceClassName" value="org.osgi.service.event.EventAdmin"/>
 	</bean>
 
-	<bean id="identityService" class="net.solarnetwork.util.DynamicServiceTracker">
+	<bean id="identityService" class="net.solarnetwork.common.osgi.service.DynamicServiceTracker">
 		<property name="bundleContext" ref="bundleContext"/>
 		<property name="serviceClassName" value="net.solarnetwork.node.IdentityService"/>
 	</bean>
 
-	<bean id="pkiService" class="net.solarnetwork.util.DynamicServiceTracker">
+	<bean id="pkiService" class="net.solarnetwork.common.osgi.service.DynamicServiceTracker">
 		<property name="bundleContext" ref="bundleContext"/>
 		<property name="serviceClassName" value="net.solarnetwork.node.IdentityService"/>
 	</bean>
@@ -83,12 +83,12 @@
 
 	<service ref="socketDao" interface="net.solarnetwork.node.ocpp.v15.cp.SocketDao"/>
 
-	<service ref="settingsFactory" interface="net.solarnetwork.node.settings.SettingSpecifierProviderFactory"/>
+	<service ref="settingsFactory" interface="net.solarnetwork.settings.SettingSpecifierProviderFactory"/>
 	
 	<osgix:managed-service-factory factory-pid="net.solarnetwork.node.ocpp.v15.cp.central" autowire-on-update="true">
 		<osgix:interfaces>
 			<beans:value>net.solarnetwork.node.ocpp.v15.cp.CentralSystemServiceFactory</beans:value>
-			<beans:value>net.solarnetwork.node.settings.SettingSpecifierProvider</beans:value>
+			<beans:value>net.solarnetwork.settings.SettingSpecifierProvider</beans:value>
 			<beans:value>org.osgi.service.event.EventHandler</beans:value>
 		</osgix:interfaces>
 		<osgix:service-properties>

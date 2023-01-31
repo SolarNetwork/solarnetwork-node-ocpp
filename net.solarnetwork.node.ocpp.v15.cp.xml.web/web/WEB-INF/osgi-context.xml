@@ -26,7 +26,7 @@
 	
 	<!-- Services -->
 	
-	<osgi:service ref="hmacHandler" interface="net.solarnetwork.node.settings.SettingSpecifierProvider"/>
+	<osgi:service ref="hmacHandler" interface="net.solarnetwork.settings.SettingSpecifierProvider"/>
 
 	<bean id="hmacHandler" class="net.solarnetwork.node.ocpp.v15.cp.web.ManagedHMACHandler">
 		<osgix:managed-properties persistent-id="net.solarnetwork.node.ocpp.v15.cp.xml.web" autowire-on-update="true"/>
@@ -50,12 +50,12 @@
 		</property>
 	</bean>
 
-	<bean id="systemService" class="net.solarnetwork.util.DynamicServiceTracker">
+	<bean id="systemService" class="net.solarnetwork.common.osgi.service.DynamicServiceTracker">
 		<property name="bundleContext" ref="bundleContext"/>
 		<property name="serviceClassName" value="net.solarnetwork.node.SystemService"/>
 	</bean>
 
-	<osgi:service ref="chargePointService" interface="net.solarnetwork.node.settings.SettingSpecifierProvider">
+	<osgi:service ref="chargePointService" interface="net.solarnetwork.settings.SettingSpecifierProvider">
 		<osgi:service-properties>
 			<entry key="servicePid" value="net.solarnetwork.node.ocpp.v15.cp.web.chargepoint"/>
 		</osgi:service-properties>

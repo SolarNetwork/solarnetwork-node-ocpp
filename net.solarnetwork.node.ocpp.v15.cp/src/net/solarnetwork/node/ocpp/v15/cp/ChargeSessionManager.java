@@ -25,7 +25,7 @@ package net.solarnetwork.node.ocpp.v15.cp;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
-import net.solarnetwork.node.Identifiable;
+import net.solarnetwork.service.Identifiable;
 
 /**
  * API for managing charge sessions. A <em>charge session</em> is the process of
@@ -35,7 +35,7 @@ import net.solarnetwork.node.Identifiable;
  * and finally confirming that charging is complete.
  * 
  * @author matt
- * @version 1.3
+ * @version 2.0
  */
 public interface ChargeSessionManager extends Identifiable {
 

@@ -20,7 +20,7 @@
 
 	<!-- Published Services -->
 
-	<service interface="net.solarnetwork.node.settings.SettingSpecifierProviderFactory">
+	<service interface="net.solarnetwork.settings.SettingSpecifierProviderFactory">
 		<bean class="net.solarnetwork.node.settings.support.BasicSettingSpecifierProviderFactory">
 			<property name="displayName" value="OCPP RFID Charge Sessions"/>
 			<property name="factoryUID" value="net.solarnetwork.node.ocpp.v15.cp.charge.rfid"/>
@@ -30,7 +30,7 @@
 
 	<osgix:managed-service-factory factory-pid="net.solarnetwork.node.ocpp.v15.cp.charge.rfid" autowire-on-update="true">
 		<osgix:interfaces>
-			<beans:value>net.solarnetwork.node.settings.SettingSpecifierProvider</beans:value>
+			<beans:value>net.solarnetwork.settings.SettingSpecifierProvider</beans:value>
 			<beans:value>org.osgi.service.event.EventHandler</beans:value>
 		</osgix:interfaces>
 		<osgix:service-properties>

@@ -25,24 +25,24 @@ package net.solarnetwork.node.ocpp.v15.cp.web;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.context.MessageSource;
-import net.solarnetwork.node.settings.SettingSpecifier;
-import net.solarnetwork.node.settings.SettingSpecifierProvider;
-import net.solarnetwork.node.settings.support.BasicTextFieldSettingSpecifier;
-import net.solarnetwork.node.settings.support.BasicToggleSettingSpecifier;
+import net.solarnetwork.settings.SettingSpecifier;
+import net.solarnetwork.settings.SettingSpecifierProvider;
+import net.solarnetwork.settings.support.BasicTextFieldSettingSpecifier;
+import net.solarnetwork.settings.support.BasicToggleSettingSpecifier;
 import ocpp.xml.support.HMACHandler;
 
 /**
  * Extension of {@link HMACHandler} to support {@link SettingSpecifierProvider}.
  * 
  * @author matt
- * @version 1.1
+ * @version 2.0
  */
 public class ManagedHMACHandler extends HMACHandler implements SettingSpecifierProvider {
 
 	private MessageSource messageSource;
 
 	@Override
-	public String getSettingUID() {
+	public String getSettingUid() {
 		return "net.solarnetwork.node.ocpp.v15.cp.web";
 	}
 

@@ -22,14 +22,14 @@
 
 package net.solarnetwork.node.ocpp.v15.cp;
 
-import net.solarnetwork.node.Identifiable;
+import net.solarnetwork.service.Identifiable;
 import ocpp.v15.cs.CentralSystemService;
 
 /**
  * A factory for {@link CentralSystemService} instances.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public interface CentralSystemServiceFactory extends Identifiable {
 

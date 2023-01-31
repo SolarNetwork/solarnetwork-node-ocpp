@@ -26,8 +26,6 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Map;
-import javax.annotation.Resource;
-import javax.sql.DataSource;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 import net.solarnetwork.node.dao.jdbc.DatabaseSetup;
@@ -49,9 +47,6 @@ public class JdbcAuthorizationDaoTests extends AbstractNodeTransactionalTest {
 
 	private static final String TEST_ID_TAG = "test.tag";
 	private static final String TEST_PARENT_ID_TAG = "parent.tag";
-
-	@Resource(name = "dataSource")
-	private DataSource dataSource;
 
 	private JdbcAuthorizationDao dao;
 	private Authorization lastAuth;

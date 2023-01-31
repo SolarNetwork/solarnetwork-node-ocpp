@@ -20,7 +20,7 @@
 	
 	<osgi:list id="meterDataSources" availability="optional"
 		interface="net.solarnetwork.node.DatumDataSource"
-		filter="(datumClassName=net.solarnetwork.node.domain.ACEnergyDatum)"/>
+		filter="(datumClassName=net.solarnetwork.node.domain.datum.AcEnergyDatum)"/>
 		
 	<osgi:reference id="taskExecutor"
 		interface="org.springframework.core.task.TaskExecutor"
@@ -36,7 +36,7 @@
 		</property>
 	</bean>
 
-	<bean id="messageSendingOps" class="net.solarnetwork.util.DynamicServiceTracker">
+	<bean id="messageSendingOps" class="net.solarnetwork.common.osgi.service.DynamicServiceTracker">
 		<property name="bundleContext" ref="bundleContext"/>
 		<property name="serviceClassName" value="org.springframework.messaging.simp.SimpMessageSendingOperations"/>
 		<property name="serviceFilter" value="(channel=broker)"/>
@@ -44,7 +44,7 @@
 	
 	<osgi:service ref="kioskDataService">
 		<osgi:interfaces>
-			<value>net.solarnetwork.node.settings.SettingSpecifierProvider</value>
+			<value>net.solarnetwork.settings.SettingSpecifierProvider</value>
 			<value>org.osgi.service.event.EventHandler</value>
 		</osgi:interfaces>
 		<osgi:service-properties>

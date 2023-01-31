@@ -26,13 +26,13 @@ import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.easymock.Capture;
 import org.easymock.EasyMock;
@@ -41,11 +41,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.osgi.service.event.Event;
-import net.solarnetwork.node.DatumDataSource;
-import net.solarnetwork.node.domain.ACEnergyDatum;
-import net.solarnetwork.node.domain.Datum;
-import net.solarnetwork.node.domain.EnergyDatum;
-import net.solarnetwork.node.domain.GeneralNodeACEnergyDatum;
+import net.solarnetwork.domain.datum.DatumSamples;
+import net.solarnetwork.node.domain.datum.SimpleAcEnergyDatum;
 import net.solarnetwork.node.ocpp.v15.cp.AuthorizationManager;
 import net.solarnetwork.node.ocpp.v15.cp.CentralSystemServiceFactory;
 import net.solarnetwork.node.ocpp.v15.cp.ChargeSession;
@@ -54,9 +51,10 @@ import net.solarnetwork.node.ocpp.v15.cp.ChargeSessionMeterReading;
 import net.solarnetwork.node.ocpp.v15.cp.OCPPException;
 import net.solarnetwork.node.ocpp.v15.cp.SocketDao;
 import net.solarnetwork.node.ocpp.v15.cp.charge.ChargeSessionManager_v15;
+import net.solarnetwork.node.service.DatumDataSource;
+import net.solarnetwork.node.service.DatumEvents;
 import net.solarnetwork.node.test.AbstractNodeTest;
-import net.solarnetwork.util.ClassUtils;
-import net.solarnetwork.util.StaticOptionalServiceCollection;
+import net.solarnetwork.service.StaticOptionalServiceCollection;
 import ocpp.v15.cs.AuthorizationStatus;
 import ocpp.v15.cs.CentralSystemService;
 import ocpp.v15.cs.ChargePointStatus;
@@ -97,14 +95,9 @@ public class ChargeSessionManager_v15Tests extends AbstractNodeTest {
 	private CentralSystemService client;
 	private ChargeSessionDao chargeSessionDao;
 	private SocketDao socketDao;
-	private DatumDataSource<ACEnergyDatum> meterDataSource;
+	private DatumDataSource meterDataSource;
 
 	private ChargeSessionManager_v15 manager;
-
-	@SuppressWarnings("unchecked")
-	private DatumDataSource<ACEnergyDatum> newMeterDataSource() {
-		return EasyMock.createMock(DatumDataSource.class);
-	}
 
 	@Before
 	public void setup() {
@@ -115,14 +108,14 @@ public class ChargeSessionManager_v15Tests extends AbstractNodeTest {
 		chargeSessionDao = EasyMock.createMock(ChargeSessionDao.class);
 		socketDao = EasyMock.createMock(SocketDao.class);
 
-		meterDataSource = newMeterDataSource();
+		meterDataSource = EasyMock.createMock(DatumDataSource.class);
 
 		manager = new ChargeSessionManager_v15();
 		manager.setAuthManager(authManager);
 		manager.setCentralSystem(centralSystem);
 		manager.setChargeSessionDao(chargeSessionDao);
 		manager.setSocketDao(socketDao);
-		manager.setMeterDataSource(new StaticOptionalServiceCollection<DatumDataSource<ACEnergyDatum>>(
+		manager.setMeterDataSource(new StaticOptionalServiceCollection<DatumDataSource>(
 				Collections.singletonList(meterDataSource)));
 		manager.setSocketConnectorMapping(Collections.singletonMap(TEST_SOCKET_ID, TEST_CONNECTOR_ID));
 		manager.setSocketMeterSourceMapping(
@@ -156,21 +149,13 @@ public class ChargeSessionManager_v15Tests extends AbstractNodeTest {
 		Assert.assertSame("Active session", active, session);
 	}
 
-	private Map<String, Object> datumCapturedEventProperties(EnergyDatum datum) {
-		Map<String, Object> m = ClassUtils.getSimpleBeanProperties(datum, null);
-		m.put(Datum.DATUM_TYPE_PROPERTY, datum.getClass().getSimpleName());
-		return m;
-	}
-
 	@Test
 	public void handleDatumCapturedEventNoSession() {
-		final GeneralNodeACEnergyDatum datum = new GeneralNodeACEnergyDatum();
-		datum.setCreated(new Date());
-		datum.setSourceId(TEST_METER_SOURCE_ID);
+		final SimpleAcEnergyDatum datum = new SimpleAcEnergyDatum(TEST_METER_SOURCE_ID, Instant.now(),
+				new DatumSamples());
 		datum.setWatts(100);
 		datum.setWattHourReading(1000L);
-		final Event captured = new Event(DatumDataSource.EVENT_TOPIC_DATUM_CAPTURED,
-				datumCapturedEventProperties(datum));
+		final Event captured = DatumEvents.datumEvent(DatumDataSource.EVENT_TOPIC_DATUM_CAPTURED, datum);
 
 		// first look for active session associated with socket
 		expect(chargeSessionDao.getIncompleteChargeSessionForSocket(TEST_SOCKET_ID)).andReturn(null);
@@ -181,13 +166,12 @@ public class ChargeSessionManager_v15Tests extends AbstractNodeTest {
 
 	@Test
 	public void handleDatumCapturedEventMatchingSession() {
-		final GeneralNodeACEnergyDatum datum = new GeneralNodeACEnergyDatum();
-		datum.setCreated(new Date());
-		datum.setSourceId(TEST_METER_SOURCE_ID);
+		// GIVEN
+		final SimpleAcEnergyDatum datum = new SimpleAcEnergyDatum(TEST_METER_SOURCE_ID, Instant.now(),
+				new DatumSamples());
 		datum.setWatts(100);
 		datum.setWattHourReading(1000L);
-		final Event captured = new Event(DatumDataSource.EVENT_TOPIC_DATUM_CAPTURED,
-				datumCapturedEventProperties(datum));
+		final Event captured = DatumEvents.datumEvent(DatumDataSource.EVENT_TOPIC_DATUM_CAPTURED, datum);
 		final ChargeSession active = new ChargeSession();
 		active.setCreated(new Date());
 		active.setSessionId(TEST_SESSION_ID);
@@ -199,13 +183,15 @@ public class ChargeSessionManager_v15Tests extends AbstractNodeTest {
 		expect(chargeSessionDao.getIncompleteChargeSessionForSocket(TEST_SOCKET_ID)).andReturn(active);
 
 		// then store meter reading
-		final Capture<Iterable<Value>> readingCapture = new Capture<Iterable<Value>>();
+		final Capture<Iterable<Value>> readingCapture = Capture.newInstance();
 		chargeSessionDao.addMeterReadings(eq(TEST_SESSION_ID), anyObject(Date.class),
 				capture(readingCapture));
 
+		// WHEN
 		replayAll();
 		manager.handleEvent(captured);
 
+		// THEN
 		Iterable<Value> inserted = readingCapture.getValue();
 		Assert.assertNotNull("Inserted readings", inserted);
 		Iterator<Value> itr = inserted.iterator();
@@ -241,20 +227,20 @@ public class ChargeSessionManager_v15Tests extends AbstractNodeTest {
 		expect(authManager.authorize(TEST_ID_TAG)).andReturn(AuthorizationStatus.ACCEPTED);
 
 		// post OCCUPIED status notification
-		Capture<StatusNotificationRequest> statusNotificationReqCapture = new Capture<StatusNotificationRequest>();
+		Capture<StatusNotificationRequest> statusNotificationReqCapture = Capture.newInstance();
 		final StatusNotificationResponse statusNotificationResp = new StatusNotificationResponse();
 		expect(client.statusNotification(capture(statusNotificationReqCapture),
 				eq(TEST_CHARGE_BOX_IDENTITY))).andReturn(statusNotificationResp);
 
 		// get meter reading
-		final GeneralNodeACEnergyDatum datum = new GeneralNodeACEnergyDatum();
-		datum.setCreated(new Date());
+		final SimpleAcEnergyDatum datum = new SimpleAcEnergyDatum(TEST_METER_SOURCE_ID, Instant.now(),
+				new DatumSamples());
 		datum.setWatts(123);
 		datum.setWattHourReading(111L);
 		expect(meterDataSource.readCurrentDatum()).andReturn(datum);
 
 		// start transaction
-		Capture<StartTransactionRequest> startTransactionReqCapture = new Capture<StartTransactionRequest>();
+		Capture<StartTransactionRequest> startTransactionReqCapture = Capture.newInstance();
 		final StartTransactionResponse startTransactionResp = new StartTransactionResponse();
 		startTransactionResp.setIdTagInfo(new IdTagInfo());
 		startTransactionResp.getIdTagInfo().setStatus(AuthorizationStatus.ACCEPTED);
@@ -263,12 +249,12 @@ public class ChargeSessionManager_v15Tests extends AbstractNodeTest {
 				eq(TEST_CHARGE_BOX_IDENTITY))).andReturn(startTransactionResp);
 
 		// store the session
-		Capture<ChargeSession> sessionCapture = new Capture<ChargeSession>();
+		Capture<ChargeSession> sessionCapture = Capture.newInstance();
 		expect(chargeSessionDao.storeChargeSession(capture(sessionCapture))).andReturn(TEST_SESSION_ID);
 
 		// store the initial meter readings
-		final Capture<Iterable<Value>> readingCapture = new Capture<Iterable<Value>>();
-		chargeSessionDao.addMeterReadings(eq(TEST_SESSION_ID), eq(datum.getCreated()),
+		final Capture<Iterable<Value>> readingCapture = Capture.newInstance();
+		chargeSessionDao.addMeterReadings(eq(TEST_SESSION_ID), eq(Date.from(datum.getTimestamp())),
 				capture(readingCapture));
 
 		replayAll();
@@ -403,15 +389,15 @@ public class ChargeSessionManager_v15Tests extends AbstractNodeTest {
 		expect(chargeSessionDao.getChargeSession(TEST_SESSION_ID)).andReturn(existingSession);
 
 		// get final meter reading
-		final GeneralNodeACEnergyDatum datum = new GeneralNodeACEnergyDatum();
-		datum.setCreated(new Date());
+		final SimpleAcEnergyDatum datum = new SimpleAcEnergyDatum(TEST_METER_SOURCE_ID, Instant.now(),
+				new DatumSamples());
 		datum.setWatts(123);
 		datum.setWattHourReading(1110L);
 		expect(meterDataSource.readCurrentDatum()).andReturn(datum);
 
 		// store the end meter readings
-		final Capture<Iterable<Value>> readingCapture = new Capture<Iterable<Value>>();
-		chargeSessionDao.addMeterReadings(eq(TEST_SESSION_ID), eq(datum.getCreated()),
+		final Capture<Iterable<Value>> readingCapture = Capture.newInstance();
+		chargeSessionDao.addMeterReadings(eq(TEST_SESSION_ID), eq(Date.from(datum.getTimestamp())),
 				capture(readingCapture));
 
 		// get all meter readings
@@ -446,7 +432,7 @@ public class ChargeSessionManager_v15Tests extends AbstractNodeTest {
 		expect(chargeSessionDao.findMeterReadingsForSession(TEST_SESSION_ID)).andReturn(readings);
 
 		// post the StopTransaction message
-		Capture<StopTransactionRequest> stopTransactionReqCapture = new Capture<StopTransactionRequest>();
+		Capture<StopTransactionRequest> stopTransactionReqCapture = Capture.newInstance();
 		final StopTransactionResponse stopTransactionResp = new StopTransactionResponse();
 		stopTransactionResp.setIdTagInfo(new IdTagInfo());
 		stopTransactionResp.getIdTagInfo().setStatus(AuthorizationStatus.ACCEPTED);
@@ -457,7 +443,7 @@ public class ChargeSessionManager_v15Tests extends AbstractNodeTest {
 		expect(chargeSessionDao.storeChargeSession(existingSession)).andReturn(TEST_SESSION_ID);
 
 		// post AVAILABLE status notification
-		Capture<StatusNotificationRequest> statusNotificationReqCapture = new Capture<StatusNotificationRequest>();
+		Capture<StatusNotificationRequest> statusNotificationReqCapture = Capture.newInstance();
 		final StatusNotificationResponse statusNotificationResp = new StatusNotificationResponse();
 		expect(client.statusNotification(capture(statusNotificationReqCapture),
 				eq(TEST_CHARGE_BOX_IDENTITY))).andReturn(statusNotificationResp);
@@ -555,8 +541,8 @@ public class ChargeSessionManager_v15Tests extends AbstractNodeTest {
 				.andReturn(existingSession);
 
 		// get all meter readings
-		final GeneralNodeACEnergyDatum datum = new GeneralNodeACEnergyDatum();
-		datum.setCreated(new Date());
+		final SimpleAcEnergyDatum datum = new SimpleAcEnergyDatum(TEST_METER_SOURCE_ID, Instant.now(),
+				new DatumSamples());
 		datum.setWatts(123);
 		datum.setWattHourReading(1110L);
 		List<ChargeSessionMeterReading> readings = new ArrayList<ChargeSessionMeterReading>(8);
@@ -589,7 +575,7 @@ public class ChargeSessionManager_v15Tests extends AbstractNodeTest {
 		}
 		expect(chargeSessionDao.findMeterReadingsForSession(TEST_SESSION_ID)).andReturn(readings);
 
-		Capture<MeterValuesRequest> meterValuesRequestCapture = new Capture<MeterValuesRequest>();
+		Capture<MeterValuesRequest> meterValuesRequestCapture = Capture.newInstance();
 		final MeterValuesResponse meterValuesResp = new MeterValuesResponse();
 		expect(client.meterValues(capture(meterValuesRequestCapture), eq(TEST_CHARGE_BOX_IDENTITY)))
 				.andReturn(meterValuesResp);

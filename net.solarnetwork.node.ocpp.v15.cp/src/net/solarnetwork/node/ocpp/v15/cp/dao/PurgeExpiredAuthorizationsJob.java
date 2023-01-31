@@ -23,11 +23,10 @@
 package net.solarnetwork.node.ocpp.v15.cp.dao;
 
 import java.util.Calendar;
-import org.quartz.DisallowConcurrentExecution;
-import org.quartz.JobExecutionContext;
-import org.quartz.PersistJobDataAfterExecution;
-import net.solarnetwork.node.job.AbstractJob;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import net.solarnetwork.node.ocpp.v15.cp.AuthorizationDao;
+import net.solarnetwork.util.ObjectUtils;
 
 /**
  * Job to purge expired authorizations by calling
@@ -36,47 +35,57 @@ import net.solarnetwork.node.ocpp.v15.cp.AuthorizationDao;
  * {@link #getMinPurgeExpiredAuthorizationDays()}.
  * 
  * @author matt
- * @version 2.0
+ * @version 3.0
  */
-@PersistJobDataAfterExecution
-@DisallowConcurrentExecution
-public class PurgeExpiredAuthorizationsJob extends AbstractJob {
+public class PurgeExpiredAuthorizationsJob implements Runnable {
 
-	private AuthorizationDao authorizationDao;
-	private int minPurgeExpiredAuthorizationDays = 1;
+	private static final Logger log = LoggerFactory.getLogger(PurgeExpiredAuthorizationsJob.class);
 
-	@Override
-	protected void executeInternal(JobExecutionContext jobContext) throws Exception {
-		if ( authorizationDao == null ) {
-			log.debug("No AuthorizationDao avaiable, cannot purge exipred authorizations");
-			return;
-		}
-		Calendar c = Calendar.getInstance();
-		c.add(Calendar.DATE, -minPurgeExpiredAuthorizationDays);
-		int result = authorizationDao.deleteExpiredAuthorizations(c.getTime());
-		log.info("Purged {} expired OCPP authorizations {} days old", result,
-				minPurgeExpiredAuthorizationDays);
-	}
+	private final AuthorizationDao authorizationDao;
+	private final int minPurgeExpiredAuthorizationDays;
 
 	/**
-	 * Set the {@link AuthorizationDao} to use.
+	 * Constructor.
+	 * 
+	 * <p>
+	 * The {@code minPurgeExpiredAuthorizationDays} will will be set to
+	 * {@literal 1}.
+	 * </p>
 	 * 
 	 * @param authorizationDao
-	 *        The DAO to use.
+	 *        the DAO to use
 	 */
-	public void setAuthorizationDao(AuthorizationDao authorizationDao) {
-		this.authorizationDao = authorizationDao;
+	public PurgeExpiredAuthorizationsJob(AuthorizationDao authorizationDao) {
+		this(authorizationDao, 1);
 	}
 
 	/**
-	 * Set the minimum number of days past expiration an authorization must be
-	 * before qualifying for purging.
+	 * Constructor.
 	 * 
+	 * @param authorizationDao
+	 *        the DAO to use
 	 * @param minPurgeExpiredAuthorizationDays
-	 *        The number of days.
+	 *        the minimum days old to expire
 	 */
-	public void setMinPurgeExpiredAuthorizationDays(int minPurgeExpiredAuthorizationDays) {
+	public PurgeExpiredAuthorizationsJob(AuthorizationDao authorizationDao,
+			int minPurgeExpiredAuthorizationDays) {
+		super();
+		this.authorizationDao = ObjectUtils.requireNonNullArgument(authorizationDao, "authorizationDao");
 		this.minPurgeExpiredAuthorizationDays = minPurgeExpiredAuthorizationDays;
+	}
+
+	@Override
+	public void run() {
+		try {
+			Calendar c = Calendar.getInstance();
+			c.add(Calendar.DATE, -minPurgeExpiredAuthorizationDays);
+			int result = authorizationDao.deleteExpiredAuthorizations(c.getTime());
+			log.info("Purged {} expired OCPP authorizations {} days old", result,
+					minPurgeExpiredAuthorizationDays);
+		} catch ( Exception e ) {
+			log.error("Error deleting expired OCPP authorizations older than {} days: {}",
+					minPurgeExpiredAuthorizationDays, e.toString());
+		}
 	}
 
 }

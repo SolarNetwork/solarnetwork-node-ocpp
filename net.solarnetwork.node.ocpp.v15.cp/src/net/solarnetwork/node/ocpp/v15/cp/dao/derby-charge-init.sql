@@ -1,5 +1,5 @@
 CREATE TABLE solarnode.ocpp_charge (
-	created			TIMESTAMP NOT NULL WITH DEFAULT CURRENT_TIMESTAMP,
+	created			TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	sessid_hi		BIGINT NOT NULL,
 	sessid_lo		BIGINT NOT NULL,
 	idtag 			VARCHAR(20) NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE solarnode.ocpp_charge (
 );
 
 CREATE TABLE solarnode.ocpp_meter_reading (
-	created			TIMESTAMP NOT NULL WITH DEFAULT CURRENT_TIMESTAMP,
+	created			TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	sessid_hi		BIGINT NOT NULL,
 	sessid_lo		BIGINT NOT NULL,
 	measurand		VARCHAR(40) NOT NULL,
