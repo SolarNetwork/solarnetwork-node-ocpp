@@ -66,6 +66,18 @@ public class OcppRegistrationManager
 	}
 
 	@Override
+	protected boolean shouldIgnoreConfiguration(ChargePointConfig conf) {
+		return conf == null;
+	}
+
+	@Override
+	protected Long saveConfiguration(ChargePointConfig conf, ChargePoint entity) {
+		Long pk = super.saveConfiguration(conf, entity);
+		conf.setId(pk);
+		return pk;
+	}
+
+	@Override
 	protected List<SettingSpecifier> settingsForConfiguration(ChargePointConfig conf, int index,
 			String keyPrefix) {
 		return conf.settings(getMessageSource(), Locale.getDefault(), keyPrefix);
