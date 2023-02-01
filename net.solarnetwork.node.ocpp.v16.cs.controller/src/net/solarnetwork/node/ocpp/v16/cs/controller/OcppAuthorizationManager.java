@@ -60,9 +60,22 @@ public class OcppAuthorizationManager
 
 	@Override
 	protected void applyConfiguration(AuthorizationConfig conf, Authorization entity) {
+		entity.setToken(conf.getToken());
 		entity.setEnabled(conf.isEnabled());
 		entity.setExpiryDate(conf.getExpiryDate());
 		entity.setParentId(conf.getParentId());
+	}
+
+	@Override
+	protected boolean shouldIgnoreConfiguration(AuthorizationConfig conf) {
+		return conf == null;
+	}
+
+	@Override
+	protected Long saveConfiguration(AuthorizationConfig conf, Authorization entity) {
+		Long pk = super.saveConfiguration(conf, entity);
+		conf.setId(pk);
+		return pk;
 	}
 
 	@Override
