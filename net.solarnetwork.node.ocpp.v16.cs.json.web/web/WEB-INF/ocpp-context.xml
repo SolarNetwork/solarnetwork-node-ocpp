@@ -17,18 +17,17 @@
 		http://www.eclipse.org/gemini/blueprint/schema/blueprint-compendium
 		http://www.eclipse.org/gemini/blueprint/schema/blueprint-compendium/gemini-blueprint-compendium.xsd">
 
-	<sec:http security="none" pattern="/ocpp/v16/cs/json/**"/>
-
 	<websocket:handlers allowed-origins="*">
-		<websocket:mapping path="/ocpp/v16/cs/json/**" handler="ocppWebSocketHandler_v16"/>
+		<websocket:mapping path="/ocpp/j/v16/**" handler="ocppWebSocketHandler_v16"/>
 		<websocket:handshake-interceptors>
 			<bean class="net.solarnetwork.ocpp.web.json.OcppWebSocketHandshakeInterceptor">
 				<constructor-arg>
 					<osgi:reference interface="net.solarnetwork.ocpp.dao.SystemUserDao" filter="(function=node)"/>
 				</constructor-arg>
 				<constructor-arg>
-					<osgi:reference interface="net.solarnetwork.support.PasswordEncoder" filter="(&amp;(function=node)(role=ocpp))"/>
+					<osgi:reference interface="net.solarnetwork.service.PasswordEncoder" filter="(&amp;(function=node)(role=ocpp))"/>
 				</constructor-arg>
+				<property name="clientIdUriPattern" value="/ocpp/j/v16/(.*)"/>
 				<property name="fixedIdentityUsername" value="#{T(net.solarnetwork.ocpp.domain.ChargePointIdentity).ANY_USER}"/>
 			</bean>
 		</websocket:handshake-interceptors>
