@@ -115,6 +115,10 @@ public class ChargePointConfig implements Identity<Long> {
 		List<SettingSpecifier> results = new ArrayList<>(5);
 		results.add(new BasicTitleSettingSpecifier(prefix + "info", info(messageSource, locale), true));
 		results.add(new BasicTextFieldSettingSpecifier(prefix + "info.id", info.getId()));
+		results.add(new BasicTextFieldSettingSpecifier(prefix + "info.chargePointVendor",
+				info.getChargePointVendor()));
+		results.add(new BasicTextFieldSettingSpecifier(prefix + "info.chargePointModel",
+				info.getChargePointModel()));
 		results.add(new BasicToggleSettingSpecifier(prefix + "enabled", isEnabled()));
 
 		// drop-down menu for function
@@ -134,31 +138,27 @@ public class ChargePointConfig implements Identity<Long> {
 		if ( id == null ) {
 			return "N/A";
 		}
-		// TODO: better info, and i18n
 		StringBuilder buf = new StringBuilder();
-		if ( messageSource != null ) {
-			buf.append(
-					messageSource.getMessage("info.registeredOn.title", null, "Registered on:", locale));
-		} else {
-			buf.append("Registered on:");
+
+		if ( created != null ) {
+			if ( messageSource != null ) {
+				buf.append(messageSource.getMessage("info.registeredOn.title", null, "Registered on:",
+						locale));
+			} else {
+				buf.append("Registered on:");
+			}
+
+			DateTimeFormatter formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
+					.withLocale(locale).withZone(ZoneId.systemDefault());
+			buf.append(" ").append(formatter.format(created));
 		}
 
-		DateTimeFormatter formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
-				.withLocale(locale).withZone(ZoneId.systemDefault());
-		buf.append(" ").append(formatter.format(created));
-
 		if ( info != null ) {
-			if ( info.getChargePointVendor() != null ) {
-				buf.append("; ").append(info.getChargePointVendor());
-				if ( info.getChargePointModel() != null ) {
-					buf.append(" ").append(info.getChargePointModel());
-					if ( info.getFirmwareVersion() != null ) {
-						buf.append(" ").append(info.getFirmwareVersion());
-					}
-				}
-			}
 			if ( info.getChargePointSerialNumber() != null ) {
-				buf.append("; ").append(info.getChargePointSerialNumber());
+				if ( buf.length() > 0 ) {
+					buf.append("; ");
+				}
+				buf.append(info.getChargePointSerialNumber());
 			}
 		}
 		return buf.toString();

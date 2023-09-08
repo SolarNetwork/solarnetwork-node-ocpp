@@ -63,17 +63,34 @@ public class OcppRegistrationManager
 	protected void applyConfiguration(ChargePointConfig conf, ChargePoint entity) {
 		entity.setEnabled(conf.isEnabled());
 		entity.setRegistrationStatus(conf.getRegistrationStatus());
+		if ( conf.getInfo() != null ) {
+			if ( conf.getInfo().getId() != null ) {
+				entity.getInfo().setId(conf.getInfo().getId());
+			}
+			if ( conf.getInfo().getChargePointVendor() != null ) {
+				entity.getInfo().setChargePointVendor(conf.getInfo().getChargePointVendor());
+			}
+			if ( conf.getInfo().getChargePointModel() != null ) {
+				entity.getInfo().setChargePointModel(conf.getInfo().getChargePointModel());
+			}
+		}
 	}
 
 	@Override
 	protected boolean shouldIgnoreConfiguration(ChargePointConfig conf) {
-		return conf == null;
+		return conf == null || conf.getInfo() == null || conf.getInfo().getId() == null
+				|| conf.getInfo().getChargePointVendor() == null
+				|| conf.getInfo().getChargePointModel() == null;
 	}
 
 	@Override
 	protected Long saveConfiguration(ChargePointConfig conf, ChargePoint entity) {
 		Long pk = super.saveConfiguration(conf, entity);
 		conf.setId(pk);
+		if ( conf.getCreated() == null ) {
+			ChargePoint saved = dao.get(pk);
+			conf.setCreated(saved.getCreated());
+		}
 		return pk;
 	}
 

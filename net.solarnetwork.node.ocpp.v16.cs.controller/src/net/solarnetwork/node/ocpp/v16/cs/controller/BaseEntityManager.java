@@ -106,7 +106,7 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 		}
 		Map<K, T> all = dao.getAll(this.findAllSorts).stream()
 				.collect(Collectors.toMap(e -> e.getId(), e -> e));
-		List<C> configs = getEntities();
+		List<C> configs = entities;
 		Iterator<C> confItr = (configs != null ? configs.iterator() : Collections.emptyIterator());
 		while ( confItr.hasNext() ) {
 			C conf = confItr.next();
@@ -195,7 +195,17 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 	 */
 	protected abstract Function<? super T, ? extends C> mapToConfiguration();
 
-	private List<C> loadEntities() {
+	/**
+	 * Load all entities.
+	 * 
+	 * <p>
+	 * This will update the {@code entities} and {@code entitiesCount}
+	 * properties.
+	 * </p>
+	 * 
+	 * @return the loaded entities
+	 */
+	protected List<C> loadEntities() {
 		Collection<T> result = dao.getAll(this.findAllSorts);
 		List<C> configs = (result != null
 				? result.stream().map(mapToConfiguration()).collect(Collectors.toList())
@@ -284,7 +294,7 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 	 *        the desired number of elements
 	 */
 	public void setEntitiesCount(int count) {
-		List<C> confs = getEntities();
+		List<C> confs = (entitiesCount < 0 ? loadEntities() : entities);
 		this.entitiesCount = count;
 
 		int currCount = (confs != null ? confs.size() : 0);

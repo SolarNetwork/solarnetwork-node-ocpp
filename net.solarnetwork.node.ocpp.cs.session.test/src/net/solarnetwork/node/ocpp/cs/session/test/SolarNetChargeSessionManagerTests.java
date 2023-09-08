@@ -552,7 +552,8 @@ public class SolarNetChargeSessionManagerTests {
 				.withValue("3456")
 				.build();
 		// @formatter:on
-		manager.addChargingSessionReadings(cp.chargePointIdentity(), asList(r1, r2, r3, r4, r5, r6));
+		manager.addChargingSessionReadings(cp.chargePointIdentity(), connectorId,
+				asList(r1, r2, r3, r4, r5, r6));
 
 		// then
 		assertThat("Persisted readings same as passed in", readingsCaptor.getValue(),
@@ -638,7 +639,7 @@ public class SolarNetChargeSessionManagerTests {
 				.withValue("1234")
 				.build();
 		// @formatter:on
-		manager.addChargingSessionReadings(cp.chargePointIdentity(), asList(r1));
+		manager.addChargingSessionReadings(cp.chargePointIdentity(), connectorId, asList(r1));
 
 		// then
 		assertThat("Persisted readings same as passed in", readingsCaptor.getValue(), contains(r1));

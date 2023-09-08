@@ -405,7 +405,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 		ChargePointIdentity cpIdent = cp.chargePointIdentity();
 		Map<ChargePointIdentity, ChargePoint> chargePoints = new HashMap<>(2);
 		chargePoints.put(cpIdent, cp);
-		addReadings(cpIdent, readings, sessions, chargePoints);
+		addReadings(cpIdent, sess.getConnectorId(), readings, sessions, chargePoints);
 
 		return new AuthorizationInfo(info.getAuthorizationId(), AuthorizationStatus.Accepted, null,
 				null);
@@ -470,15 +470,16 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void addChargingSessionReadings(ChargePointIdentity chargePointId,
+	public void addChargingSessionReadings(ChargePointIdentity chargePointId, Integer connectorId,
 			Iterable<SampledValue> readings) {
-		addReadings(chargePointId, readings, new HashMap<>(2), new HashMap<>(2));
+		addReadings(chargePointId, connectorId, readings, new HashMap<>(2), new HashMap<>(2));
 	}
 
 	// NOTE that the Map implementations passed here MUST support null key and values,
 	// in order to support meter values not associated with a charge session
-	private void addReadings(ChargePointIdentity chargePointId, Iterable<SampledValue> readings,
-			Map<UUID, ChargeSession> sessions, Map<ChargePointIdentity, ChargePoint> chargePoints) {
+	private void addReadings(ChargePointIdentity chargePointId, Integer connectorId,
+			Iterable<SampledValue> readings, Map<UUID, ChargeSession> sessions,
+			Map<ChargePointIdentity, ChargePoint> chargePoints) {
 		if ( readings == null ) {
 			return;
 		}
