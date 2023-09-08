@@ -39,6 +39,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import java.math.BigDecimal;
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
@@ -165,6 +166,10 @@ public class SolarNetChargeSessionManagerTests {
 	public void startSession_ok() {
 		// GIVEN
 
+		// get next tx ID
+		final int transactionId = new SecureRandom().nextInt(65_000) + 1;
+		expect(chargeSessionDao.nextTransactionId()).andReturn(transactionId);
+
 		// verify authorization
 		String identifier = UUID.randomUUID().toString();
 		ChargePointIdentity chargePointId = new ChargePointIdentity(identifier, "foo");
@@ -194,7 +199,6 @@ public class SolarNetChargeSessionManagerTests {
 
 		// refresh to get txid
 		Capture<UUID> sessionIdCaptor = Capture.newInstance();
-		int transactionId = 123;
 		expect(chargeSessionDao.get(capture(sessionIdCaptor))).andAnswer(new IAnswer<ChargeSession>() {
 
 			@Override
@@ -240,6 +244,8 @@ public class SolarNetChargeSessionManagerTests {
 				equalTo(info.getAuthorizationId()));
 		assertThat("Stored session connector ID matches request",
 				sessionCaptor.getValue().getConnectorId(), equalTo(info.getConnectorId()));
+		assertThat("Stored session transaction ID from nextTransactionId result",
+				sessionCaptor.getValue().getTransactionId(), equalTo(transactionId));
 
 		assertThat("Created session ID matches refresh ID request", sessionIdCaptor.getValue(),
 				equalTo(sessionCaptor.getValue().getId()));
@@ -283,29 +289,29 @@ public class SolarNetChargeSessionManagerTests {
 
 	@Test
 	public void startSession_concurrentTx() {
-		// given
+		// GIVEN
 
-		// verify authorization
-		String identifier = UUID.randomUUID().toString();
-		ChargePointIdentity chargePointId = new ChargePointIdentity(identifier, "foo");
-		ChargePoint cp = new ChargePoint(UUID.randomUUID().getMostSignificantBits(), Instant.now(),
+		// get next tx ID
+		final int transactionId = new SecureRandom().nextInt(65_000) + 1;
+		expect(chargeSessionDao.nextTransactionId()).andReturn(transactionId);
+
+		final String identifier = UUID.randomUUID().toString();
+		final ChargePointIdentity chargePointId = new ChargePointIdentity(identifier, "foo");
+		final ChargePoint cp = new ChargePoint(UUID.randomUUID().getMostSignificantBits(), Instant.now(),
 				new ChargePointInfo(identifier));
-		String idTag = UUID.randomUUID().toString().substring(0, 20);
-		AuthorizationInfo authInfo = new AuthorizationInfo(idTag, AuthorizationStatus.Accepted);
-		expect(authService.authorize(chargePointId, idTag)).andReturn(authInfo);
+		final String idTag = UUID.randomUUID().toString().substring(0, 20);
 
 		// get ChargePoint
 		expect(chargePointDao.getForIdentity(chargePointId)).andReturn(cp);
 
 		// verify concurrent tx
-		int connectorId = 1;
-		int transactionId = 123;
+		final int connectorId = 1;
 		ChargeSession existingSess = new ChargeSession(UUID.randomUUID(), Instant.now().minusSeconds(60),
 				idTag, cp.getId(), connectorId, transactionId);
 		expect(chargeSessionDao.getIncompleteChargeSessionForConnector(cp.getId(), connectorId))
 				.andReturn(existingSess);
 
-		// when
+		// WHEN
 		replayAll();
 
 		// @formatter:off
@@ -318,6 +324,7 @@ public class SolarNetChargeSessionManagerTests {
 				.build();
 		// @formatter:on
 
+		// THEN
 		try {
 			manager.startChargingSession(info);
 			fail("Should have failed with ConcurrentTx");
@@ -325,6 +332,7 @@ public class SolarNetChargeSessionManagerTests {
 			assertThat("Authorization info available", e.getInfo(), notNullValue());
 			assertThat("Authorization status is ConcurrentTx", e.getInfo().getStatus(),
 					equalTo(AuthorizationStatus.ConcurrentTx));
+			assertThat("Exception txId provided", e.getTransactionId(), equalTo(transactionId));
 		}
 	}
 
