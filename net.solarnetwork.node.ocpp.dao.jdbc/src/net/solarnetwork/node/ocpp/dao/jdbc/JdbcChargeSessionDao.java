@@ -26,13 +26,16 @@ import static net.solarnetwork.node.ocpp.dao.jdbc.Constants.TABLE_NAME_TEMPALTE;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.TransientDataAccessResourceException;
 import org.springframework.jdbc.core.PreparedStatementCallback;
 import org.springframework.jdbc.core.PreparedStatementSetter;
+import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowMapper;
 import net.solarnetwork.node.dao.jdbc.BaseJdbcGenericDao;
 import net.solarnetwork.ocpp.dao.ChargeSessionDao;
@@ -49,7 +52,7 @@ import net.solarnetwork.ocpp.domain.UnitOfMeasure;
  * JDBC based implementation of {@link ChargeSessionDao}.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID>
 		implements ChargeSessionDao {
@@ -87,7 +90,12 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 		FindReadingBySession("find-reading-for-session"),
 
 		/** Insert a sampled value reading. */
-		InsertReading("insert-reading");
+		InsertReading("insert-reading"),
+
+		/** Select the next transaction ID value. */
+		SelectNextTxId("select-next-txid"),
+
+		;
 
 		private final String resource;
 
@@ -128,7 +136,29 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 		ps.setString(4, obj.getAuthId());
 		ps.setLong(5, obj.getChargePointId());
 		ps.setInt(6, obj.getConnectorId());
-		setUpdateStatementValues(obj, ps, 6);
+		if ( obj.getTransactionId() > 0 ) {
+			ps.setInt(7, obj.getTransactionId());
+		} else {
+			ps.setNull(7, Types.INTEGER);
+		}
+		setUpdateStatementValues(obj, ps, 7);
+	}
+
+	@Override
+	public int nextTransactionId() {
+		return getJdbcTemplate().query(getSqlResource(SqlResource.SelectNextTxId.getResource()),
+				new ResultSetExtractor<Integer>() {
+
+					@Override
+					public Integer extractData(ResultSet rs) throws SQLException, DataAccessException {
+						if ( rs.next() ) {
+							return rs.getInt(1);
+						}
+						throw new TransientDataAccessResourceException(
+								"ResultSetfor next transaction ID does not contain row.");
+					}
+
+				});
 	}
 
 	@Override
@@ -231,8 +261,8 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 	@Override
 	public List<SampledValue> findReadingsForSession(UUID sessionId) {
 		return getJdbcTemplate().query(getSqlResource(SqlResource.FindReadingBySession.getResource()),
-				new Object[] { sessionId.getMostSignificantBits(), sessionId.getLeastSignificantBits() },
-				READING_ROW_MAPPER);
+				READING_ROW_MAPPER, sessionId.getMostSignificantBits(),
+				sessionId.getLeastSignificantBits());
 	}
 
 	@Override

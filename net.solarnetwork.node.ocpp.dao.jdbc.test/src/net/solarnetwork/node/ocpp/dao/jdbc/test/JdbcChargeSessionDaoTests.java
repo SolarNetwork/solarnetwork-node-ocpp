@@ -22,17 +22,21 @@
 
 package net.solarnetwork.node.ocpp.dao.jdbc.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
@@ -95,6 +99,16 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 				Instant.ofEpochMilli(System.currentTimeMillis()),
 				UUID.randomUUID().toString().substring(0, 20), chargePointId, 1, 0);
 		return sess;
+	}
+
+	@Test
+	public void nextTxId() {
+		Set<Integer> seen = new LinkedHashSet<>();
+		for ( int i = 0; i < 5; i++ ) {
+			int nextId = dao.nextTransactionId();
+			assertThat("Next ID > 0", nextId, is(greaterThan(0)));
+			assertThat("ID is unique", seen, not(contains(nextId)));
+		}
 	}
 
 	@Test

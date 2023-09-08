@@ -150,7 +150,7 @@ public class SolarNetChargeSessionManagerTests {
 		// when
 		replayAll(startupTaskFuture, purgePostedTaskFuture);
 
-		manager.startup();
+		manager.serviceDidStartup();
 
 		Runnable startupTask = startupTaskCaptor.getValue();
 		startupTask.run();

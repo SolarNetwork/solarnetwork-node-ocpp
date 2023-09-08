@@ -138,7 +138,7 @@ public class JdbcSystemUserDao extends BaseJdbcGenericDao<SystemUser, Long> impl
 
 	@Override
 	protected SystemUser findFirst(String sql, Object... parameters) {
-		List<SystemUser> results = getJdbcTemplate().query(sql, parameters, SYSTEM_USER_EXTRACTOR);
+		List<SystemUser> results = getJdbcTemplate().query(sql, SYSTEM_USER_EXTRACTOR, parameters);
 		return (results != null && !results.isEmpty() ? results.get(0) : null);
 	}
 

@@ -58,7 +58,7 @@ import net.solarnetwork.ocpp.domain.UnitOfMeasure;
  * JDBC implementation of {@link ChargingProfileDao}.
  * 
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class JdbcChargingProfileDao extends BaseJdbcGenericDao<ChargingProfile, UUID>
 		implements ChargingProfileDao {
@@ -232,7 +232,7 @@ public class JdbcChargingProfileDao extends BaseJdbcGenericDao<ChargingProfile, 
 
 	@Override
 	protected ChargingProfile findFirst(String sql, Object... parameters) {
-		List<ChargingProfile> results = getJdbcTemplate().query(sql, parameters, PROFILE_EXTRACTOR);
+		List<ChargingProfile> results = getJdbcTemplate().query(sql, PROFILE_EXTRACTOR, parameters);
 		return (results != null && !results.isEmpty() ? results.get(0) : null);
 	}
 

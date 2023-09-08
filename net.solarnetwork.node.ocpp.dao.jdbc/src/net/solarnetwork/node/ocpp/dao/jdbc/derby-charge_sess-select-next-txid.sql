@@ -1,0 +1,1 @@
+SELECT NEXT VALUE FOR solarnode.ocpp_charge_tx_seq
