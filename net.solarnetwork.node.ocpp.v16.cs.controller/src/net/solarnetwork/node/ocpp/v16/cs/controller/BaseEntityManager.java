@@ -65,6 +65,12 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 	/** A class-level logger. */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 
+	/**
+	 * Constructor.
+	 * 
+	 * @param dao
+	 *        the entity DAO
+	 */
 	public BaseEntityManager(D dao) {
 		super();
 		this.dao = dao;

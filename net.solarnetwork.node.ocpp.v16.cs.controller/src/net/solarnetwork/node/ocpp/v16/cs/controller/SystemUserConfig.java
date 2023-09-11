@@ -56,7 +56,7 @@ public class SystemUserConfig implements Identity<Long> {
 	/**
 	 * Copy constructor.
 	 * 
-	 * @param auth
+	 * @param entity
 	 *        the authorization entity to copy values from
 	 */
 	public SystemUserConfig(SystemUser entity) {

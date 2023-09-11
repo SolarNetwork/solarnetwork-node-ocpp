@@ -254,8 +254,8 @@ public class ChargePointConfig implements Identity<Long> {
 	/**
 	 * Set the registration status as a code value.
 	 * 
-	 * @param registrationStatus
-	 *        the registrationStatus to set
+	 * @param code
+	 *        the status code to set
 	 */
 	public void setRegistrationStatusCode(int code) {
 		setRegistrationStatus(RegistrationStatus.forCode(code));

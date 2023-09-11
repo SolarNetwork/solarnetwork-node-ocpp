@@ -49,8 +49,7 @@ import net.solarnetwork.settings.support.BasicTitleSettingSpecifier;
 import net.solarnetwork.settings.support.SettingUtils;
 
 /**
- * Configuration for an
- * {@link net.solarnetwork.node.ocpp.domain.ChargingProfile}.
+ * Configuration for an {@link net.solarnetwork.ocpp.domain.ChargingProfile}.
  * 
  * @author matt
  * @version 2.0
@@ -74,8 +73,8 @@ public class ChargingProfileConfig implements Identity<UUID> {
 	/**
 	 * Copy constructor.
 	 * 
-	 * @param auth
-	 *        the authorization entity to copy values from
+	 * @param profile
+	 *        the entity to copy values from
 	 */
 	public ChargingProfileConfig(ChargingProfile profile) {
 		super();
@@ -96,6 +95,10 @@ public class ChargingProfileConfig implements Identity<UUID> {
 	 * 
 	 * @param prefix
 	 *        the prefix to use for each setting key
+	 * @param messageSource
+	 *        the message source to use
+	 * @param locale
+	 *        the desired locale
 	 * @return the settings
 	 */
 	public List<SettingSpecifier> settings(String prefix, MessageSource messageSource, Locale locale) {
