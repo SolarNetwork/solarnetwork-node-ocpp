@@ -21,4 +21,19 @@
 		</bean>
 	</service>
 	
+	<!-- 
+		OCPP JSON support
+	 -->
+
+	<bean id="ocppObjectMapper" class="ocpp.json.support.BaseActionPayloadDecoder" factory-method="defaultObjectMapper"/>
+	
+	<service interface="net.solarnetwork.service.ObjectMapperService">
+		<service-properties>
+			<entry key="role" value="ocpp"/>
+		</service-properties>
+		<bean class="net.solarnetwork.service.support.SimpleObjectMapperService">
+			<property name="objectMapper" ref="ocppObjectMapper"/>
+		</bean>
+	</service>
+	
 </blueprint>

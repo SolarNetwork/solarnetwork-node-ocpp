@@ -22,6 +22,9 @@
 
 package net.solarnetwork.node.ocpp.v16.cs.controller;
 
+import static net.solarnetwork.node.reactor.InstructionUtils.createErrorResultParameters;
+import static net.solarnetwork.node.reactor.InstructionUtils.createStatus;
+import static net.solarnetwork.util.ObjectUtils.requireNonNullArgument;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,6 +36,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -43,6 +47,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionCallbackWithoutResult;
 import org.springframework.transaction.support.TransactionTemplate;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import net.solarnetwork.codec.JsonUtils;
+import net.solarnetwork.domain.InstructionStatus.InstructionState;
+import net.solarnetwork.node.reactor.Instruction;
+import net.solarnetwork.node.reactor.InstructionHandler;
+import net.solarnetwork.node.reactor.InstructionStatus;
 import net.solarnetwork.node.service.support.BaseIdentifiable;
 import net.solarnetwork.ocpp.dao.AuthorizationDao;
 import net.solarnetwork.ocpp.dao.ChargePointConnectorDao;
@@ -64,6 +74,7 @@ import net.solarnetwork.ocpp.service.AuthorizationService;
 import net.solarnetwork.ocpp.service.ChargePointBroker;
 import net.solarnetwork.ocpp.service.ChargePointRouter;
 import net.solarnetwork.ocpp.service.cs.ChargePointManager;
+import net.solarnetwork.ocpp.util.OcppInstructionUtils;
 import net.solarnetwork.security.AuthorizationException;
 import net.solarnetwork.security.AuthorizationException.Reason;
 import net.solarnetwork.settings.SettingSpecifier;
@@ -72,6 +83,7 @@ import net.solarnetwork.settings.support.BasicGroupSettingSpecifier;
 import net.solarnetwork.settings.support.BasicTitleSettingSpecifier;
 import ocpp.domain.Action;
 import ocpp.domain.ErrorCodeException;
+import ocpp.json.ActionPayloadDecoder;
 import ocpp.v16.ActionErrorCode;
 import ocpp.v16.ChargePointAction;
 import ocpp.v16.ConfigurationKey;
@@ -85,8 +97,8 @@ import ocpp.v16.cp.KeyValue;
  * @author matt
  * @version 2.0
  */
-public class OcppControllerService extends BaseIdentifiable
-		implements ChargePointManager, AuthorizationService, SettingSpecifierProvider {
+public class OcppControllerService extends BaseIdentifiable implements ChargePointManager,
+		AuthorizationService, SettingSpecifierProvider, InstructionHandler {
 
 	/** The default {@code initialRegistrationStatus} value. */
 	public static final RegistrationStatus DEFAULT_INITIAL_REGISTRATION_STATUS = RegistrationStatus.Pending;
@@ -96,6 +108,8 @@ public class OcppControllerService extends BaseIdentifiable
 	private final AuthorizationDao authorizationDao;
 	private final ChargePointDao chargePointDao;
 	private final ChargePointConnectorDao chargePointConnectorDao;
+	private ObjectMapper objectMapper;
+	private ActionPayloadDecoder chargePointActionPayloadDecoder;
 	private RegistrationStatus initialRegistrationStatus;
 	private TransactionTemplate transactionTemplate;
 
@@ -121,27 +135,13 @@ public class OcppControllerService extends BaseIdentifiable
 			AuthorizationDao authorizationDao, ChargePointDao chargePointDao,
 			ChargePointConnectorDao chargePointConnectorDao) {
 		super();
-		if ( executor == null ) {
-			throw new IllegalArgumentException("The executor parameter must not be null.");
-		}
-		this.executor = executor;
-		if ( chargePointRouter == null ) {
-			throw new IllegalArgumentException("The chargePointRouter parameter must not be null.");
-		}
-		this.chargePointRouter = chargePointRouter;
-		if ( authorizationDao == null ) {
-			throw new IllegalArgumentException("The authorizationDao parameter must not be null.");
-		}
-		this.authorizationDao = authorizationDao;
-		if ( chargePointDao == null ) {
-			throw new IllegalArgumentException("The chargePointDao parameter must not be null.");
-		}
-		this.chargePointDao = chargePointDao;
-		if ( chargePointConnectorDao == null ) {
-			throw new IllegalArgumentException(
-					"The chargePointConnectorDao parameter must not be null.");
-		}
-		this.chargePointConnectorDao = chargePointConnectorDao;
+		this.executor = requireNonNullArgument(executor, "executor");
+		this.chargePointRouter = requireNonNullArgument(chargePointRouter, "chargePointRouter");
+		this.authorizationDao = requireNonNullArgument(authorizationDao, "authorizationDao");
+		this.chargePointDao = requireNonNullArgument(chargePointDao, "chargePointDao");
+		this.chargePointConnectorDao = requireNonNullArgument(chargePointConnectorDao,
+				"chargePointConnectorDao");
+		this.objectMapper = ocpp.json.support.BaseActionPayloadDecoder.defaultObjectMapper();
 		this.initialRegistrationStatus = DEFAULT_INITIAL_REGISTRATION_STATUS;
 	}
 
@@ -325,6 +325,104 @@ public class OcppControllerService extends BaseIdentifiable
 	}
 
 	@Override
+	public boolean handlesTopic(String topic) {
+		return OcppInstructionUtils.OCPP_V16_TOPIC.equals(topic);
+	}
+
+	@Override
+	public InstructionStatus processInstruction(Instruction instruction) {
+		if ( instruction == null || !handlesTopic(instruction.getTopic()) ) {
+			return null;
+		}
+		Map<String, String> params = instruction.getParameterMap();
+		ChargePoint cp = chargePointForParameters(params);
+		if ( cp == null ) {
+			return createStatus(instruction, InstructionState.Declined, createErrorResultParameters(
+					"ChargePoint not specified or not available.", "OCS.IST.00001"));
+		}
+		ChargePointIdentity cpIdent = cp.chargePointIdentity();
+		ChargePointAction action;
+		try {
+			action = ChargePointAction.valueOf(params.remove(OcppInstructionUtils.OCPP_ACTION_PARAM));
+		} catch ( IllegalArgumentException | NullPointerException e ) {
+			return createStatus(instruction, InstructionState.Declined, createErrorResultParameters(
+					"ChargePoint not specified or not available.", "OCS.IST.00002"));
+		}
+		return OcppInstructionUtils.decodeJsonOcppInstructionMessage(objectMapper, action, params,
+				chargePointActionPayloadDecoder, (e, jsonPayload, payload) -> {
+					if ( e != null ) {
+						Throwable root = e;
+						while ( root.getCause() != null ) {
+							root = root.getCause();
+						}
+						return createStatus(instruction, InstructionState.Declined,
+								createErrorResultParameters(
+										"Error decoding OCPP action message: " + root.getMessage(),
+										"OCS.IST.00003"));
+					}
+
+					log.info("Sending OCPPv16 {} to charge point {}", action, cpIdent.getIdentifier());
+					CompletableFuture<InstructionStatus> result = new CompletableFuture<>();
+					sendToChargePoint(cpIdent, action, payload,
+							ocppInstructionResultHandler(instruction, action, cpIdent, result));
+					try {
+						return result.get();
+					} catch ( Exception e1 ) {
+						Throwable root = e1;
+						while ( root.getCause() != null ) {
+							root = root.getCause();
+						}
+						return createStatus(instruction, InstructionState.Declined,
+								createErrorResultParameters(
+										"Error processing instruction: " + root.toString(),
+										"OCS.IST.00004"));
+					}
+				});
+	}
+
+	private ActionMessageResultHandler<Object, Object> ocppInstructionResultHandler(
+			Instruction instruction, Action action, ChargePointIdentity cpIdent,
+			CompletableFuture<InstructionStatus> result) {
+		return (msg, res, err) -> {
+			if ( err != null ) {
+				Throwable root = err;
+				while ( root.getCause() != null ) {
+					root = root.getCause();
+				}
+				log.info("Failed to send OCPPv16 {} to charge point {}: {}", action, cpIdent,
+						root.getMessage());
+				result.complete(
+						createStatus(instruction, InstructionState.Declined, createErrorResultParameters(
+								"Error handling OCPP action: " + root.getMessage(), "OCS.IST.00004")));
+			} else {
+				Map<String, Object> resultParameters = null;
+				if ( res != null ) {
+					resultParameters = JsonUtils.getStringMapFromTree(objectMapper.valueToTree(res));
+				}
+				log.info("Sent OCPPv16 {} to charge point {}", action, cpIdent);
+				result.complete(createStatus(instruction, InstructionState.Completed, resultParameters));
+			}
+			return true;
+		};
+	}
+
+	private ChargePoint chargePointForParameters(Map<String, String> parameters) {
+		ChargePoint result = null;
+		try {
+			Long id = Long.valueOf(parameters.remove(OcppInstructionUtils.OCPP_CHARGE_POINT_ID_PARAM));
+			result = chargePointDao.get(id);
+		} catch ( NumberFormatException e ) {
+			// try via identifier
+			String ident = parameters.remove(OcppInstructionUtils.OCPP_CHARGER_IDENTIFIER_PARAM);
+			if ( ident != null ) {
+				result = chargePointDao
+						.getForIdentity(new ChargePointIdentity(ident, ChargePointIdentity.ANY_USER));
+			}
+		}
+		return result;
+	}
+
+	@Override
 	public String getSettingUid() {
 		return "net.solarnetwork.node.ocpp.v16.cs.controller";
 	}
@@ -402,6 +500,45 @@ public class OcppControllerService extends BaseIdentifiable
 					"The initialRegistrationStatus parameter must not be null.");
 		}
 		this.initialRegistrationStatus = initialRegistrationStatus;
+	}
+
+	/**
+	 * Get the ChargePoint action payload decoder.
+	 * 
+	 * @return the decoder
+	 */
+	public ActionPayloadDecoder getChargePointActionPayloadDecoder() {
+		return chargePointActionPayloadDecoder;
+	}
+
+	/**
+	 * Set the ChargePoint action payload decoder.
+	 * 
+	 * @param chargePointActionPayloadDecoder
+	 *        the decoder
+	 */
+	public void setChargePointActionPayloadDecoder(
+			ActionPayloadDecoder chargePointActionPayloadDecoder) {
+		this.chargePointActionPayloadDecoder = chargePointActionPayloadDecoder;
+	}
+
+	/**
+	 * Get the {@link ObjectMapper}.
+	 * 
+	 * @return the mapper
+	 */
+	public ObjectMapper getObjectMapper() {
+		return objectMapper;
+	}
+
+	/**
+	 * Set the {@link ObjectMapper} to use.
+	 * 
+	 * @param objectMapper
+	 *        the mapper
+	 */
+	public void setObjectMapper(ObjectMapper objectMapper) {
+		this.objectMapper = objectMapper;
 	}
 
 	/**

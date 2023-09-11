@@ -43,6 +43,14 @@
 		<constructor-arg>
 			<osgi:reference interface="org.springframework.core.task.AsyncTaskExecutor" filter="(function=node)"/>
 		</constructor-arg>
+		<constructor-arg>
+			<bean factory-bean="ocppObjectMapperService" factory-method="getObjectMapper"/>
+		</constructor-arg>
+		<constructor-arg>
+			<bean class="net.solarnetwork.ocpp.service.SimpleActionMessageQueue"/>
+		</constructor-arg>
+		<constructor-arg ref="csActionPayloadDecoder"/>
+		<constructor-arg ref="cpActionPayloadDecoder"/>
 		<property name="taskScheduler">
 			<osgi:reference interface="org.springframework.scheduling.TaskScheduler" filter="(function=node)"/>
 		</property>
@@ -57,6 +65,37 @@
 	<osgi:service interface="net.solarnetwork.ocpp.service.ChargePointBroker" ref="ocppWebSocketHandler_v16">
 		<osgi:service-properties>
 			<entry key="function" value="node"/>
+			<entry key="protocol" value="json"/>
+		</osgi:service-properties>
+	</osgi:service>
+	
+	<osgi:reference id="ocppObjectMapperService" interface="net.solarnetwork.service.ObjectMapperService"
+			filter="(role=ocpp)"/>
+	
+	<bean id="csActionPayloadDecoder" class="ocpp.v16.cs.json.CentralServiceActionPayloadDecoder">
+		<constructor-arg>
+			<bean factory-bean="ocppObjectMapperService" factory-method="getObjectMapper"/>
+		</constructor-arg>
+	</bean>
+	
+	<osgi:service interface="ocpp.json.ActionPayloadDecoder" ref="csActionPayloadDecoder">
+		<osgi:service-properties>
+			<entry key="function" value="node"/>
+			<entry key="role" value="cs"/>
+			<entry key="protocol" value="json"/>
+		</osgi:service-properties>
+	</osgi:service>
+	
+	<bean id="cpActionPayloadDecoder" class="ocpp.v16.cp.json.ChargePointActionPayloadDecoder">
+		<constructor-arg>
+			<bean factory-bean="ocppObjectMapperService" factory-method="getObjectMapper"/>
+		</constructor-arg>
+	</bean>
+	
+	<osgi:service interface="ocpp.json.ActionPayloadDecoder" ref="cpActionPayloadDecoder">
+		<osgi:service-properties>
+			<entry key="function" value="node"/>
+			<entry key="role" value="cp"/>
 			<entry key="protocol" value="json"/>
 		</osgi:service-properties>
 	</osgi:service>

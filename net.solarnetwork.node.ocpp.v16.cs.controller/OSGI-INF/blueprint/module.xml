@@ -45,6 +45,8 @@
 
 	<reference id="chargeSessionManager" interface="net.solarnetwork.ocpp.service.cs.ChargeSessionManager" filter="(function=node)" availability="optional" />
 	
+	<reference id="cpActionPayloadDecoder" interface="ocpp.json.ActionPayloadDecoder" filter="(&amp;(function=node)(role=cp))"/>
+	
 	<!-- Use Java @Transactional annotations to declare transactions. -->
 	<tx:annotation-driven transaction-manager="transactionManager"/>
 	
@@ -158,10 +160,16 @@
 			<value>net.solarnetwork.settings.SettingSpecifierProvider</value>
 			<value>net.solarnetwork.ocpp.service.AuthorizationService</value>
 			<value>net.solarnetwork.ocpp.service.cs.ChargePointManager</value>
+			<value>net.solarnetwork.node.reactor.InstructionHandler</value>
 		</interfaces>
 		<service-properties>
 			<entry key="function" value="node"/>
 			<entry key="role" value="cs"/><!-- For AuthorizationService -->
+			<entry key="instruction">
+				<list>
+					<value>OCPP_v16</value>
+				</list>
+			</entry>
 		</service-properties>
 	</service>
 	
@@ -236,11 +244,12 @@
 		<argument ref="chargePointDao"/>
 		<argument ref="chargePointConnectorDao"/>
 		<property name="transactionTemplate" ref="transactionTemplate"/>
-			<property name="messageSource">
-				<bean class="org.springframework.context.support.ResourceBundleMessageSource">
-					<property name="basename" value="net.solarnetwork.node.ocpp.v16.cs.controller.OcppControllerService"/>
-				</bean>
-			</property>
+		<property name="chargePointActionPayloadDecoder" ref="cpActionPayloadDecoder"/>
+		<property name="messageSource">
+			<bean class="org.springframework.context.support.ResourceBundleMessageSource">
+				<property name="basename" value="net.solarnetwork.node.ocpp.v16.cs.controller.OcppControllerService"/>
+			</bean>
+		</property>
 	</bean>
 	
 	<bean id="transactionTemplate" class="org.springframework.transaction.support.TransactionTemplate">
