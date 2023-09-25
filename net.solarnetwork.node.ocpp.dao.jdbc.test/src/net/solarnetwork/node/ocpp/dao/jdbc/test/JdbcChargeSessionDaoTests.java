@@ -198,6 +198,16 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 	}
 
 	@Test
+	public void findIncompletes_conn() {
+		insert();
+
+		Collection<ChargeSession> sess = dao
+				.getIncompleteChargeSessionsForConnector(last.getChargePointId(), last.getConnectorId());
+		assertThat("Incomplete sessions found", sess, hasSize(1));
+		assertThat("Incomplete session found", sess, contains(last));
+	}
+
+	@Test
 	public void findIncomplete_chargePoint_onlyChargePoint() {
 		insert();
 

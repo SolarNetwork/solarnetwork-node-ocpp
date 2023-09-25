@@ -37,7 +37,6 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 import java.math.BigDecimal;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -83,7 +82,6 @@ import net.solarnetwork.ocpp.domain.Measurand;
 import net.solarnetwork.ocpp.domain.ReadingContext;
 import net.solarnetwork.ocpp.domain.SampledValue;
 import net.solarnetwork.ocpp.domain.UnitOfMeasure;
-import net.solarnetwork.ocpp.service.AuthorizationException;
 import net.solarnetwork.ocpp.service.AuthorizationService;
 import net.solarnetwork.service.StaticOptionalService;
 
@@ -184,8 +182,6 @@ public class SolarNetChargeSessionManagerTests {
 
 		// verify concurrent tx
 		int connectorId = 1;
-		expect(chargeSessionDao.getIncompleteChargeSessionForConnector(cp.getId(), connectorId))
-				.andReturn(null);
 
 		// create new session
 		Capture<ChargeSession> sessionCaptor = Capture.newInstance();
@@ -285,55 +281,6 @@ public class SolarNetChargeSessionManagerTests {
 						SolarNetChargeSessionManager.DatumProperty.SessionId.getClassification(),
 						SolarNetChargeSessionManager.DatumProperty.SessionId.getPropertyName()),
 				equalTo(sess.getId().toString()));
-	}
-
-	@Test
-	public void startSession_concurrentTx() {
-		// GIVEN
-
-		// get next tx ID
-		final int transactionId = new SecureRandom().nextInt(65_000) + 1;
-		expect(chargeSessionDao.nextTransactionId()).andReturn(transactionId);
-
-		final String identifier = UUID.randomUUID().toString();
-		final ChargePointIdentity chargePointId = new ChargePointIdentity(identifier, "foo");
-		final ChargePoint cp = new ChargePoint(UUID.randomUUID().getMostSignificantBits(), Instant.now(),
-				new ChargePointInfo(identifier));
-		final String idTag = UUID.randomUUID().toString().substring(0, 20);
-
-		// get ChargePoint
-		expect(chargePointDao.getForIdentity(chargePointId)).andReturn(cp);
-
-		// verify concurrent tx
-		final int connectorId = 1;
-		ChargeSession existingSess = new ChargeSession(UUID.randomUUID(), Instant.now().minusSeconds(60),
-				idTag, cp.getId(), connectorId, transactionId);
-		expect(chargeSessionDao.getIncompleteChargeSessionForConnector(cp.getId(), connectorId))
-				.andReturn(existingSess);
-
-		// WHEN
-		replayAll();
-
-		// @formatter:off
-		ChargeSessionStartInfo info = ChargeSessionStartInfo.builder()
-				.withTimestampStart(Instant.now())
-				.withChargePointId(chargePointId)
-				.withAuthorizationId(idTag)
-				.withConnectorId(connectorId)
-				.withMeterStart(1234)
-				.build();
-		// @formatter:on
-
-		// THEN
-		try {
-			manager.startChargingSession(info);
-			fail("Should have failed with ConcurrentTx");
-		} catch ( AuthorizationException e ) {
-			assertThat("Authorization info available", e.getInfo(), notNullValue());
-			assertThat("Authorization status is ConcurrentTx", e.getInfo().getStatus(),
-					equalTo(AuthorizationStatus.ConcurrentTx));
-			assertThat("Exception txId provided", e.getTransactionId(), equalTo(transactionId));
-		}
 	}
 
 	@Test
