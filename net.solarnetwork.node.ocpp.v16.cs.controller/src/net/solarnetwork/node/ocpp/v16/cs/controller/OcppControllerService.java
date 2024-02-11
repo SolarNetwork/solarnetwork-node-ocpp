@@ -57,6 +57,7 @@ import net.solarnetwork.node.service.support.BaseIdentifiable;
 import net.solarnetwork.ocpp.dao.AuthorizationDao;
 import net.solarnetwork.ocpp.dao.ChargePointConnectorDao;
 import net.solarnetwork.ocpp.dao.ChargePointDao;
+import net.solarnetwork.ocpp.domain.Action;
 import net.solarnetwork.ocpp.domain.ActionMessage;
 import net.solarnetwork.ocpp.domain.Authorization;
 import net.solarnetwork.ocpp.domain.AuthorizationInfo;
@@ -67,26 +68,25 @@ import net.solarnetwork.ocpp.domain.ChargePointConnector;
 import net.solarnetwork.ocpp.domain.ChargePointConnectorKey;
 import net.solarnetwork.ocpp.domain.ChargePointIdentity;
 import net.solarnetwork.ocpp.domain.ChargePointInfo;
+import net.solarnetwork.ocpp.domain.ErrorCodeException;
 import net.solarnetwork.ocpp.domain.RegistrationStatus;
 import net.solarnetwork.ocpp.domain.StatusNotification;
+import net.solarnetwork.ocpp.json.ActionPayloadDecoder;
 import net.solarnetwork.ocpp.service.ActionMessageResultHandler;
 import net.solarnetwork.ocpp.service.AuthorizationService;
 import net.solarnetwork.ocpp.service.ChargePointBroker;
 import net.solarnetwork.ocpp.service.ChargePointRouter;
 import net.solarnetwork.ocpp.service.cs.ChargePointManager;
 import net.solarnetwork.ocpp.util.OcppInstructionUtils;
+import net.solarnetwork.ocpp.v16.ActionErrorCode;
+import net.solarnetwork.ocpp.v16.ChargePointAction;
+import net.solarnetwork.ocpp.v16.ConfigurationKey;
 import net.solarnetwork.security.AuthorizationException;
 import net.solarnetwork.security.AuthorizationException.Reason;
 import net.solarnetwork.settings.SettingSpecifier;
 import net.solarnetwork.settings.SettingSpecifierProvider;
 import net.solarnetwork.settings.support.BasicGroupSettingSpecifier;
 import net.solarnetwork.settings.support.BasicTitleSettingSpecifier;
-import ocpp.domain.Action;
-import ocpp.domain.ErrorCodeException;
-import ocpp.json.ActionPayloadDecoder;
-import ocpp.v16.ActionErrorCode;
-import ocpp.v16.ChargePointAction;
-import ocpp.v16.ConfigurationKey;
 import ocpp.v16.cp.GetConfigurationRequest;
 import ocpp.v16.cp.GetConfigurationResponse;
 import ocpp.v16.cp.KeyValue;
@@ -141,7 +141,7 @@ public class OcppControllerService extends BaseIdentifiable implements ChargePoi
 		this.chargePointDao = requireNonNullArgument(chargePointDao, "chargePointDao");
 		this.chargePointConnectorDao = requireNonNullArgument(chargePointConnectorDao,
 				"chargePointConnectorDao");
-		this.objectMapper = ocpp.json.support.BaseActionPayloadDecoder.defaultObjectMapper();
+		this.objectMapper = net.solarnetwork.ocpp.v16.json.BaseActionPayloadDecoder.defaultObjectMapper();
 		this.initialRegistrationStatus = DEFAULT_INITIAL_REGISTRATION_STATUS;
 	}
 

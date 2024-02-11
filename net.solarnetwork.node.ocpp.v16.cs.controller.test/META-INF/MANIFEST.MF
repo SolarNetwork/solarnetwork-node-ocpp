@@ -2,9 +2,9 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: OCPP v1.6 Central System Local Controller Tests
 Bundle-SymbolicName: net.solarnetwork.node.ocpp.v16.cs.controller.test
-Bundle-Version: 0.2.0
+Bundle-Version: 2.1.0
 Bundle-Vendor: SolarNetwork
-Fragment-Host: net.solarnetwork.node.ocpp.v16.cs.controller;bundle-version="0.2.0"
+Fragment-Host: net.solarnetwork.node.ocpp.v16.cs.controller;bundle-version="2.1.0"
 Automatic-Module-Name: net.solarnetwork.node.ocpp.v16.cs.controller.test
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Import-Package: 
