@@ -6,7 +6,7 @@ Automatic-Module-Name: net.solarnetwork.node.ocpp.v15.cp
 Bundle-Description: Provides core Open Charge Point Protocol (OCPP) v1.5 Charge Point support.
 Bundle-Version: 2.0.0
 Bundle-Vendor: SolarNetwork
-Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+Bundle-RequiredExecutionEnvironment: JavaSE-11
 Export-Package: 
  net.solarnetwork.node.ocpp.v15.cp;version="2.0.0",
  net.solarnetwork.node.ocpp.v15.cp.support;version="2.0.0"

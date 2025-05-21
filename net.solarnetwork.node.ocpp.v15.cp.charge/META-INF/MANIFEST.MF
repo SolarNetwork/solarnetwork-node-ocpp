@@ -6,7 +6,7 @@ Bundle-Description: Support for OCPP 1.5 Charge Point charge sessions.
 Bundle-SymbolicName: net.solarnetwork.node.ocpp.v15.cp.charge
 Bundle-Version: 2.0.0
 Bundle-Vendor: SolarNetwork
-Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+Bundle-RequiredExecutionEnvironment: JavaSE-11
 Import-Package: 
  net.solarnetwork.domain;version="[2.3,3.0)",
  net.solarnetwork.domain.datum;version="[2.6,3.0)",

@@ -1,21 +1,21 @@
 /* ==================================================================
  * JdbcChargeSessionDao.java - 10/02/2020 11:25:02 am
- * 
+ *
  * Copyright 2020 SolarNetwork.net Dev Team
- * 
- * This program is free software; you can redistribute it and/or 
- * modify it under the terms of the GNU General Public License as 
- * published by the Free Software Foundation; either version 2 of 
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
  * the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License 
- * along with this program; if not, write to the Free Software 
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
  * 02111-1307 USA
  * ==================================================================
  */
@@ -50,9 +50,9 @@ import net.solarnetwork.ocpp.domain.UnitOfMeasure;
 
 /**
  * JDBC based implementation of {@link ChargeSessionDao}.
- * 
+ *
  * @author matt
- * @version 2.0
+ * @version 3.0
  */
 public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID>
 		implements ChargeSessionDao {
@@ -105,7 +105,7 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 
 		/**
 		 * Get the SQL resource name.
-		 * 
+		 *
 		 * @return the resource
 		 */
 		public String getResource() {
@@ -136,8 +136,8 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 		ps.setString(4, obj.getAuthId());
 		ps.setLong(5, obj.getChargePointId());
 		ps.setInt(6, obj.getConnectorId());
-		if ( obj.getTransactionId() > 0 ) {
-			ps.setInt(7, obj.getTransactionId());
+		if ( obj.getTransactionId() != null ) {
+			ps.setString(7, obj.getTransactionId());
 		} else {
 			ps.setNull(7, Types.INTEGER);
 		}
@@ -163,23 +163,24 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 
 	@Override
 	public ChargeSession getIncompleteChargeSessionForTransaction(long chargePointId,
-			int transactionId) {
+			String transactionId) {
 		return findFirst(getSqlResource(SqlResource.FindByIncompleteTransaction.getResource()),
 				chargePointId, transactionId);
 	}
 
 	@Override
-	public ChargeSession getIncompleteChargeSessionForConnector(long chargePointId, int connectorId) {
+	public ChargeSession getIncompleteChargeSessionForConnector(long chargePointId, int evseId,
+			int connectorId) {
 		return findFirst(getSqlResource(SqlResource.FindByIncompleteConnector.getResource()),
-				chargePointId, connectorId);
+				chargePointId, evseId, connectorId);
 	}
 
 	@Override
 	public Collection<ChargeSession> getIncompleteChargeSessionsForConnector(long chargePointId,
-			int connectorId) {
+			int evseId, int connectorId) {
 		return getJdbcTemplate().query(
 				getSqlResource(SqlResource.FindByIncompleteConnector.getResource()), getRowMapper(),
-				chargePointId, connectorId);
+				chargePointId, evseId, connectorId);
 	}
 
 	@Override
@@ -300,11 +301,11 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 			Instant created = getInstantColumn(rs, 3);
 
 			ChargeSession obj = new ChargeSession(id, created, rs.getString(4), rs.getLong(5),
-					rs.getInt(6), rs.getInt(7));
-			obj.setEnded(getInstantColumn(rs, 8));
-			obj.setEndReason(ChargeSessionEndReason.forCode(rs.getInt(9)));
-			obj.setEndAuthId(rs.getString(10));
-			obj.setPosted(getInstantColumn(rs, 11));
+					rs.getInt(6), rs.getInt(7), rs.getString(8));
+			obj.setEnded(getInstantColumn(rs, 9));
+			obj.setEndReason(ChargeSessionEndReason.forCode(rs.getInt(10)));
+			obj.setEndAuthId(rs.getString(11));
+			obj.setPosted(getInstantColumn(rs, 12));
 
 			return obj;
 		}

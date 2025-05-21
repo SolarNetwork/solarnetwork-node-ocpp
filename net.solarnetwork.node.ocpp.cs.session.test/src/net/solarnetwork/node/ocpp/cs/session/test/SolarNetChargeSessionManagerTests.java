@@ -1,21 +1,21 @@
 /* ==================================================================
  * SolarNetChargeSessionManagerTests.java - 15/02/2020 12:38:14 pm
- * 
+ *
  * Copyright 2020 SolarNetwork.net Dev Team
- * 
- * This program is free software; you can redistribute it and/or 
- * modify it under the terms of the GNU General Public License as 
- * published by the Free Software Foundation; either version 2 of 
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
  * the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License 
- * along with this program; if not, write to the Free Software 
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
  * 02111-1307 USA
  * ==================================================================
  */
@@ -87,9 +87,9 @@ import net.solarnetwork.service.StaticOptionalService;
 
 /**
  * Test cases for the {@link SolarNetChargeSessionManager} class.
- * 
+ *
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class SolarNetChargeSessionManagerTests {
 
@@ -165,8 +165,9 @@ public class SolarNetChargeSessionManagerTests {
 		// GIVEN
 
 		// get next tx ID
-		final int transactionId = new SecureRandom().nextInt(65_000) + 1;
-		expect(chargeSessionDao.nextTransactionId()).andReturn(transactionId);
+		final int transactionIdInt = new SecureRandom().nextInt(65_000) + 1;
+		final String transactionId = String.valueOf(transactionIdInt);
+		expect(chargeSessionDao.nextTransactionId()).andReturn(transactionIdInt);
 
 		// verify authorization
 		String identifier = UUID.randomUUID().toString();
@@ -181,6 +182,7 @@ public class SolarNetChargeSessionManagerTests {
 		expect(chargePointDao.getForIdentity(chargePointId)).andReturn(cp);
 
 		// verify concurrent tx
+		int evseId = 1;
 		int connectorId = 1;
 
 		// create new session
@@ -201,7 +203,7 @@ public class SolarNetChargeSessionManagerTests {
 			public ChargeSession answer() throws Throwable {
 				ChargeSession old = sessionCaptor.getValue();
 				return new ChargeSession(old.getId(), old.getCreated(), old.getAuthId(),
-						old.getChargePointId(), old.getConnectorId(), transactionId);
+						old.getChargePointId(), old.getEvseId(), old.getConnectorId(), transactionId);
 			}
 		});
 
@@ -221,6 +223,7 @@ public class SolarNetChargeSessionManagerTests {
 				.withTimestampStart(Instant.now())
 				.withChargePointId(chargePointId)
 				.withAuthorizationId(idTag)
+				.withEvseId(evseId)
 				.withConnectorId(connectorId)
 				.withMeterStart(1234)
 				.build();
@@ -238,6 +241,8 @@ public class SolarNetChargeSessionManagerTests {
 				sessionCaptor.getValue().getChargePointId(), equalTo(cp.getId()));
 		assertThat("Stored session auth ID matches request", sessionCaptor.getValue().getAuthId(),
 				equalTo(info.getAuthorizationId()));
+		assertThat("Stored session EVSE ID matches request", sessionCaptor.getValue().getEvseId(),
+				equalTo(info.getEvseId()));
 		assertThat("Stored session connector ID matches request",
 				sessionCaptor.getValue().getConnectorId(), equalTo(info.getConnectorId()));
 		assertThat("Stored session transaction ID from nextTransactionId result",
@@ -291,14 +296,15 @@ public class SolarNetChargeSessionManagerTests {
 		ChargePointIdentity chargePointId = new ChargePointIdentity(identifier, "foo");
 		ChargePoint cp = new ChargePoint(UUID.randomUUID().getMostSignificantBits(), Instant.now(),
 				new ChargePointInfo(identifier));
+		int evseId = 1;
 		int connectorId = 1;
-		int transactionId = 123;
+		String transactionId = "123";
 
 		// get ChargePoint
 		expect(chargePointDao.getForIdentity(chargePointId)).andReturn(cp);
 
 		ChargeSession sess = new ChargeSession(UUID.randomUUID(), Instant.now().minusSeconds(60), idTag,
-				cp.getId(), connectorId, transactionId);
+				cp.getId(), evseId, connectorId, transactionId);
 		expect(chargeSessionDao.getIncompleteChargeSessionForTransaction(cp.getId(), transactionId))
 				.andReturn(sess);
 
@@ -429,15 +435,16 @@ public class SolarNetChargeSessionManagerTests {
 		String identifier = UUID.randomUUID().toString();
 		ChargePoint cp = new ChargePoint(UUID.randomUUID().getMostSignificantBits(), Instant.now(),
 				new ChargePointInfo(identifier));
+		int evseId = 1;
 		int connectorId = 1;
-		int transactionId = 123;
+		String transactionId = "123";
 
 		// get ChargePoint
 		expect(chargePointDao.getForIdentity(cp.chargePointIdentity())).andReturn(cp);
 
 		// get current session
 		ChargeSession sess = new ChargeSession(UUID.randomUUID(), Instant.now(), idTag, cp.getId(),
-				connectorId, transactionId);
+				evseId, connectorId, transactionId);
 		expect(chargeSessionDao.get(sess.getId())).andReturn(sess);
 
 		// get current readings for session
@@ -507,7 +514,7 @@ public class SolarNetChargeSessionManagerTests {
 				.withValue("3456")
 				.build();
 		// @formatter:on
-		manager.addChargingSessionReadings(cp.chargePointIdentity(), connectorId,
+		manager.addChargingSessionReadings(cp.chargePointIdentity(), evseId, connectorId,
 				asList(r1, r2, r3, r4, r5, r6));
 
 		// then
@@ -555,15 +562,16 @@ public class SolarNetChargeSessionManagerTests {
 		String identifier = UUID.randomUUID().toString();
 		ChargePoint cp = new ChargePoint(UUID.randomUUID().getMostSignificantBits(), Instant.now(),
 				new ChargePointInfo(identifier));
+		int evseId = 1;
 		int connectorId = 1;
-		int transactionId = 123;
+		String transactionId = "123";
 
 		// get ChargePoint
 		expect(chargePointDao.getForIdentity(cp.chargePointIdentity())).andReturn(cp);
 
 		// get current session
 		ChargeSession sess = new ChargeSession(UUID.randomUUID(), Instant.now(), idTag, cp.getId(),
-				connectorId, transactionId);
+				evseId, connectorId, transactionId);
 		expect(chargeSessionDao.get(sess.getId())).andReturn(sess);
 
 		// get current readings for session
@@ -594,7 +602,7 @@ public class SolarNetChargeSessionManagerTests {
 				.withValue("1234")
 				.build();
 		// @formatter:on
-		manager.addChargingSessionReadings(cp.chargePointIdentity(), connectorId, asList(r1));
+		manager.addChargingSessionReadings(cp.chargePointIdentity(), evseId, connectorId, asList(r1));
 
 		// then
 		assertThat("Persisted readings same as passed in", readingsCaptor.getValue(), contains(r1));

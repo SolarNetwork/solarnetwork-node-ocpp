@@ -6,7 +6,7 @@ Bundle-Description: Authorize scanned OCPP ID tags with OCPP Central System for 
 Bundle-SymbolicName: net.solarnetwork.node.ocpp.v15.cp.auth
 Bundle-Version: 2.0.0
 Bundle-Vendor: SolarNetwork
-Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+Bundle-RequiredExecutionEnvironment: JavaSE-11
 Import-Package: 
  net.solarnetwork.node.ocpp.v15.cp;version="[2.0,3.0)",
  net.solarnetwork.node.ocpp.v15.cp.support;version="[2.0,3.0)",
