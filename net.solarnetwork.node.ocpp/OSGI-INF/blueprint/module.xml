@@ -25,7 +25,7 @@
 		OCPP JSON support
 	 -->
 
-	<bean id="ocppObjectMapper" class="ocpp.json.support.BaseActionPayloadDecoder" factory-method="defaultObjectMapper"/>
+	<bean id="ocppObjectMapper" class="net.solarnetwork.ocpp.v16.jakarta.json.BaseActionPayloadDecoder" factory-method="defaultObjectMapper"/>
 	
 	<service interface="net.solarnetwork.service.ObjectMapperService">
 		<service-properties>

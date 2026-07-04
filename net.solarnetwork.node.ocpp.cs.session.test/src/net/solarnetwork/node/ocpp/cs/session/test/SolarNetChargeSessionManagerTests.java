@@ -1,21 +1,21 @@
 /* ==================================================================
  * SolarNetChargeSessionManagerTests.java - 15/02/2020 12:38:14 pm
- * 
+ *
  * Copyright 2020 SolarNetwork.net Dev Team
- * 
- * This program is free software; you can redistribute it and/or 
- * modify it under the terms of the GNU General Public License as 
- * published by the Free Software Foundation; either version 2 of 
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
  * the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License 
- * along with this program; if not, write to the Free Software 
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
  * 02111-1307 USA
  * ==================================================================
  */
@@ -38,12 +38,10 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import java.math.BigDecimal;
-import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -84,12 +82,13 @@ import net.solarnetwork.ocpp.domain.SampledValue;
 import net.solarnetwork.ocpp.domain.UnitOfMeasure;
 import net.solarnetwork.ocpp.service.AuthorizationService;
 import net.solarnetwork.service.StaticOptionalService;
+import net.solarnetwork.test.CommonTestUtils;
 
 /**
  * Test cases for the {@link SolarNetChargeSessionManager} class.
- * 
+ *
  * @author matt
- * @version 1.0
+ * @version 2.0
  */
 public class SolarNetChargeSessionManagerTests {
 
@@ -137,10 +136,10 @@ public class SolarNetChargeSessionManagerTests {
 
 		Capture<Runnable> startupTaskCaptor = Capture.newInstance();
 		ScheduledFuture<Object> startupTaskFuture = createMock(ScheduledFuture.class);
-		expect(taskScheduler.schedule(capture(startupTaskCaptor), anyObject(Date.class)))
+		expect(taskScheduler.schedule(capture(startupTaskCaptor), anyObject(Instant.class)))
 				.andReturn((ScheduledFuture) startupTaskFuture);
 
-		long taskDelay = TimeUnit.HOURS.toMillis(expireHours) / 4;
+		Duration taskDelay = Duration.ofMillis(TimeUnit.HOURS.toMillis(expireHours) / 4);
 		ScheduledFuture<Object> purgePostedTaskFuture = createMock(ScheduledFuture.class);
 		Capture<Runnable> purgeTaskCaptor = Capture.newInstance();
 		expect(taskScheduler.scheduleWithFixedDelay(capture(purgeTaskCaptor), anyObject(),
@@ -165,7 +164,7 @@ public class SolarNetChargeSessionManagerTests {
 		// GIVEN
 
 		// get next tx ID
-		final int transactionId = new SecureRandom().nextInt(65_000) + 1;
+		final int transactionId = CommonTestUtils.RNG.nextInt(65_000) + 1;
 		expect(chargeSessionDao.nextTransactionId()).andReturn(transactionId);
 
 		// verify authorization
@@ -201,7 +200,7 @@ public class SolarNetChargeSessionManagerTests {
 			public ChargeSession answer() throws Throwable {
 				ChargeSession old = sessionCaptor.getValue();
 				return new ChargeSession(old.getId(), old.getCreated(), old.getAuthId(),
-						old.getChargePointId(), old.getConnectorId(), transactionId);
+						old.getChargePointId(), old.getConnectorId(), String.valueOf(transactionId));
 			}
 		});
 
@@ -241,14 +240,15 @@ public class SolarNetChargeSessionManagerTests {
 		assertThat("Stored session connector ID matches request",
 				sessionCaptor.getValue().getConnectorId(), equalTo(info.getConnectorId()));
 		assertThat("Stored session transaction ID from nextTransactionId result",
-				sessionCaptor.getValue().getTransactionId(), equalTo(transactionId));
+				sessionCaptor.getValue().getTransactionId(), equalTo(String.valueOf(transactionId)));
 
 		assertThat("Created session ID matches refresh ID request", sessionIdCaptor.getValue(),
 				equalTo(sessionCaptor.getValue().getId()));
 		assertThat("Charge Point ID returned", sess.getChargePointId(), equalTo(cp.getId()));
 		assertThat("Auth ID returned", sess.getAuthId(), equalTo(idTag));
 		assertThat("Connector ID returned", sess.getConnectorId(), equalTo(connectorId));
-		assertThat("Transaction ID returned", sess.getTransactionId(), equalTo(transactionId));
+		assertThat("Transaction ID returned", sess.getTransactionId(),
+				equalTo(String.valueOf(transactionId)));
 
 		List<SampledValue> samples = StreamSupport.stream(readingsCaptor.getValue().spliterator(), false)
 				.collect(Collectors.toList());
@@ -292,7 +292,7 @@ public class SolarNetChargeSessionManagerTests {
 		ChargePoint cp = new ChargePoint(UUID.randomUUID().getMostSignificantBits(), Instant.now(),
 				new ChargePointInfo(identifier));
 		int connectorId = 1;
-		int transactionId = 123;
+		String transactionId = "123";
 
 		// get ChargePoint
 		expect(chargePointDao.getForIdentity(chargePointId)).andReturn(cp);
@@ -430,7 +430,7 @@ public class SolarNetChargeSessionManagerTests {
 		ChargePoint cp = new ChargePoint(UUID.randomUUID().getMostSignificantBits(), Instant.now(),
 				new ChargePointInfo(identifier));
 		int connectorId = 1;
-		int transactionId = 123;
+		String transactionId = "123";
 
 		// get ChargePoint
 		expect(chargePointDao.getForIdentity(cp.chargePointIdentity())).andReturn(cp);
@@ -507,7 +507,7 @@ public class SolarNetChargeSessionManagerTests {
 				.withValue("3456")
 				.build();
 		// @formatter:on
-		manager.addChargingSessionReadings(cp.chargePointIdentity(), connectorId,
+		manager.addChargingSessionReadings(cp.chargePointIdentity(), null, connectorId,
 				asList(r1, r2, r3, r4, r5, r6));
 
 		// then
@@ -556,7 +556,7 @@ public class SolarNetChargeSessionManagerTests {
 		ChargePoint cp = new ChargePoint(UUID.randomUUID().getMostSignificantBits(), Instant.now(),
 				new ChargePointInfo(identifier));
 		int connectorId = 1;
-		int transactionId = 123;
+		String transactionId = "123";
 
 		// get ChargePoint
 		expect(chargePointDao.getForIdentity(cp.chargePointIdentity())).andReturn(cp);
@@ -594,7 +594,7 @@ public class SolarNetChargeSessionManagerTests {
 				.withValue("1234")
 				.build();
 		// @formatter:on
-		manager.addChargingSessionReadings(cp.chargePointIdentity(), connectorId, asList(r1));
+		manager.addChargingSessionReadings(cp.chargePointIdentity(), null, connectorId, asList(r1));
 
 		// then
 		assertThat("Persisted readings same as passed in", readingsCaptor.getValue(), contains(r1));

@@ -1,21 +1,21 @@
 /* ==================================================================
  * SolarNetChargeSessionManager.java - 14/02/2020 5:31:00 pm
- * 
+ *
  * Copyright 2020 SolarNetwork.net Dev Team
- * 
- * This program is free software; you can redistribute it and/or 
- * modify it under the terms of the GNU General Public License as 
- * published by the Free Software Foundation; either version 2 of 
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
  * the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License 
- * along with this program; if not, write to the Free Software 
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
  * 02111-1307 USA
  * ==================================================================
  */
@@ -23,15 +23,17 @@
 package net.solarnetwork.node.ocpp.cs.session;
 
 import static java.util.Collections.singleton;
+import static java.util.Objects.requireNonNullElse;
 import static net.solarnetwork.domain.datum.Datum.REVERSE_ACCUMULATING_SUFFIX_KEY;
 import static net.solarnetwork.service.OptionalService.service;
+import static net.solarnetwork.util.ObjectUtils.nonnull;
+import static net.solarnetwork.util.ObjectUtils.requireNonNullArgument;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -43,6 +45,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -53,6 +56,7 @@ import net.solarnetwork.domain.datum.AtmosphericDatum;
 import net.solarnetwork.domain.datum.Datum;
 import net.solarnetwork.domain.datum.DatumSamples;
 import net.solarnetwork.domain.datum.DatumSamplesType;
+import net.solarnetwork.domain.datum.EnergyDatum;
 import net.solarnetwork.domain.datum.MutableDatumSamplesOperations;
 import net.solarnetwork.node.domain.datum.AcEnergyDatum;
 import net.solarnetwork.node.domain.datum.MutableNodeDatum;
@@ -92,9 +96,9 @@ import net.solarnetwork.util.StringUtils;
 /**
  * A {@link ChargeSessionManager} that generates {@link Datum} from charge
  * session transaction data.
- * 
+ *
  * @author matt
- * @version 2.0
+ * @version 3.0
  */
 public class SolarNetChargeSessionManager extends BaseIdentifiable implements ChargeSessionManager,
 		SettingSpecifierProvider, SettingsChangeObserver, ServiceLifecycleObserver {
@@ -143,7 +147,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 
 		/**
 		 * Get the property name.
-		 * 
+		 *
 		 * @return the property name
 		 */
 		public String getPropertyName() {
@@ -152,7 +156,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 
 		/**
 		 * Get the property classification.
-		 * 
+		 *
 		 * @return the classification
 		 */
 		public DatumSamplesType getClassification() {
@@ -175,15 +179,15 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 	private final OptionalService<DatumQueue> datumDao;
 	private String sourceIdTemplate = DEFAULT_SOURCE_ID_TEMPLATE;
 	private int maxTemperatureScale = DEFAULT_MAX_TEMPERATURE_SCALE;
-	private TaskScheduler taskScheduler;
+	private @Nullable TaskScheduler taskScheduler;
 
 	private final PurgePostedChargeSessionsTask purgePostedTask = new PurgePostedChargeSessionsTask();
-	private ScheduledFuture<?> configurationFuture;
-	private ScheduledFuture<?> purgePostedFuture;
+	private @Nullable ScheduledFuture<?> configurationFuture;
+	private @Nullable ScheduledFuture<?> purgePostedFuture;
 
 	/**
 	 * Constructor.
-	 * 
+	 *
 	 * @param authService
 	 *        the authorization service to use
 	 * @param chargePointDao
@@ -192,14 +196,16 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 	 *        the charge session DAO to use
 	 * @param datumDao
 	 *        the DAO for saving Datum
+	 * @throws IllegalArgumentException
+	 *         if any argument is {@code null}
 	 */
 	public SolarNetChargeSessionManager(AuthorizationService authService, ChargePointDao chargePointDao,
 			ChargeSessionDao chargeSessionDao, OptionalService<DatumQueue> datumDao) {
 		super();
-		this.authService = authService;
-		this.chargePointDao = chargePointDao;
-		this.chargeSessionDao = chargeSessionDao;
-		this.datumDao = datumDao;
+		this.authService = requireNonNullArgument(authService, "authService");
+		this.chargePointDao = requireNonNullArgument(chargePointDao, "chargePointDao");
+		this.chargeSessionDao = requireNonNullArgument(chargeSessionDao, "chargeSessionDao");
+		this.datumDao = requireNonNullArgument(datumDao, "datumDao");
 	}
 
 	@Override
@@ -213,7 +219,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 	}
 
 	@Override
-	public synchronized void configurationChanged(Map<String, Object> properties) {
+	public synchronized void configurationChanged(@Nullable Map<String, Object> properties) {
 		if ( properties == null || properties.isEmpty() ) {
 			return;
 		}
@@ -238,7 +244,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 				}
 			}
 			configurationFuture = taskScheduler.schedule(new ConfigurationTask(),
-					new Date(System.currentTimeMillis() + 1000));
+					Instant.ofEpochMilli(System.currentTimeMillis() + 1000L));
 		}
 	}
 
@@ -259,14 +265,20 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 							purgeHours);
 					long purgeMs = TimeUnit.HOURS.toMillis(purgeHours) / 4;
 					purgePostedFuture = scheduler.scheduleWithFixedDelay(purgePostedTask,
-							new Date(System.currentTimeMillis() + purgeMs), purgeMs);
+							Instant.ofEpochMilli(System.currentTimeMillis() + purgeMs),
+							Duration.ofMillis(purgeMs));
 				}
 			}
 		}
 
 	}
 
-	private ChargePoint chargePoint(ChargePointIdentity identifier, String authId, final Integer txId) {
+	private @Nullable ChargePoint chargePoint(ChargePointIdentity identifier) {
+		return chargePointDao.getForIdentity(identifier);
+	}
+
+	private ChargePoint chargePoint(ChargePointIdentity identifier, String authId,
+			final @Nullable String txId) {
 		ChargePoint cp = chargePointDao.getForIdentity(identifier);
 		if ( cp == null ) {
 			throw new AuthorizationException(
@@ -276,31 +288,40 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 		return cp;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED, noRollbackFor = AuthorizationException.class)
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED,
+			noRollbackFor = AuthorizationException.class)
 	@Override
 	public ChargeSession startChargingSession(ChargeSessionStartInfo info)
 			throws AuthorizationException {
 		// get next transaction ID; this is required even if authorization/session checks fail
 		// to adhere to OCPP spec
-		final int txId = chargeSessionDao.nextTransactionId();
+		final String txId = (info.getTransactionId() == null
+				? String.valueOf(chargeSessionDao.nextTransactionId())
+				: info.getTransactionId());
 
-		ChargePoint cp = chargePoint(info.getChargePointId(), info.getAuthorizationId(), txId);
+		final String authId = info.getAuthorizationId();
+		if ( authId == null ) {
+			throw new AuthorizationException("Missing authorization.",
+					new AuthorizationInfo("", AuthorizationStatus.Invalid));
+		}
+
+		ChargePoint cp = chargePoint(info.getChargePointId(), authId, txId);
 
 		// persist a new session
 		final ChargeSession sess;
 		try {
-			sess = chargeSessionDao.get(
-					chargeSessionDao.save(new ChargeSession(UUID.randomUUID(), info.getTimestampStart(),
-							info.getAuthorizationId(), cp.getId(), info.getConnectorId(), txId)));
+			sess = nonnull(
+					chargeSessionDao.get(chargeSessionDao.save(new ChargeSession(UUID.randomUUID(),
+							info.getTimestampStart(), authId, cp.id(), info.getConnectorId(), txId))),
+					"ChargeSession");
 		} catch ( DataIntegrityViolationException e ) {
 			// assume this is from no matching Charge Point for the given chargePointId value
-			throw new AuthorizationException(new AuthorizationInfo(info.getAuthorizationId(),
-					AuthorizationStatus.Invalid, null, null));
+			throw new AuthorizationException(
+					new AuthorizationInfo(authId, AuthorizationStatus.Invalid, null, null));
 		}
 
 		// check authorization
-		AuthorizationInfo authInfo = authService.authorize(info.getChargePointId(),
-				info.getAuthorizationId());
+		AuthorizationInfo authInfo = authService.authorize(info.getChargePointId(), authId);
 		if ( authInfo == null || AuthorizationStatus.Accepted != authInfo.getStatus() ) {
 			throw new AuthorizationException(authInfo, txId);
 		}
@@ -309,7 +330,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 
 		// @formatter:off
 		SampledValue reading = SampledValue.builder()
-				.withSessionId(sess.getId())
+				.withSessionId(sess.id())
 				.withTimestamp(sess.getCreated())
 				.withContext(ReadingContext.TransactionBegin)
 				.withLocation(Location.Outlet)
@@ -333,33 +354,33 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 
 	@Transactional(readOnly = true, propagation = Propagation.SUPPORTS)
 	@Override
-	public ChargeSession getActiveChargingSession(ChargePointIdentity identifier, int transactionId)
-			throws AuthorizationException {
-		if ( transactionId < 1 ) {
-			// illegal transaction ID value
-			return null;
-		}
-		ChargePoint cp = chargePoint(identifier, null, transactionId);
-		return chargeSessionDao.getIncompleteChargeSessionForTransaction(cp.getId(), transactionId);
+	public @Nullable ChargeSession getActiveChargingSession(ChargePointIdentity identifier,
+			String transactionId) throws AuthorizationException {
+		ChargePoint cp = chargePoint(identifier, "", transactionId);
+		return chargeSessionDao.getIncompleteChargeSessionForTransaction(cp.id(), transactionId);
 	}
 
 	@Transactional(readOnly = true, propagation = Propagation.SUPPORTS)
 	@Override
 	public Collection<ChargeSession> getActiveChargingSessions(ChargePointIdentity identifier) {
 		if ( identifier != null ) {
-			ChargePoint cp = chargePoint(identifier, null, null);
-			return chargeSessionDao.getIncompleteChargeSessionsForChargePoint(cp.getId());
+			ChargePoint cp = chargePoint(identifier, "", null);
+			return chargeSessionDao.getIncompleteChargeSessionsForChargePoint(cp.id());
 		}
 		return chargeSessionDao.getIncompleteChargeSessions();
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public AuthorizationInfo endChargingSession(ChargeSessionEndInfo info) {
-		ChargePoint cp = chargePoint(info.getChargePointId(), info.getAuthorizationId(),
-				info.getTransactionId());
-		ChargeSession sess = chargeSessionDao.getIncompleteChargeSessionForTransaction(cp.getId(),
-				info.getTransactionId());
+	public @Nullable AuthorizationInfo endChargingSession(ChargeSessionEndInfo info) {
+		final @Nullable ChargePoint cp = chargePoint(info.getChargePointId());
+		if ( cp == null ) {
+			return null;
+		}
+		final ChargeSession sess = (info.getTransactionId() != null
+				? chargeSessionDao.getIncompleteChargeSessionForTransaction(cp.id(),
+						info.getTransactionId())
+				: null);
 		if ( sess == null ) {
 			return null;
 		}
@@ -398,20 +419,21 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 		ChargePointIdentity cpIdent = cp.chargePointIdentity();
 		Map<ChargePointIdentity, ChargePoint> chargePoints = new HashMap<>(2);
 		chargePoints.put(cpIdent, cp);
-		addReadings(cpIdent, sess.getConnectorId(), readings, sessions, chargePoints);
+		addReadings(cpIdent, sess.getEvseId(), sess.getConnectorId(), readings, sessions, chargePoints);
 
-		return new AuthorizationInfo(info.getAuthorizationId(), AuthorizationStatus.Accepted, null,
-				null);
+		return new AuthorizationInfo(requireNonNullElse(info.getAuthorizationId(), ""),
+				AuthorizationStatus.Accepted, null, null);
 	}
 
-	private MutableNodeDatum datum(ChargePoint chargePoint, ChargeSession sess, SampledValue reading) {
-		String sourceId = sourceId(chargePoint, (sess != null ? sess.getConnectorId() : 0),
-				reading.getLocation());
+	private @Nullable MutableNodeDatum datum(ChargePoint chargePoint, ChargeSession sess,
+			SampledValue reading) {
+		String sourceId = sourceId(chargePoint, (sess != null ? sess.getEvseId() : 0),
+				(sess != null ? sess.getConnectorId() : 0), reading.getLocation());
 		return datum(sourceId, chargePoint, sess, reading);
 	}
 
-	private MutableNodeDatum datum(String sourceId, ChargePoint chargePoint, ChargeSession sess,
-			SampledValue reading) {
+	private @Nullable MutableNodeDatum datum(String sourceId, ChargePoint chargePoint,
+			@Nullable ChargeSession sess, SampledValue reading) {
 		DatumSamples s = new DatumSamples();
 		populateProperty(s, reading.getMeasurand(), reading.getUnit(), reading.getPhase(),
 				reading.getValue());
@@ -424,7 +446,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 				//d.getSamples().putSampleValue(DatumProperty.ReservationId.getClassification(),
 				//		DatumProperty.ReservationId.getPropertyName(), sess.getReservationId());
 				d.getSamples().putSampleValue(DatumProperty.SessionId.getClassification(),
-						DatumProperty.SessionId.getPropertyName(), sess.getId().toString());
+						DatumProperty.SessionId.getPropertyName(), sess.id().toString());
 				d.getSamples().putSampleValue(DatumProperty.TransactionId.getClassification(),
 						DatumProperty.TransactionId.getPropertyName(),
 						String.valueOf(sess.getTransactionId()));
@@ -463,16 +485,16 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void addChargingSessionReadings(ChargePointIdentity chargePointId, Integer connectorId,
-			Iterable<SampledValue> readings) {
-		addReadings(chargePointId, connectorId, readings, new HashMap<>(2), new HashMap<>(2));
+	public void addChargingSessionReadings(ChargePointIdentity chargePointId, @Nullable Integer evseId,
+			@Nullable Integer connectorId, Iterable<SampledValue> readings) {
+		addReadings(chargePointId, evseId, connectorId, readings, new HashMap<>(2), new HashMap<>(2));
 	}
 
 	// NOTE that the Map implementations passed here MUST support null key and values,
 	// in order to support meter values not associated with a charge session
-	private void addReadings(ChargePointIdentity chargePointId, Integer connectorId,
-			Iterable<SampledValue> readings, Map<UUID, ChargeSession> sessions,
-			Map<ChargePointIdentity, ChargePoint> chargePoints) {
+	private void addReadings(ChargePointIdentity chargePointId, @Nullable Integer evseId,
+			@Nullable Integer connectorId, Iterable<SampledValue> readings,
+			Map<UUID, ChargeSession> sessions, Map<ChargePointIdentity, ChargePoint> chargePoints) {
 		if ( readings == null ) {
 			return;
 		}
@@ -525,11 +547,13 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 				final UUID sessionId = reading.getSessionId(); // may be null
 				final ChargeSession s = sessions.get(sessionId);
 				final String sourceId = sourceId(cp,
+						s != null ? s.getEvseId() : evseId != null ? evseId : 0,
 						s != null ? s.getConnectorId()
 								: connectorId != null ? connectorId.intValue() : 0,
 						reading.getLocation());
 				MutableNodeDatum d = datumBySourceId.get(sourceId);
-				if ( d == null || !d.getTimestamp().equals(reading.getTimestamp()) ) {
+				if ( d == null
+						|| !nonnull(d.getTimestamp(), "Timestamp").equals(reading.getTimestamp()) ) {
 					if ( d != null ) {
 						q.offer(d);
 						datumBySourceId.remove(sourceId);
@@ -551,34 +575,40 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 
 	/**
 	 * Resolve a datum source ID from configurable properties.
-	 * 
+	 *
 	 * @param identifier
 	 *        the charge point identifier
+	 * @param evseId
+	 *        the EVSE ID
 	 * @param connectorId
 	 *        the connector ID
 	 * @param location
 	 *        the location
-	 * @return the source ID, never {@literal null}
+	 * @return the source ID, never {@code null}
 	 */
-	private String sourceId(ChargePoint chargePoint, int connectorId, Location location) {
+	private String sourceId(ChargePoint chargePoint, int evseId, int connectorId,
+			@Nullable Location location) {
 		Map<String, Object> params = new HashMap<>(4);
 		params.put("chargerIdentifier", chargePoint.getInfo().getId());
 		params.put("chargePointId", chargePoint.getId());
+		params.put("evseId", evseId);
 		params.put("connectorId", connectorId);
-		params.put("location", location);
+		if ( location != null ) {
+			params.put("location", location);
+		}
 		PlaceholderService service = service(getPlaceholderService());
-		return (service != null ? service.resolvePlaceholders(sourceIdTemplate, params)
-				: StringUtils.expandTemplateString(sourceIdTemplate, params));
+		return nonnull(service != null ? service.resolvePlaceholders(sourceIdTemplate, params)
+				: StringUtils.expandTemplateString(sourceIdTemplate, params), "Source ID");
 	}
 
-	private void populateProperty(MutableDatumSamplesOperations s, Measurand measurand,
-			UnitOfMeasure unit, Phase phase, Object value) {
+	private void populateProperty(MutableDatumSamplesOperations s, @Nullable Measurand measurand,
+			@Nullable UnitOfMeasure unit, @Nullable Phase phase, @Nullable Object value) {
 		if ( value == null ) {
 			return;
 		}
 		BigDecimal num = null;
 		if ( value instanceof Number ) {
-			num = NumberUtils.bigDecimalForNumber((Number) value);
+			num = nonnull(NumberUtils.bigDecimalForNumber((Number) value), "Value");
 		} else {
 			try {
 				num = new BigDecimal(value.toString());
@@ -595,7 +625,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 		}
 	}
 
-	private BigDecimal normalizedUnit(BigDecimal num, UnitOfMeasure unit) {
+	private BigDecimal normalizedUnit(BigDecimal num, @Nullable UnitOfMeasure unit) {
 		if ( unit == null ) {
 			return num;
 		}
@@ -630,7 +660,10 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 		}
 	}
 
-	private DatumSamplesType propertyType(Measurand measurand) {
+	private DatumSamplesType propertyType(@Nullable Measurand measurand) {
+		if ( measurand == null ) {
+			return DatumSamplesType.Instantaneous;
+		}
 		switch (measurand) {
 			case EnergyActiveExportRegister:
 			case EnergyActiveImportRegister:
@@ -645,7 +678,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 		}
 	}
 
-	private String propertyName(Measurand measurand, Phase phase) {
+	private @Nullable String propertyName(@Nullable Measurand measurand, @Nullable Phase phase) {
 		if ( phase == null || phase == Phase.Unknown ) {
 			return propertyName(measurand);
 		}
@@ -690,77 +723,38 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 		return buf.toString();
 	}
 
-	private String propertyName(Measurand measurand) {
-		switch (measurand) {
-			case CurrentExport:
-				return AcEnergyDatum.CURRENT_KEY + REVERSE_ACCUMULATING_SUFFIX_KEY;
-
-			case CurrentImport:
-				return AcEnergyDatum.CURRENT_KEY;
-
-			case CurrentOffered:
-				return AcEnergyDatum.CURRENT_KEY + "Offered";
-
-			case EnergyActiveExportInterval:
-				return AcEnergyDatum.WATT_HOUR_READING_KEY + "Diff" + REVERSE_ACCUMULATING_SUFFIX_KEY;
-
-			case EnergyActiveExportRegister:
-				return AcEnergyDatum.WATT_HOUR_READING_KEY + REVERSE_ACCUMULATING_SUFFIX_KEY;
-
-			case EnergyActiveImportInterval:
-				return AcEnergyDatum.WATT_HOUR_READING_KEY + "Diff";
-
-			case EnergyActiveImportRegister:
-				return AcEnergyDatum.WATT_HOUR_READING_KEY;
-
-			case EnergyReactiveExportInterval:
-				return "reactiveEnergyDiff" + REVERSE_ACCUMULATING_SUFFIX_KEY;
-
-			case EnergyReactiveExportRegister:
-				return "reactiveEnergy" + REVERSE_ACCUMULATING_SUFFIX_KEY;
-
-			case EnergyReactiveImportInterval:
-				return "reactiveEnergyDiff";
-
-			case EnergyReactiveImportRegister:
-				return "reactiveEnergy";
-
-			case Frequency:
-				return AcEnergyDatum.FREQUENCY_KEY;
-
-			case PowerActiveExport:
-				return AcEnergyDatum.WATTS_KEY + REVERSE_ACCUMULATING_SUFFIX_KEY;
-
-			case PowerActiveImport:
-				return AcEnergyDatum.WATTS_KEY;
-
-			case PowerFactor:
-				return AcEnergyDatum.POWER_FACTOR_KEY;
-
-			case PowerOffered:
-				return AcEnergyDatum.WATTS_KEY + "Offered";
-
-			case PowerReactiveExport:
-				return AcEnergyDatum.REACTIVE_POWER_KEY + REVERSE_ACCUMULATING_SUFFIX_KEY;
-
-			case PowerReactiveImport:
-				return AcEnergyDatum.REACTIVE_POWER_KEY;
-
-			case RPM:
-				return "rpm";
-
-			case SoC:
-				return "soc";
-
-			case Temperature:
-				return AtmosphericDatum.TEMPERATURE_KEY;
-
-			case Voltage:
-				return AcEnergyDatum.VOLTAGE_KEY;
-
-			default:
-				return null;
+	private @Nullable String propertyName(@Nullable Measurand measurand) {
+		if ( measurand == null ) {
+			return null;
 		}
+		return switch (measurand) {
+			case CurrentExport -> AcEnergyDatum.CURRENT_KEY + REVERSE_ACCUMULATING_SUFFIX_KEY;
+			case CurrentImport -> AcEnergyDatum.CURRENT_KEY;
+			case CurrentOffered -> AcEnergyDatum.CURRENT_KEY + "Offered";
+			case EnergyActiveExportInterval -> EnergyDatum.WATT_HOUR_READING_KEY + "Diff"
+					+ REVERSE_ACCUMULATING_SUFFIX_KEY;
+			case EnergyActiveExportRegister -> EnergyDatum.WATT_HOUR_READING_KEY
+					+ REVERSE_ACCUMULATING_SUFFIX_KEY;
+			case EnergyActiveImportInterval -> EnergyDatum.WATT_HOUR_READING_KEY + "Diff";
+			case EnergyActiveImportRegister -> EnergyDatum.WATT_HOUR_READING_KEY;
+			case EnergyReactiveExportInterval -> "reactiveEnergyDiff" + REVERSE_ACCUMULATING_SUFFIX_KEY;
+			case EnergyReactiveExportRegister -> "reactiveEnergy" + REVERSE_ACCUMULATING_SUFFIX_KEY;
+			case EnergyReactiveImportInterval -> "reactiveEnergyDiff";
+			case EnergyReactiveImportRegister -> "reactiveEnergy";
+			case Frequency -> AcEnergyDatum.FREQUENCY_KEY;
+			case PowerActiveExport -> EnergyDatum.WATTS_KEY + REVERSE_ACCUMULATING_SUFFIX_KEY;
+			case PowerActiveImport -> EnergyDatum.WATTS_KEY;
+			case PowerFactor -> AcEnergyDatum.POWER_FACTOR_KEY;
+			case PowerOffered -> EnergyDatum.WATTS_KEY + "Offered";
+			case PowerReactiveExport -> AcEnergyDatum.REACTIVE_POWER_KEY
+					+ REVERSE_ACCUMULATING_SUFFIX_KEY;
+			case PowerReactiveImport -> AcEnergyDatum.REACTIVE_POWER_KEY;
+			case RPM -> "rpm";
+			case SoC -> "soc";
+			case Temperature -> AtmosphericDatum.TEMPERATURE_KEY;
+			case Voltage -> AcEnergyDatum.VOLTAGE_KEY;
+			default -> null;
+		};
 	}
 
 	// SettingsSpecifierProvider
@@ -783,7 +777,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 
 	/**
 	 * Get the source ID template.
-	 * 
+	 *
 	 * @return the template; defaults to {@link #DEFAULT_SOURCE_ID_TEMPLATE}
 	 */
 	public String getSourceIdTemplate() {
@@ -792,11 +786,11 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 
 	/**
 	 * Set the source ID template.
-	 * 
+	 *
 	 * <p>
 	 * This template string allows for these parameters:
 	 * </p>
-	 * 
+	 *
 	 * <ol>
 	 * <li><code>{chargePointId}</code> - the Charge Point ID (number)</li>
 	 * <li><code>{chargerIdentifier}</code> - the Charge Point info identifier
@@ -805,17 +799,19 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 	 * <li><code>{location}</code> - the location (string)</li>
 	 * <li><code>{phase}</code> - the phase (string)</li>
 	 * </ol>
-	 * 
+	 *
 	 * @param sourceIdTemplate
-	 *        the template to set
+	 *        the template to set; if {@code null} then
+	 *        {@link #DEFAULT_SOURCE_ID_TEMPLATE} will be used
 	 */
 	public void setSourceIdTemplate(String sourceIdTemplate) {
-		this.sourceIdTemplate = sourceIdTemplate;
+		this.sourceIdTemplate = (sourceIdTemplate != null ? sourceIdTemplate
+				: DEFAULT_SOURCE_ID_TEMPLATE);
 	}
 
 	/**
 	 * Get the maximum temperature decimal scale.
-	 * 
+	 *
 	 * @return the maximum scale; defaults to
 	 *         {@link #DEFAULT_MAX_TEMPERATURE_SCALE}
 	 */
@@ -825,12 +821,12 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 
 	/**
 	 * Set the maximum temperature decimal scale.
-	 * 
+	 *
 	 * <p>
 	 * This sets the maximum number of decimal digits for normalized temperature
 	 * values. Set to {@literal -1} for no maximum.
 	 * </p>
-	 * 
+	 *
 	 * @param maxTemperatureScale
 	 *        the maximum scale to set
 	 */
@@ -840,27 +836,27 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 
 	/**
 	 * Get the task scheduler.
-	 * 
+	 *
 	 * @return the task scheduler
 	 */
-	public TaskScheduler getTaskScheduler() {
+	public @Nullable TaskScheduler getTaskScheduler() {
 		return taskScheduler;
 	}
 
 	/**
 	 * Set the task scheduler.
-	 * 
+	 *
 	 * @param taskScheduler
 	 *        the task scheduler to set
 	 */
-	public void setTaskScheduler(TaskScheduler taskScheduler) {
+	public void setTaskScheduler(@Nullable TaskScheduler taskScheduler) {
 		this.taskScheduler = taskScheduler;
 	}
 
 	/**
 	 * Get the number of hours after which posted charge sessions may be purged
 	 * (deleted).
-	 * 
+	 *
 	 * @return the posted charge sessions expiration time, in hours
 	 */
 	public int getPurgePostedChargeSessionsExpirationHours() {
@@ -870,7 +866,7 @@ public class SolarNetChargeSessionManager extends BaseIdentifiable implements Ch
 	/**
 	 * Set the number of hours after which posted charge sessions may be purged
 	 * (deleted).
-	 * 
+	 *
 	 * @param hours
 	 *        posted charge sessions expiration time, in hours
 	 */
