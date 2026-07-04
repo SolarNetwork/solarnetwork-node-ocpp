@@ -27,11 +27,11 @@
 
 	<bean id="ocppObjectMapper" class="net.solarnetwork.ocpp.v16.jakarta.json.BaseActionPayloadDecoder" factory-method="defaultObjectMapper"/>
 	
-	<service interface="net.solarnetwork.service.ObjectMapperService">
+	<service interface="net.solarnetwork.codec.jackson.ObjectMapperService">
 		<service-properties>
 			<entry key="role" value="ocpp"/>
 		</service-properties>
-		<bean class="net.solarnetwork.service.support.SimpleObjectMapperService">
+		<bean class="net.solarnetwork.codec.jackson.SimpleObjectMapperService">
 			<property name="objectMapper" ref="ocppObjectMapper"/>
 		</bean>
 	</service>
