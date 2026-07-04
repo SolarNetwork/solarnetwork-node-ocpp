@@ -1,27 +1,28 @@
 /* ==================================================================
  * ChargePointConfig.java - 13/02/2020 11:46:11 am
- * 
+ *
  * Copyright 2020 SolarNetwork.net Dev Team
- * 
- * This program is free software; you can redistribute it and/or 
- * modify it under the terms of the GNU General Public License as 
- * published by the Free Software Foundation; either version 2 of 
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
  * the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License 
- * along with this program; if not, write to the Free Software 
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
  * 02111-1307 USA
  * ==================================================================
  */
 
 package net.solarnetwork.node.ocpp.v16.cs.controller;
 
+import static net.solarnetwork.util.ObjectUtils.requireNonNullArgument;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -31,6 +32,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 import org.springframework.context.MessageSource;
 import net.solarnetwork.domain.Identity;
 import net.solarnetwork.ocpp.domain.ChargePoint;
@@ -44,7 +46,7 @@ import net.solarnetwork.settings.support.BasicToggleSettingSpecifier;
 
 /**
  * Configuration object for {@link ChargePoint} entities.
- * 
+ *
  * @author matt
  * @version 2.0
  */
@@ -56,32 +58,43 @@ public class ChargePointConfig implements Identity<Long> {
 	 */
 	public static final String DEFAULT_PROPERTY_VALUE = "N/A";
 
-	private Long id;
-	private Instant created;
+	private @Nullable Long id;
+	private @Nullable Instant created;
 	private boolean enabled;
-	private RegistrationStatus registrationStatus;
+	private @Nullable RegistrationStatus registrationStatus;
 	private ChargePointInfo info;
 
 	/**
 	 * Constructor.
 	 */
 	public ChargePointConfig() {
+		this(new ChargePointInfo(null, DEFAULT_PROPERTY_VALUE, DEFAULT_PROPERTY_VALUE));
+	}
+
+	/**
+	 * Constructor.
+	 *
+	 * @param info
+	 *        the info
+	 * @throws IllegalArgumentException
+	 *         if any argument is {@code null}
+	 * @since 2.0
+	 */
+	public ChargePointConfig(ChargePointInfo info) {
 		super();
 		setEnabled(true);
-		ChargePointInfo info = new ChargePointInfo();
-		info.setChargePointVendor(DEFAULT_PROPERTY_VALUE);
-		info.setChargePointModel(DEFAULT_PROPERTY_VALUE);
-		setInfo(info);
+		this.info = requireNonNullArgument(info, "info");
 	}
 
 	/**
 	 * Copy constructor.
-	 * 
+	 *
 	 * @param chargePoint
 	 *        the Charge Point to copy properties from
 	 */
-	public ChargePointConfig(ChargePoint chargePoint) {
-		super();
+	public ChargePointConfig(@Nullable ChargePoint chargePoint) {
+		this(chargePoint != null ? chargePoint.getInfo()
+				: new ChargePointInfo(null, DEFAULT_PROPERTY_VALUE, DEFAULT_PROPERTY_VALUE));
 		if ( chargePoint == null ) {
 			return;
 		}
@@ -89,17 +102,11 @@ public class ChargePointConfig implements Identity<Long> {
 		setCreated(chargePoint.getCreated());
 		setEnabled(chargePoint.isEnabled());
 		setRegistrationStatus(chargePoint.getRegistrationStatus());
-		setInfo(chargePoint.getInfo());
-	}
-
-	@Override
-	public int compareTo(Long o) {
-		return id.compareTo(o);
 	}
 
 	/**
 	 * Get settings for this config.
-	 * 
+	 *
 	 * @param messageSource
 	 *        the message source
 	 * @param locale
@@ -166,46 +173,46 @@ public class ChargePointConfig implements Identity<Long> {
 
 	/**
 	 * Get the ID.
-	 * 
+	 *
 	 * @return the Charge Point ID
 	 */
 	@Override
-	public Long getId() {
+	public @Nullable Long getId() {
 		return id;
 	}
 
 	/**
 	 * Set the ID.
-	 * 
+	 *
 	 * @param id
 	 *        the id to set
 	 */
-	public void setId(Long id) {
+	public void setId(@Nullable Long id) {
 		this.id = id;
 	}
 
 	/**
 	 * Get the creation date.
-	 * 
+	 *
 	 * @return the created
 	 */
-	public Instant getCreated() {
+	public @Nullable Instant getCreated() {
 		return created;
 	}
 
 	/**
 	 * Set the creation date.
-	 * 
+	 *
 	 * @param created
 	 *        the created to set
 	 */
-	public void setCreated(Instant created) {
+	public void setCreated(@Nullable Instant created) {
 		this.created = created;
 	}
 
 	/**
 	 * Get the enabled flag.
-	 * 
+	 *
 	 * @return the enabled flag
 	 */
 	public boolean isEnabled() {
@@ -214,7 +221,7 @@ public class ChargePointConfig implements Identity<Long> {
 
 	/**
 	 * Set the enabled flag.
-	 * 
+	 *
 	 * @param enabled
 	 *        the enabled flag to set
 	 */
@@ -224,26 +231,26 @@ public class ChargePointConfig implements Identity<Long> {
 
 	/**
 	 * Get the registration status.
-	 * 
+	 *
 	 * @return the registrationStatus
 	 */
-	public RegistrationStatus getRegistrationStatus() {
+	public @Nullable RegistrationStatus getRegistrationStatus() {
 		return registrationStatus;
 	}
 
 	/**
 	 * Set the registration status.
-	 * 
+	 *
 	 * @param registrationStatus
 	 *        the registrationStatus to set
 	 */
-	public void setRegistrationStatus(RegistrationStatus registrationStatus) {
+	public void setRegistrationStatus(@Nullable RegistrationStatus registrationStatus) {
 		this.registrationStatus = registrationStatus;
 	}
 
 	/**
 	 * Get the registration status code value.
-	 * 
+	 *
 	 * @return the registration status code
 	 */
 	public int getRegistrationStatusCode() {
@@ -253,7 +260,7 @@ public class ChargePointConfig implements Identity<Long> {
 
 	/**
 	 * Set the registration status as a code value.
-	 * 
+	 *
 	 * @param code
 	 *        the status code to set
 	 */
@@ -263,7 +270,7 @@ public class ChargePointConfig implements Identity<Long> {
 
 	/**
 	 * Get the info.
-	 * 
+	 *
 	 * @return the info
 	 */
 	public ChargePointInfo getInfo() {
@@ -272,7 +279,7 @@ public class ChargePointConfig implements Identity<Long> {
 
 	/**
 	 * Set the info.
-	 * 
+	 *
 	 * @param info
 	 *        the info to set
 	 */

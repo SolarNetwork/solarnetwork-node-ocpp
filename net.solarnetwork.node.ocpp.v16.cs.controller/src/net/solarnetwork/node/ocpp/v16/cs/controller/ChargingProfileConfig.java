@@ -1,21 +1,21 @@
 /* ==================================================================
  * ChargingProfileConfig.java - 19/02/2020 1:32:39 pm
- * 
+ *
  * Copyright 2020 SolarNetwork.net Dev Team
- * 
- * This program is free software; you can redistribute it and/or 
- * modify it under the terms of the GNU General Public License as 
- * published by the Free Software Foundation; either version 2 of 
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
  * the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License 
- * along with this program; if not, write to the Free Software 
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
  * 02111-1307 USA
  * ==================================================================
  */
@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.context.MessageSource;
 import net.solarnetwork.domain.Identity;
 import net.solarnetwork.ocpp.domain.ChargingProfile;
@@ -50,7 +51,7 @@ import net.solarnetwork.settings.support.SettingUtils;
 
 /**
  * Configuration for an {@link net.solarnetwork.ocpp.domain.ChargingProfile}.
- * 
+ *
  * @author matt
  * @version 2.0
  */
@@ -72,27 +73,24 @@ public class ChargingProfileConfig implements Identity<UUID> {
 
 	/**
 	 * Copy constructor.
-	 * 
+	 *
 	 * @param profile
 	 *        the entity to copy values from
 	 */
-	public ChargingProfileConfig(ChargingProfile profile) {
-		super();
+	public ChargingProfileConfig(@Nullable ChargingProfile profile) {
+		this();
 		if ( profile == null ) {
 			return;
 		}
-		this.id = profile.getId();
+		if ( profile.getId() != null ) {
+			this.id = profile.getId();
+		}
 		setInfo(new ChargingProfileInfo(profile.getInfo()));
-	}
-
-	@Override
-	public int compareTo(UUID o) {
-		return id.compareTo(o);
 	}
 
 	/**
 	 * Get the setting specifiers for a {@link ChargingProfileConfig}.
-	 * 
+	 *
 	 * @param prefix
 	 *        the prefix to use for each setting key
 	 * @param messageSource
@@ -177,9 +175,9 @@ public class ChargingProfileConfig implements Identity<UUID> {
 
 					@Override
 					public Collection<SettingSpecifier> mapListSettingKey(
-							ChargingSchedulePeriodInfo value, int index, String key) {
-						return Collections.singletonList(
-								new BasicGroupSettingSpecifier(settings(value, index, key + ".")));
+							@Nullable ChargingSchedulePeriodInfo value, int index, String key) {
+						return Collections.singletonList(new BasicGroupSettingSpecifier(
+								value != null ? settings(value, index, key + ".") : List.of()));
 					}
 				}));
 
@@ -199,15 +197,17 @@ public class ChargingProfileConfig implements Identity<UUID> {
 
 	/**
 	 * Get the ID.
-	 * 
+	 *
 	 * @return the id
 	 */
 	@Override
-	public UUID getId() {
+	public @Nullable UUID getId() {
 		return id;
 	}
 
 	/**
+	 * Get the info.
+	 *
 	 * @return the info
 	 */
 	public ChargingProfileInfo getInfo() {
@@ -215,6 +215,8 @@ public class ChargingProfileConfig implements Identity<UUID> {
 	}
 
 	/**
+	 * Set the info.
+	 *
 	 * @param info
 	 *        the info to set
 	 */

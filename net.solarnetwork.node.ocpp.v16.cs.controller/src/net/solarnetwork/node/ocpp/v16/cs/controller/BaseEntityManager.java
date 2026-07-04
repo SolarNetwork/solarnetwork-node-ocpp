@@ -1,21 +1,21 @@
 /* ==================================================================
  * BaseEntityManager.java - 14/02/2020 7:15:19 am
- * 
+ *
  * Copyright 2020 SolarNetwork.net Dev Team
- * 
- * This program is free software; you can redistribute it and/or 
- * modify it under the terms of the GNU General Public License as 
- * published by the Free Software Foundation; either version 2 of 
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
  * the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License 
- * along with this program; if not, write to the Free Software 
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
  * 02111-1307 USA
  * ==================================================================
  */
@@ -23,6 +23,8 @@
 package net.solarnetwork.node.ocpp.v16.cs.controller;
 
 import static net.solarnetwork.dao.GenericDao.SORT_BY_CREATED_ASCENDING;
+import static net.solarnetwork.util.ObjectUtils.nonnull;
+import static net.solarnetwork.util.ObjectUtils.requireNonNullArgument;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -31,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
@@ -48,38 +51,41 @@ import net.solarnetwork.settings.support.SettingUtils;
 /**
  * Abstract class to help with exposing a DAO as a list of settings that can be
  * managed.
- * 
+ *
  * @author matt
  * @version 2.0
  */
-public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends Entity<K> & Differentiable<T>, K, C extends Identity<K>>
+public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends Entity<K> & Differentiable<T>, K extends Comparable<K>, C extends Identity<K>>
 		implements SettingSpecifierProvider, SettingsChangeObserver {
 
 	/** The DAO. */
 	protected final D dao;
-	private List<C> entities;
-	private MessageSource messageSource;
+
+	private @Nullable List<C> entities;
+	private @Nullable MessageSource messageSource;
 	private int entitiesCount = -1;
-	private List<SortDescriptor> findAllSorts;
+	private @Nullable List<SortDescriptor> findAllSorts;
 
 	/** A class-level logger. */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 
 	/**
 	 * Constructor.
-	 * 
+	 *
 	 * @param dao
 	 *        the entity DAO
+	 * @throws IllegalArgumentException
+	 *         if any argument is {@code null}
 	 */
 	public BaseEntityManager(D dao) {
 		super();
-		this.dao = dao;
+		this.dao = requireNonNullArgument(dao, "dao");
 		this.findAllSorts = SORT_BY_CREATED_ASCENDING;
 	}
 
 	/**
 	 * Create a new entity based on a a configuration.
-	 * 
+	 *
 	 * @param conf
 	 *        the configuration
 	 * @return the new entity
@@ -88,7 +94,7 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 
 	/**
 	 * Clone an entity.
-	 * 
+	 *
 	 * @param entity
 	 *        the entity to clone
 	 * @return the cloned entity
@@ -97,7 +103,7 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 
 	/**
 	 * Apply a configuration to an entity.
-	 * 
+	 *
 	 * @param conf
 	 *        the configuration
 	 * @param entity
@@ -106,7 +112,7 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 	protected abstract void applyConfiguration(C conf, T entity);
 
 	@Override
-	public void configurationChanged(Map<String, Object> properties) {
+	public void configurationChanged(@Nullable Map<String, Object> properties) {
 		if ( properties == null || properties.isEmpty() ) {
 			return;
 		}
@@ -138,18 +144,18 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 	/**
 	 * Test if a configuration should be ignored when looking to persist the
 	 * changes to an entity.
-	 * 
+	 *
 	 * @param conf
 	 *        the configuration
 	 * @return {@literal true} if the configuration should be ignored
 	 */
-	protected boolean shouldIgnoreConfiguration(C conf) {
+	protected boolean shouldIgnoreConfiguration(@Nullable C conf) {
 		return conf == null || conf.getId() == null;
 	}
 
 	/**
 	 * Called to save an entity.
-	 * 
+	 *
 	 * @param conf
 	 *        the configuration that has been applied
 	 * @param entity
@@ -163,7 +169,7 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 
 	/**
 	 * Generate a list of settings for a single entity configuration.
-	 * 
+	 *
 	 * @param conf
 	 *        the entity configuration
 	 * @param index
@@ -184,10 +190,11 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 				new SettingUtils.KeyedListCallback<C>() {
 
 					@Override
-					public Collection<SettingSpecifier> mapListSettingKey(C value, int index,
+					public Collection<SettingSpecifier> mapListSettingKey(@Nullable C value, int index,
 							String key) {
-						return Collections.singletonList(new BasicGroupSettingSpecifier(
-								settingsForConfiguration(value, index, key + ".")));
+						return List.of(new BasicGroupSettingSpecifier(
+								value != null ? settingsForConfiguration(value, index, key + ".")
+										: List.of()));
 					}
 				}));
 
@@ -196,22 +203,22 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 
 	/**
 	 * Get a function that maps from entities to entity entities.
-	 * 
+	 *
 	 * @return the function, e.g. {@code C::new}
 	 */
 	protected abstract Function<? super T, ? extends C> mapToConfiguration();
 
 	/**
 	 * Load all entities.
-	 * 
+	 *
 	 * <p>
 	 * This will update the {@code entities} and {@code entitiesCount}
 	 * properties.
 	 * </p>
-	 * 
+	 *
 	 * @return the loaded entities
 	 */
-	protected List<C> loadEntities() {
+	protected synchronized List<C> loadEntities() {
 		Collection<T> result = dao.getAll(this.findAllSorts);
 		List<C> configs = (result != null
 				? result.stream().map(mapToConfiguration()).collect(Collectors.toList())
@@ -228,50 +235,61 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 	}
 
 	/**
+	 * Get the message source, assumed non-null.
+	 *
+	 * @return the message source
+	 * @throws IllegalStateException
+	 *         if {@code messageSource} is {@code null}
+	 */
+	protected MessageSource messageSource() {
+		return nonnull(messageSource, "MessageSource");
+	}
+
+	/**
 	 * Get the message source.
-	 * 
+	 *
 	 * @return the message source
 	 */
 	@Override
-	public MessageSource getMessageSource() {
+	public @Nullable MessageSource getMessageSource() {
 		return messageSource;
 	}
 
 	/**
 	 * Set the message source.
-	 * 
+	 *
 	 * @param messageSource
 	 *        the message source to set
 	 */
-	public void setMessageSource(MessageSource messageSource) {
+	public void setMessageSource(@Nullable MessageSource messageSource) {
 		this.messageSource = messageSource;
 	}
 
 	/**
 	 * Get the list of entity entities.
-	 * 
+	 *
 	 * @return the entities
 	 */
 	public synchronized List<C> getEntities() {
 		if ( entities == null ) {
 			loadEntities();
 		}
-		return entities;
+		return nonnull(entities, "Entities");
 	}
 
 	/**
 	 * Set the list of entity entities.
-	 * 
+	 *
 	 * @param entities
 	 *        the entities to set
 	 */
-	public synchronized void setEntities(List<C> entities) {
+	public synchronized void setEntities(@Nullable List<C> entities) {
 		this.entities = entities;
 	}
 
 	/**
 	 * Get the count of entity entities.
-	 * 
+	 *
 	 * @return the configuration count
 	 */
 	public synchronized int getEntitiesCount() {
@@ -283,27 +301,27 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 
 	/**
 	 * Create a new entity configuration instance.
-	 * 
+	 *
 	 * @return the new instance
 	 */
 	protected abstract C createNewConfiguration();
 
 	/**
 	 * Adjust the number of configured entity entities.
-	 * 
+	 *
 	 * <p>
 	 * Any newly added element values will be set to
 	 * {@link #createNewConfiguration()} instances.
 	 * </p>
-	 * 
+	 *
 	 * @param count
 	 *        the desired number of elements
 	 */
 	public void setEntitiesCount(int count) {
-		List<C> confs = (entitiesCount < 0 ? loadEntities() : entities);
+		List<C> confs = nonnull(entitiesCount < 0 ? loadEntities() : entities, "Entities");
 		this.entitiesCount = count;
 
-		int currCount = (confs != null ? confs.size() : 0);
+		int currCount = confs.size();
 		if ( currCount == count ) {
 			return;
 		}
@@ -318,20 +336,20 @@ public abstract class BaseEntityManager<D extends GenericDao<T, K>, T extends En
 
 	/**
 	 * Get the configured query sort orders.
-	 * 
+	 *
 	 * @return the sort orders
 	 */
-	public List<SortDescriptor> getFindAllSorts() {
+	public @Nullable List<SortDescriptor> getFindAllSorts() {
 		return findAllSorts;
 	}
 
 	/**
 	 * Set the "find all" query sort orders.
-	 * 
+	 *
 	 * @param findAllSorts
 	 *        the sorts to set
 	 */
-	public void setFindAllSorts(List<SortDescriptor> findAllSorts) {
+	public void setFindAllSorts(@Nullable List<SortDescriptor> findAllSorts) {
 		this.findAllSorts = findAllSorts;
 	}
 

@@ -1,21 +1,21 @@
 /* ==================================================================
  * OcppControllerService.java - 6/02/2020 5:18:34 pm
- * 
+ *
  * Copyright 2020 SolarNetwork.net Dev Team
- * 
- * This program is free software; you can redistribute it and/or 
- * modify it under the terms of the GNU General Public License as 
- * published by the Free Software Foundation; either version 2 of 
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
  * the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License 
- * along with this program; if not, write to the Free Software 
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
  * 02111-1307 USA
  * ==================================================================
  */
@@ -24,6 +24,7 @@ package net.solarnetwork.node.ocpp.v16.cs.controller;
 
 import static net.solarnetwork.node.reactor.InstructionUtils.createErrorResultParameters;
 import static net.solarnetwork.node.reactor.InstructionUtils.createStatus;
+import static net.solarnetwork.util.ObjectUtils.nonnull;
 import static net.solarnetwork.util.ObjectUtils.requireNonNullArgument;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -39,16 +40,17 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.MessageSource;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionCallbackWithoutResult;
 import org.springframework.transaction.support.TransactionTemplate;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import net.solarnetwork.codec.JsonUtils;
+import net.solarnetwork.codec.jackson.JsonUtils;
 import net.solarnetwork.domain.InstructionStatus.InstructionState;
 import net.solarnetwork.node.reactor.Instruction;
 import net.solarnetwork.node.reactor.InstructionHandler;
@@ -57,6 +59,7 @@ import net.solarnetwork.node.service.support.BaseIdentifiable;
 import net.solarnetwork.ocpp.dao.AuthorizationDao;
 import net.solarnetwork.ocpp.dao.ChargePointConnectorDao;
 import net.solarnetwork.ocpp.dao.ChargePointDao;
+import net.solarnetwork.ocpp.domain.Action;
 import net.solarnetwork.ocpp.domain.ActionMessage;
 import net.solarnetwork.ocpp.domain.Authorization;
 import net.solarnetwork.ocpp.domain.AuthorizationInfo;
@@ -67,33 +70,34 @@ import net.solarnetwork.ocpp.domain.ChargePointConnector;
 import net.solarnetwork.ocpp.domain.ChargePointConnectorKey;
 import net.solarnetwork.ocpp.domain.ChargePointIdentity;
 import net.solarnetwork.ocpp.domain.ChargePointInfo;
+import net.solarnetwork.ocpp.domain.ErrorCodeException;
 import net.solarnetwork.ocpp.domain.RegistrationStatus;
 import net.solarnetwork.ocpp.domain.StatusNotification;
+import net.solarnetwork.ocpp.json.ActionPayloadDecoder;
 import net.solarnetwork.ocpp.service.ActionMessageResultHandler;
 import net.solarnetwork.ocpp.service.AuthorizationService;
 import net.solarnetwork.ocpp.service.ChargePointBroker;
 import net.solarnetwork.ocpp.service.ChargePointRouter;
 import net.solarnetwork.ocpp.service.cs.ChargePointManager;
 import net.solarnetwork.ocpp.util.OcppInstructionUtils;
+import net.solarnetwork.ocpp.v16.jakarta.ActionErrorCode;
+import net.solarnetwork.ocpp.v16.jakarta.ChargePointAction;
+import net.solarnetwork.ocpp.v16.jakarta.ConfigurationKey;
+import net.solarnetwork.ocpp.v16.jakarta.json.BaseActionPayloadDecoder;
 import net.solarnetwork.security.AuthorizationException;
 import net.solarnetwork.security.AuthorizationException.Reason;
 import net.solarnetwork.settings.SettingSpecifier;
 import net.solarnetwork.settings.SettingSpecifierProvider;
 import net.solarnetwork.settings.support.BasicGroupSettingSpecifier;
 import net.solarnetwork.settings.support.BasicTitleSettingSpecifier;
-import ocpp.domain.Action;
-import ocpp.domain.ErrorCodeException;
-import ocpp.json.ActionPayloadDecoder;
-import ocpp.v16.ActionErrorCode;
-import ocpp.v16.ChargePointAction;
-import ocpp.v16.ConfigurationKey;
-import ocpp.v16.cp.GetConfigurationRequest;
-import ocpp.v16.cp.GetConfigurationResponse;
-import ocpp.v16.cp.KeyValue;
+import ocpp.v16.jakarta.cp.GetConfigurationRequest;
+import ocpp.v16.jakarta.cp.GetConfigurationResponse;
+import ocpp.v16.jakarta.cp.KeyValue;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * API for an OCPP v1.6 local controller service.
- * 
+ *
  * @author matt
  * @version 2.0
  */
@@ -108,16 +112,16 @@ public class OcppControllerService extends BaseIdentifiable implements ChargePoi
 	private final AuthorizationDao authorizationDao;
 	private final ChargePointDao chargePointDao;
 	private final ChargePointConnectorDao chargePointConnectorDao;
-	private ObjectMapper objectMapper;
-	private ActionPayloadDecoder chargePointActionPayloadDecoder;
+	private @Nullable ObjectMapper objectMapper;
+	private @Nullable ActionPayloadDecoder chargePointActionPayloadDecoder;
 	private RegistrationStatus initialRegistrationStatus;
-	private TransactionTemplate transactionTemplate;
+	private @Nullable TransactionTemplate transactionTemplate;
 
 	private final Logger log = LoggerFactory.getLogger(getClass());
 
 	/**
 	 * Constructor.
-	 * 
+	 *
 	 * @param executor
 	 *        a task runner
 	 * @param chargePointRouter
@@ -141,7 +145,7 @@ public class OcppControllerService extends BaseIdentifiable implements ChargePoi
 		this.chargePointDao = requireNonNullArgument(chargePointDao, "chargePointDao");
 		this.chargePointConnectorDao = requireNonNullArgument(chargePointConnectorDao,
 				"chargePointConnectorDao");
-		this.objectMapper = ocpp.json.support.BaseActionPayloadDecoder.defaultObjectMapper();
+		this.objectMapper = BaseActionPayloadDecoder.defaultObjectMapper();
 		this.initialRegistrationStatus = DEFAULT_INITIAL_REGISTRATION_STATUS;
 	}
 
@@ -172,7 +176,7 @@ public class OcppControllerService extends BaseIdentifiable implements ChargePoi
 		ChargePoint cp = new ChargePoint(null, Instant.now(), info);
 		cp.setEnabled(true);
 		cp.setRegistrationStatus(getInitialRegistrationStatus());
-		return chargePointDao.get(chargePointDao.save(cp));
+		return nonnull(chargePointDao.get(chargePointDao.save(cp)), "ChargePoint");
 	}
 
 	private ChargePoint updateChargePointInfo(ChargePoint cp, ChargePointInfo info) {
@@ -203,10 +207,10 @@ public class OcppControllerService extends BaseIdentifiable implements ChargePoi
 		}
 		log.info("Received Charge Point {} status: {}", identity, info);
 		if ( info.getConnectorId() == 0 ) {
-			chargePointConnectorDao.updateChargePointStatus(chargePoint.getId(), info.getConnectorId(),
-					info.getStatus());
+			chargePointConnectorDao.updateChargePointStatus(chargePoint.id(), info.getEvseId(),
+					info.getConnectorId(), requireNonNullArgument(info.getStatus(), "info.status"));
 		} else {
-			chargePointConnectorDao.saveStatusInfo(chargePoint.getId(), info);
+			chargePointConnectorDao.saveStatusInfo(chargePoint.id(), info);
 		}
 	}
 
@@ -219,7 +223,7 @@ public class OcppControllerService extends BaseIdentifiable implements ChargePoi
 
 					@Override
 					protected void doInTransactionWithoutResult(TransactionStatus status) {
-						ChargePoint cp = chargePointDao.get(chargePoint.getId());
+						ChargePoint cp = nonnull(chargePointDao.get(chargePoint.id()), "ChargePoint");
 						ChargePoint orig = new ChargePoint(cp);
 						KeyValue numConnsKey = confs.getConfigurationKey().stream()
 								.filter(k -> ConfigurationKey.NumberOfConnectors.getName()
@@ -235,18 +239,18 @@ public class OcppControllerService extends BaseIdentifiable implements ChargePoi
 						}
 						if ( !cp.isSameAs(orig) ) {
 							chargePointDao.save(cp);
-							log.info("Saved configuration changes to Charge Point {}", cp.getId());
+							log.info("Saved configuration changes to Charge Point {}", cp.id());
 						}
 
 						// add missing ChargePointConnector entities; remove excess
 						Collection<ChargePointConnector> connectors = chargePointConnectorDao
-								.findByChargePointId(cp.getId());
-						Map<Integer, ChargePointConnector> existing = connectors.stream().collect(
-								Collectors.toMap(cpc -> cpc.getId().getConnectorId(), cpc -> cpc));
+								.findByChargePointId(cp.id());
+						Map<Integer, ChargePointConnector> existing = connectors.stream()
+								.collect(Collectors.toMap(cpc -> cpc.id().getConnectorId(), cpc -> cpc));
 						for ( int i = 1; i <= cp.getConnectorCount(); i++ ) {
 							if ( !existing.containsKey(i) ) {
 								ChargePointConnector conn = new ChargePointConnector(
-										new ChargePointConnectorKey(cp.getId(), i), Instant.now());
+										new ChargePointConnectorKey(cp.id(), i), Instant.now());
 								conn.setInfo(StatusNotification.builder().withConnectorId(i)
 										.withTimestamp(conn.getCreated()).build());
 								log.info("Creating ChargePointConnector {} for Charge Point {}", i,
@@ -276,7 +280,8 @@ public class OcppControllerService extends BaseIdentifiable implements ChargePoi
 	}
 
 	@Override
-	public AuthorizationInfo authorize(final ChargePointIdentity clientId, final String idTag) {
+	public AuthorizationInfo authorize(final @Nullable ChargePointIdentity clientId,
+			final String idTag) {
 		Authorization auth = null;
 		if ( clientId != null && idTag != null ) {
 			auth = authorizationDao.getForToken(idTag);
@@ -297,7 +302,7 @@ public class OcppControllerService extends BaseIdentifiable implements ChargePoi
 		return result.build();
 	}
 
-	private <T> T tryWithTransaction(TransactionCallback<T> tx) {
+	private <T> @Nullable T tryWithTransaction(TransactionCallback<T> tx) {
 		final TransactionTemplate tt = getTransactionTemplate();
 		if ( tt != null ) {
 			return tt.execute(tx);
@@ -325,12 +330,12 @@ public class OcppControllerService extends BaseIdentifiable implements ChargePoi
 	}
 
 	@Override
-	public boolean handlesTopic(String topic) {
+	public boolean handlesTopic(@Nullable String topic) {
 		return OcppInstructionUtils.OCPP_V16_TOPIC.equals(topic);
 	}
 
 	@Override
-	public InstructionStatus processInstruction(Instruction instruction) {
+	public @Nullable InstructionStatus processInstruction(Instruction instruction) {
 		if ( instruction == null || !handlesTopic(instruction.getTopic()) ) {
 			return null;
 		}
@@ -348,8 +353,10 @@ public class OcppControllerService extends BaseIdentifiable implements ChargePoi
 			return createStatus(instruction, InstructionState.Declined, createErrorResultParameters(
 					"ChargePoint not specified or not available.", "OCS.IST.00002"));
 		}
-		return OcppInstructionUtils.decodeJsonOcppInstructionMessage(objectMapper, action, params,
-				chargePointActionPayloadDecoder, (e, jsonPayload, payload) -> {
+		return OcppInstructionUtils.decodeJsonOcppInstructionMessage(
+				nonnull(objectMapper, "ObjectMapper"), action, params,
+				nonnull(chargePointActionPayloadDecoder, "ChargePointActionPayloadDecoder"),
+				(e, jsonPayload, payload) -> {
 					if ( e != null ) {
 						Throwable root = e;
 						while ( root.getCause() != null ) {
@@ -360,7 +367,11 @@ public class OcppControllerService extends BaseIdentifiable implements ChargePoi
 										"Error decoding OCPP action message: " + root.getMessage(),
 										"OCS.IST.00003"));
 					}
-
+					if ( jsonPayload == null || payload == null ) {
+						return createStatus(instruction, InstructionState.Declined,
+								createErrorResultParameters("No OCPP message payload.",
+										"OCS.IST.00005"));
+					}
 					log.info("Sending OCPPv16 {} to charge point {}", action, cpIdent.getIdentifier());
 					CompletableFuture<InstructionStatus> result = new CompletableFuture<>();
 					sendToChargePoint(cpIdent, action, payload,
@@ -397,7 +408,8 @@ public class OcppControllerService extends BaseIdentifiable implements ChargePoi
 			} else {
 				Map<String, Object> resultParameters = null;
 				if ( res != null ) {
-					resultParameters = JsonUtils.getStringMapFromTree(objectMapper.valueToTree(res));
+					resultParameters = JsonUtils.getStringMapFromTree(
+							nonnull(objectMapper, "ObjectMapper").valueToTree(res));
 				}
 				log.info("Sent OCPPv16 {} to charge point {}", action, cpIdent);
 				result.complete(createStatus(instruction, InstructionState.Completed, resultParameters));
@@ -406,17 +418,20 @@ public class OcppControllerService extends BaseIdentifiable implements ChargePoi
 		};
 	}
 
-	private ChargePoint chargePointForParameters(Map<String, String> parameters) {
+	private @Nullable ChargePoint chargePointForParameters(@Nullable Map<String, String> parameters) {
 		ChargePoint result = null;
-		try {
-			Long id = Long.valueOf(parameters.remove(OcppInstructionUtils.OCPP_CHARGE_POINT_ID_PARAM));
-			result = chargePointDao.get(id);
-		} catch ( NumberFormatException e ) {
-			// try via identifier
-			String ident = parameters.remove(OcppInstructionUtils.OCPP_CHARGER_IDENTIFIER_PARAM);
-			if ( ident != null ) {
-				result = chargePointDao
-						.getForIdentity(new ChargePointIdentity(ident, ChargePointIdentity.ANY_USER));
+		if ( parameters != null ) {
+			try {
+				Long id = Long
+						.valueOf(parameters.remove(OcppInstructionUtils.OCPP_CHARGE_POINT_ID_PARAM));
+				result = chargePointDao.get(id);
+			} catch ( NumberFormatException e ) {
+				// try via identifier
+				String ident = parameters.remove(OcppInstructionUtils.OCPP_CHARGER_IDENTIFIER_PARAM);
+				if ( ident != null ) {
+					result = chargePointDao.getForIdentity(
+							new ChargePointIdentity(ident, ChargePointIdentity.ANY_USER));
+				}
 			}
 		}
 		return result;
@@ -429,7 +444,7 @@ public class OcppControllerService extends BaseIdentifiable implements ChargePoi
 
 	@Override
 	public List<SettingSpecifier> getSettingSpecifiers() {
-		List<SettingSpecifier> results = new ArrayList<SettingSpecifier>(8);
+		List<SettingSpecifier> results = new ArrayList<>(8);
 
 		Set<ChargePointIdentity> availableChargePointIds;
 		try {
@@ -447,8 +462,9 @@ public class OcppControllerService extends BaseIdentifiable implements ChargePoi
 
 		List<SettingSpecifier> cpSettings = new ArrayList<>(chargePoints.size());
 		for ( ChargePoint cp : chargePoints ) {
-			cpSettings.add(new BasicTitleSettingSpecifier(cp.getInfo().getId(),
-					chargePointStatus(cp, availableChargePointIds), true));
+			cpSettings.add(
+					new BasicTitleSettingSpecifier(nonnull(cp.getInfo().getId(), "ChargePointInfo ID"),
+							chargePointStatus(cp, availableChargePointIds), true));
 		}
 		results.add(new BasicGroupSettingSpecifier("chargePoints", cpSettings));
 
@@ -456,20 +472,20 @@ public class OcppControllerService extends BaseIdentifiable implements ChargePoi
 	}
 
 	private String chargePointStatus(ChargePoint cp, Set<ChargePointIdentity> availableChargePointIds) {
-		StringBuilder buf = new StringBuilder();
-		ChargePointIdentity identity = cp.chargePointIdentity();
+		final StringBuilder buf = new StringBuilder();
+		final ChargePointIdentity identity = cp.chargePointIdentity();
+		final MessageSource messageSource = messageSource();
 		buf.append(availableChargePointIds.contains(identity)
-				? getMessageSource().getMessage("connected.label", null, "Connected",
-						Locale.getDefault())
-				: getMessageSource().getMessage("disconnected.label", null, "Not connected",
+				? messageSource.getMessage("connected.label", null, "Connected", Locale.getDefault())
+				: messageSource.getMessage("disconnected.label", null, "Not connected",
 						Locale.getDefault()));
-		buf.append("; ").append(getMessageSource().getMessage("registrationStatus.label", null,
+		buf.append("; ").append(messageSource.getMessage("registrationStatus.label", null,
 				"Registration status", Locale.getDefault())).append(": ");
 		RegistrationStatus regStatus = cp.getRegistrationStatus();
 		if ( regStatus == null ) {
 			regStatus = RegistrationStatus.Unknown;
 		}
-		buf.append(getMessageSource().getMessage("registrationStatus." + regStatus.name(), null,
+		buf.append(messageSource.getMessage("registrationStatus." + regStatus.name(), null,
 				regStatus.toString(), Locale.getDefault()));
 
 		return buf.toString();
@@ -478,7 +494,7 @@ public class OcppControllerService extends BaseIdentifiable implements ChargePoi
 	/**
 	 * Get the initial {@link RegistrationStatus} to use for newly registered
 	 * charge points.
-	 * 
+	 *
 	 * @return the status, never {@literal null}
 	 */
 	public RegistrationStatus getInitialRegistrationStatus() {
@@ -488,75 +504,71 @@ public class OcppControllerService extends BaseIdentifiable implements ChargePoi
 	/**
 	 * Set the initial {@link RegistrationStatus} to use for newly registered
 	 * charge points.
-	 * 
+	 *
 	 * @param initialRegistrationStatus
-	 *        the status to set
-	 * @throws IllegalArgumentException
-	 *         if {@code initialRegistrationStatus} is {@literal null}
+	 *        the status to set; if {@code null} then
+	 *        {@link #DEFAULT_INITIAL_REGISTRATION_STATUS} will be used
 	 */
 	public void setInitialRegistrationStatus(RegistrationStatus initialRegistrationStatus) {
-		if ( initialRegistrationStatus == null ) {
-			throw new IllegalArgumentException(
-					"The initialRegistrationStatus parameter must not be null.");
-		}
-		this.initialRegistrationStatus = initialRegistrationStatus;
+		this.initialRegistrationStatus = (initialRegistrationStatus != null ? initialRegistrationStatus
+				: DEFAULT_INITIAL_REGISTRATION_STATUS);
 	}
 
 	/**
 	 * Get the ChargePoint action payload decoder.
-	 * 
+	 *
 	 * @return the decoder
 	 */
-	public ActionPayloadDecoder getChargePointActionPayloadDecoder() {
+	public @Nullable ActionPayloadDecoder getChargePointActionPayloadDecoder() {
 		return chargePointActionPayloadDecoder;
 	}
 
 	/**
 	 * Set the ChargePoint action payload decoder.
-	 * 
+	 *
 	 * @param chargePointActionPayloadDecoder
 	 *        the decoder
 	 */
 	public void setChargePointActionPayloadDecoder(
-			ActionPayloadDecoder chargePointActionPayloadDecoder) {
+			@Nullable ActionPayloadDecoder chargePointActionPayloadDecoder) {
 		this.chargePointActionPayloadDecoder = chargePointActionPayloadDecoder;
 	}
 
 	/**
 	 * Get the {@link ObjectMapper}.
-	 * 
+	 *
 	 * @return the mapper
 	 */
-	public ObjectMapper getObjectMapper() {
+	public @Nullable ObjectMapper getObjectMapper() {
 		return objectMapper;
 	}
 
 	/**
 	 * Set the {@link ObjectMapper} to use.
-	 * 
+	 *
 	 * @param objectMapper
 	 *        the mapper
 	 */
-	public void setObjectMapper(ObjectMapper objectMapper) {
+	public void setObjectMapper(@Nullable ObjectMapper objectMapper) {
 		this.objectMapper = objectMapper;
 	}
 
 	/**
 	 * Get the configured transaction template.
-	 * 
+	 *
 	 * @return the transaction template
 	 */
-	public TransactionTemplate getTransactionTemplate() {
+	public @Nullable TransactionTemplate getTransactionTemplate() {
 		return transactionTemplate;
 	}
 
 	/**
 	 * Set the transaction template to use.
-	 * 
+	 *
 	 * @param transactionTemplate
 	 *        the transaction template to set
 	 */
-	public void setTransactionTemplate(TransactionTemplate transactionTemplate) {
+	public void setTransactionTemplate(@Nullable TransactionTemplate transactionTemplate) {
 		this.transactionTemplate = transactionTemplate;
 	}
 

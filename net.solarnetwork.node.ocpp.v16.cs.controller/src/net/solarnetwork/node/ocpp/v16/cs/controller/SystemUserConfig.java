@@ -1,21 +1,21 @@
 /* ==================================================================
  * SystemUserConfig.java - 20/02/2020 7:53:41 pm
- * 
+ *
  * Copyright 2020 SolarNetwork.net Dev Team
- * 
- * This program is free software; you can redistribute it and/or 
- * modify it under the terms of the GNU General Public License as 
- * published by the Free Software Foundation; either version 2 of 
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
  * the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License 
- * along with this program; if not, write to the Free Software 
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
  * 02111-1307 USA
  * ==================================================================
  */
@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import org.jspecify.annotations.Nullable;
 import net.solarnetwork.domain.Identity;
 import net.solarnetwork.ocpp.domain.SystemUser;
 import net.solarnetwork.settings.SettingSpecifier;
@@ -35,16 +36,16 @@ import net.solarnetwork.settings.support.SettingUtils;
 
 /**
  * Configuration object for {@link SystemUser}.
- * 
+ *
  * @author matt
  * @version 2.0
  */
 public class SystemUserConfig implements Identity<Long> {
 
-	private Long id;
-	private String username;
-	private String password;
-	private List<String> allowedChargePoints;
+	private @Nullable Long id;
+	private @Nullable String username;
+	private @Nullable String password;
+	private @Nullable List<String> allowedChargePoints;
 
 	/**
 	 * Constructor.
@@ -55,7 +56,7 @@ public class SystemUserConfig implements Identity<Long> {
 
 	/**
 	 * Copy constructor.
-	 * 
+	 *
 	 * @param entity
 	 *        the authorization entity to copy values from
 	 */
@@ -75,7 +76,7 @@ public class SystemUserConfig implements Identity<Long> {
 
 	/**
 	 * Get the setting specifiers for an {@link AuthorizationConfig}.
-	 * 
+	 *
 	 * @param prefix
 	 *        the prefix to use for each setting key
 	 * @return the settings
@@ -98,8 +99,8 @@ public class SystemUserConfig implements Identity<Long> {
 				new SettingUtils.KeyedListCallback<String>() {
 
 					@Override
-					public Collection<SettingSpecifier> mapListSettingKey(String value, int index,
-							String key) {
+					public Collection<SettingSpecifier> mapListSettingKey(@Nullable String value,
+							int index, String key) {
 						return Collections.<SettingSpecifier> singletonList(
 								new BasicTextFieldSettingSpecifier(key, value));
 					}
@@ -108,85 +109,80 @@ public class SystemUserConfig implements Identity<Long> {
 	}
 
 	@Override
-	public int compareTo(Long o) {
-		return id.compareTo(o);
-	}
-
-	@Override
-	public Long getId() {
+	public @Nullable Long getId() {
 		return id;
 	}
 
 	/**
 	 * Set the ID.
-	 * 
+	 *
 	 * @param id
 	 *        the id to set
 	 */
-	public void setId(Long id) {
+	public void setId(@Nullable Long id) {
 		this.id = id;
 	}
 
 	/**
 	 * Get the username.
-	 * 
+	 *
 	 * @return the username
 	 */
-	public String getUsername() {
+	public @Nullable String getUsername() {
 		return username;
 	}
 
 	/**
 	 * Set the username.
-	 * 
+	 *
 	 * @param username
 	 *        the username to set
 	 */
-	public void setUsername(String username) {
+	public void setUsername(@Nullable String username) {
 		this.username = username;
 	}
 
 	/**
 	 * Get the password.
-	 * 
+	 *
 	 * @return the password
 	 */
-	public String getPassword() {
+	public @Nullable String getPassword() {
 		return password;
 	}
 
 	/**
 	 * Set the password.
-	 * 
+	 *
 	 * @param password
 	 *        the password to set
 	 */
-	public void setPassword(String password) {
+	public void setPassword(@Nullable String password) {
 		this.password = password;
 	}
 
 	/**
 	 * Get the allowed charge point IDs.
-	 * 
+	 *
 	 * @return the charge point IDs
 	 */
-	public List<String> getAllowedChargePoints() {
+	public @Nullable List<String> getAllowedChargePoints() {
 		return allowedChargePoints;
 	}
 
 	/**
 	 * Set the allowed charge point IDs.
-	 * 
+	 *
 	 * @param allowedChargePoints
 	 *        the charge point IDs to set
 	 */
-	public void setAllowedChargePoints(List<String> allowedChargePoints) {
+	public void setAllowedChargePoints(@Nullable List<String> allowedChargePoints) {
 		this.allowedChargePoints = allowedChargePoints;
 	}
 
 	/**
 	 * Get the count of allowed charge points.
-	 * 
+	 *
 	 * @return the count
 	 */
 	public int getAllowedChargePointsCount() {
@@ -196,7 +192,7 @@ public class SystemUserConfig implements Identity<Long> {
 
 	/**
 	 * Adjust the number of configured allowed charge points.
-	 * 
+	 *
 	 * @param count
 	 *        the desired number of elements
 	 */
@@ -214,7 +210,7 @@ public class SystemUserConfig implements Identity<Long> {
 			list.add("");
 			currCount++;
 		}
-		while ( currCount > count ) {
+		while ( list != null && currCount > count ) {
 			list.remove(--currCount);
 		}
 	}
