@@ -1,27 +1,30 @@
 /* ==================================================================
  * JdbcChargeSessionDaoTests.java - 10/02/2020 11:40:37 am
- * 
+ *
  * Copyright 2020 SolarNetwork.net Dev Team
- * 
- * This program is free software; you can redistribute it and/or 
- * modify it under the terms of the GNU General Public License as 
- * published by the Free Software Foundation; either version 2 of 
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
  * the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License 
- * along with this program; if not, write to the Free Software 
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
  * 02111-1307 USA
  * ==================================================================
  */
 
 package net.solarnetwork.node.ocpp.dao.jdbc.test;
 
+import static org.assertj.core.api.BDDAssertions.from;
+import static org.assertj.core.api.BDDAssertions.then;
+import static org.assertj.core.api.InstanceOfAssertFactories.STRING;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
@@ -38,8 +41,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import org.junit.Before;
 import org.junit.Test;
+import org.springframework.test.context.transaction.BeforeTransaction;
 import net.solarnetwork.node.dao.jdbc.DatabaseSetup;
 import net.solarnetwork.node.ocpp.dao.jdbc.JdbcChargePointDao;
 import net.solarnetwork.node.ocpp.dao.jdbc.JdbcChargeSessionDao;
@@ -57,7 +60,7 @@ import net.solarnetwork.ocpp.domain.UnitOfMeasure;
 
 /**
  * Test cases for the {@link JdbcChargeSessionDao}.
- * 
+ *
  * @author matt
  * @version 2.0
  */
@@ -68,7 +71,7 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 	private JdbcChargeSessionDao dao;
 	private ChargeSession last;
 
-	@Before
+	@BeforeTransaction
 	public void setup() {
 		DatabaseSetup setup = new DatabaseSetup();
 		setup.setDataSource(dataSource);
@@ -97,7 +100,7 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 	private ChargeSession createTestChargeSession(long chargePointId) {
 		ChargeSession sess = new ChargeSession(UUID.randomUUID(),
 				Instant.ofEpochMilli(System.currentTimeMillis()),
-				UUID.randomUUID().toString().substring(0, 20), chargePointId, 1, 0);
+				UUID.randomUUID().toString().substring(0, 20), chargePointId, 0, 1, "");
 		return sess;
 	}
 
@@ -124,14 +127,31 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 
 	@Test
 	public void getByPK() {
+		// GIVEN
 		insert();
-		ChargeSession entity = dao.get(last.getId());
 
-		assertThat("ID", entity.getId(), equalTo(last.getId()));
-		assertThat("Created", entity.getCreated(), equalTo(last.getCreated()));
-		assertThat("Auth ID", entity.getAuthId(), equalTo(last.getAuthId()));
-		assertThat("Conn ID", entity.getConnectorId(), equalTo(last.getConnectorId()));
-		assertThat("Transaction ID generated", entity.getTransactionId(), greaterThan(0));
+		// WHEN
+		final ChargeSession entity = dao.get(last.getId());
+
+		// @formatter:off
+		then(entity)
+			.as("Entity returned")
+			.isNotNull()
+			.as("ID")
+			.returns(last.getId(), from(ChargeSession::getId))
+			.as("Created")
+			.returns(last.getCreated(), from(ChargeSession::getCreated))
+			.as("Auth ID")
+			.returns(last.getAuthId(), from(ChargeSession::getAuthId))
+			.as("EVSE ID")
+			.returns(last.getEvseId(), from(ChargeSession::getEvseId))
+			.as("Conn ID")
+			.returns(last.getConnectorId(), from(ChargeSession::getConnectorId))
+			.extracting(ChargeSession::getTransactionId, STRING)
+			.as("Transaction ID generated")
+			.isNotEmpty()
+			;
+		// @formatter:on
 	}
 
 	@Test
@@ -152,7 +172,7 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 
 	@Test
 	public void findIncomplete_tx_none() {
-		ChargeSession sess = dao.getIncompleteChargeSessionForTransaction(1L, 1);
+		ChargeSession sess = dao.getIncompleteChargeSessionForTransaction(1L, "1");
 		assertThat("No incomplete session found", sess, nullValue());
 	}
 
@@ -160,7 +180,7 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 	public void findIncomplete_tx_noMatchingId() {
 		insert();
 		ChargeSession sess = dao.getIncompleteChargeSessionForTransaction(last.getChargePointId() - 1,
-				1);
+				"1");
 		assertThat("No incomplete session found", sess, nullValue());
 	}
 
@@ -193,7 +213,7 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 		insert();
 
 		ChargeSession sess = dao.getIncompleteChargeSessionForConnector(last.getChargePointId(),
-				last.getConnectorId());
+				last.getEvseId(), last.getConnectorId());
 		assertThat("Incomplete session found", sess, equalTo(last));
 	}
 
@@ -201,8 +221,8 @@ public class JdbcChargeSessionDaoTests extends AbstractNodeTransactionalTest {
 	public void findIncompletes_conn() {
 		insert();
 
-		Collection<ChargeSession> sess = dao
-				.getIncompleteChargeSessionsForConnector(last.getChargePointId(), last.getConnectorId());
+		Collection<ChargeSession> sess = dao.getIncompleteChargeSessionsForConnector(
+				last.getChargePointId(), last.getEvseId(), last.getConnectorId());
 		assertThat("Incomplete sessions found", sess, hasSize(1));
 		assertThat("Incomplete session found", sess, contains(last));
 	}

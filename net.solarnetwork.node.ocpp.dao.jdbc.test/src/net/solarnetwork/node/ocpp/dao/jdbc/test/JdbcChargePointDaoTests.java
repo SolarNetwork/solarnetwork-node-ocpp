@@ -1,21 +1,21 @@
 /* ==================================================================
  * JdbcChargePointDaoTests.java - 7/02/2020 12:22:50 pm
- * 
+ *
  * Copyright 2020 SolarNetwork.net Dev Team
- * 
- * This program is free software; you can redistribute it and/or 
- * modify it under the terms of the GNU General Public License as 
- * published by the Free Software Foundation; either version 2 of 
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
  * the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License 
- * along with this program; if not, write to the Free Software 
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
  * 02111-1307 USA
  * ==================================================================
  */
@@ -30,8 +30,8 @@ import static org.junit.Assert.assertThat;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.UUID;
-import org.junit.Before;
 import org.junit.Test;
+import org.springframework.test.context.transaction.BeforeTransaction;
 import net.solarnetwork.node.dao.jdbc.DatabaseSetup;
 import net.solarnetwork.node.ocpp.dao.jdbc.JdbcChargePointDao;
 import net.solarnetwork.node.test.AbstractNodeTransactionalTest;
@@ -42,7 +42,7 @@ import net.solarnetwork.ocpp.domain.RegistrationStatus;
 
 /**
  * Test cases for the {@link JdbcChargePointDao} class.
- * 
+ *
  * @author matt
  * @version 2.0
  */
@@ -51,7 +51,7 @@ public class JdbcChargePointDaoTests extends AbstractNodeTransactionalTest {
 	private JdbcChargePointDao dao;
 	private ChargePoint last;
 
-	@Before
+	@BeforeTransaction
 	public void setup() {
 		DatabaseSetup setup = new DatabaseSetup();
 		setup.setDataSource(dataSource);

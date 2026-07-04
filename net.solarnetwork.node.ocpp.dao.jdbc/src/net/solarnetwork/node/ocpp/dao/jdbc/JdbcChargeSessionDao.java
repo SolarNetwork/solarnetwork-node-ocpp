@@ -29,6 +29,7 @@ import static net.solarnetwork.util.ObjectUtils.nonnull;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
@@ -142,7 +143,11 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 		ps.setLong(5, obj.getChargePointId());
 		ps.setInt(6, obj.getEvseId());
 		ps.setInt(7, obj.getConnectorId());
-		ps.setString(8, obj.getTransactionId());
+		if ( obj.getTransactionId() == null || obj.getTransactionId().isEmpty() ) {
+			ps.setNull(8, Types.VARCHAR);
+		} else {
+			ps.setString(8, obj.getTransactionId());
+		}
 		setUpdateStatementValues(obj, ps, 8);
 	}
 
@@ -174,14 +179,14 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 	public @Nullable ChargeSession getIncompleteChargeSessionForConnector(long chargePointId, int evseId,
 			int connectorId) {
 		return findFirst(getSqlResource(SqlResource.FindByIncompleteConnector.getResource()),
-				chargePointId, connectorId);
+				chargePointId, evseId, connectorId);
 	}
 
 	@Override
 	public Collection<ChargeSession> getIncompleteChargeSessionsForConnector(long chargePointId,
 			int evseId, int connectorId) {
 		return jdbcTemplate().query(getSqlResource(SqlResource.FindByIncompleteConnector.getResource()),
-				getRowMapper(), chargePointId, connectorId);
+				getRowMapper(), chargePointId, evseId, connectorId);
 	}
 
 	@Override
