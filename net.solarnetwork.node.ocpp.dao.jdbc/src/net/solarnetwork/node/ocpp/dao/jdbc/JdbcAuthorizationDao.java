@@ -1,32 +1,35 @@
 /* ==================================================================
  * JdbcAuthorizationDao.java - 9/02/2020 5:06:25 pm
- * 
+ *
  * Copyright 2020 SolarNetwork.net Dev Team
- * 
- * This program is free software; you can redistribute it and/or 
- * modify it under the terms of the GNU General Public License as 
- * published by the Free Software Foundation; either version 2 of 
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
  * the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License 
- * along with this program; if not, write to the Free Software 
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
  * 02111-1307 USA
  * ==================================================================
  */
 
 package net.solarnetwork.node.ocpp.dao.jdbc;
 
+import static net.solarnetwork.node.dao.jdbc.JdbcUtils.getUtcTimestampColumnValue;
+import static net.solarnetwork.node.dao.jdbc.JdbcUtils.setUtcTimestampStatementValue;
 import static net.solarnetwork.node.ocpp.dao.jdbc.Constants.TABLE_NAME_TEMPALTE;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
+import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.RowMapper;
 import net.solarnetwork.node.dao.jdbc.BaseJdbcGenericDao;
 import net.solarnetwork.ocpp.dao.AuthorizationDao;
@@ -34,9 +37,9 @@ import net.solarnetwork.ocpp.domain.Authorization;
 
 /**
  * JDBC based implementation of {@link AuthorizationDao}.
- * 
+ *
  * @author matt
- * @version 1.0
+ * @version 1.1
  */
 public class JdbcAuthorizationDao extends BaseJdbcGenericDao<Authorization, Long>
 		implements AuthorizationDao {
@@ -57,7 +60,7 @@ public class JdbcAuthorizationDao extends BaseJdbcGenericDao<Authorization, Long
 
 		/**
 		 * Get the SQL resource name.
-		 * 
+		 *
 		 * @return the resource
 		 */
 		public String getResource() {
@@ -81,13 +84,14 @@ public class JdbcAuthorizationDao extends BaseJdbcGenericDao<Authorization, Long
 	}
 
 	@Override
-	public Authorization getForToken(String token) {
+	public @Nullable Authorization getForToken(String token) {
 		return findFirst(getSqlResource(SqlResource.GetByToken.getResource()), token);
 	}
 
 	@Override
 	protected void setStoreStatementValues(Authorization obj, PreparedStatement ps) throws SQLException {
-		setInstantParameter(ps, 1, obj.getCreated() != null ? obj.getCreated() : Instant.now());
+		setUtcTimestampStatementValue(ps, 1,
+				obj.getCreated() != null ? obj.getCreated() : Instant.now());
 		setUpdateStatementValues(obj, ps, 1);
 	}
 
@@ -102,7 +106,7 @@ public class JdbcAuthorizationDao extends BaseJdbcGenericDao<Authorization, Long
 			throws SQLException {
 		ps.setString(1 + offset, obj.getToken());
 		ps.setBoolean(2 + offset, obj.isEnabled());
-		setInstantParameter(ps, 3 + offset, obj.getExpiryDate());
+		setUtcTimestampStatementValue(ps, 3 + offset, obj.getExpiryDate());
 		ps.setString(4 + offset, obj.getParentId());
 	}
 
@@ -114,12 +118,12 @@ public class JdbcAuthorizationDao extends BaseJdbcGenericDao<Authorization, Long
 		@Override
 		public Authorization mapRow(ResultSet rs, int rowNum) throws SQLException {
 			Long id = rs.getLong(1);
-			Instant created = getInstantColumn(rs, 2);
+			Instant created = getUtcTimestampColumnValue(rs, 2);
 
 			Authorization obj = new Authorization(id, created);
 			obj.setToken(rs.getString(3));
 			obj.setEnabled(rs.getBoolean(4));
-			obj.setExpiryDate(getInstantColumn(rs, 5));
+			obj.setExpiryDate(getUtcTimestampColumnValue(rs, 5));
 			obj.setParentId(rs.getString(6));
 
 			return obj;

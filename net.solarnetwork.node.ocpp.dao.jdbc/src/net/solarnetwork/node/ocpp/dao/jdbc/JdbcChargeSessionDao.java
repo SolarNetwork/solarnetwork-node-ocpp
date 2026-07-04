@@ -1,36 +1,39 @@
 /* ==================================================================
  * JdbcChargeSessionDao.java - 10/02/2020 11:25:02 am
- * 
+ *
  * Copyright 2020 SolarNetwork.net Dev Team
- * 
- * This program is free software; you can redistribute it and/or 
- * modify it under the terms of the GNU General Public License as 
- * published by the Free Software Foundation; either version 2 of 
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
  * the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License 
- * along with this program; if not, write to the Free Software 
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
  * 02111-1307 USA
  * ==================================================================
  */
 
 package net.solarnetwork.node.ocpp.dao.jdbc;
 
+import static net.solarnetwork.node.dao.jdbc.JdbcUtils.getUtcTimestampColumnValue;
+import static net.solarnetwork.node.dao.jdbc.JdbcUtils.setUtcTimestampStatementValue;
 import static net.solarnetwork.node.ocpp.dao.jdbc.Constants.TABLE_NAME_TEMPALTE;
+import static net.solarnetwork.util.ObjectUtils.nonnull;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.TransientDataAccessResourceException;
 import org.springframework.jdbc.core.PreparedStatementCallback;
@@ -38,6 +41,7 @@ import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowMapper;
 import net.solarnetwork.node.dao.jdbc.BaseJdbcGenericDao;
+import net.solarnetwork.node.dao.jdbc.JdbcUtils;
 import net.solarnetwork.ocpp.dao.ChargeSessionDao;
 import net.solarnetwork.ocpp.domain.ChargeSession;
 import net.solarnetwork.ocpp.domain.ChargeSessionEndReason;
@@ -50,9 +54,9 @@ import net.solarnetwork.ocpp.domain.UnitOfMeasure;
 
 /**
  * JDBC based implementation of {@link ChargeSessionDao}.
- * 
+ *
  * @author matt
- * @version 2.0
+ * @version 3.0
  */
 public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID>
 		implements ChargeSessionDao {
@@ -105,7 +109,7 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 
 		/**
 		 * Get the SQL resource name.
-		 * 
+		 *
 		 * @return the resource
 		 */
 		public String getResource() {
@@ -117,7 +121,7 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 	public static final String TABLE_NAME = "charge_sess";
 
 	/** The charge point table version. */
-	public static final int VERSION = 1;
+	public static final int VERSION = 2;
 
 	private static final RowMapper<SampledValue> READING_ROW_MAPPER = new ReadingRowMapper();
 
@@ -131,22 +135,20 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 
 	@Override
 	protected void setStoreStatementValues(ChargeSession obj, PreparedStatement ps) throws SQLException {
-		setUuidParameters(ps, 1, obj.getId());
-		setInstantParameter(ps, 3, obj.getCreated() != null ? obj.getCreated() : Instant.now());
+		JdbcUtils.setUuidParameters(ps, 1, obj.id());
+		setUtcTimestampStatementValue(ps, 3,
+				obj.getCreated() != null ? obj.getCreated() : Instant.now());
 		ps.setString(4, obj.getAuthId());
 		ps.setLong(5, obj.getChargePointId());
-		ps.setInt(6, obj.getConnectorId());
-		if ( obj.getTransactionId() > 0 ) {
-			ps.setInt(7, obj.getTransactionId());
-		} else {
-			ps.setNull(7, Types.INTEGER);
-		}
-		setUpdateStatementValues(obj, ps, 7);
+		ps.setInt(6, obj.getEvseId());
+		ps.setInt(7, obj.getConnectorId());
+		ps.setString(8, obj.getTransactionId());
+		setUpdateStatementValues(obj, ps, 8);
 	}
 
 	@Override
 	public int nextTransactionId() {
-		return getJdbcTemplate().query(getSqlResource(SqlResource.SelectNextTxId.getResource()),
+		return nonnull(jdbcTemplate().query(getSqlResource(SqlResource.SelectNextTxId.getResource()),
 				new ResultSetExtractor<Integer>() {
 
 					@Override
@@ -158,55 +160,55 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 								"ResultSetfor next transaction ID does not contain row.");
 					}
 
-				});
+				}), "Result");
 	}
 
 	@Override
-	public ChargeSession getIncompleteChargeSessionForTransaction(long chargePointId,
-			int transactionId) {
+	public @Nullable ChargeSession getIncompleteChargeSessionForTransaction(long chargePointId,
+			String transactionId) {
 		return findFirst(getSqlResource(SqlResource.FindByIncompleteTransaction.getResource()),
 				chargePointId, transactionId);
 	}
 
 	@Override
-	public ChargeSession getIncompleteChargeSessionForConnector(long chargePointId, int connectorId) {
+	public @Nullable ChargeSession getIncompleteChargeSessionForConnector(long chargePointId, int evseId,
+			int connectorId) {
 		return findFirst(getSqlResource(SqlResource.FindByIncompleteConnector.getResource()),
 				chargePointId, connectorId);
 	}
 
 	@Override
 	public Collection<ChargeSession> getIncompleteChargeSessionsForConnector(long chargePointId,
-			int connectorId) {
-		return getJdbcTemplate().query(
-				getSqlResource(SqlResource.FindByIncompleteConnector.getResource()), getRowMapper(),
-				chargePointId, connectorId);
+			int evseId, int connectorId) {
+		return jdbcTemplate().query(getSqlResource(SqlResource.FindByIncompleteConnector.getResource()),
+				getRowMapper(), chargePointId, connectorId);
 	}
 
 	@Override
 	public Collection<ChargeSession> getIncompleteChargeSessionsForChargePoint(long chargePointId) {
-		return getJdbcTemplate().query(
+		return jdbcTemplate().query(
 				getSqlResource(SqlResource.FindByIncompleteChargePoint.getResource()), getRowMapper(),
 				chargePointId);
 	}
 
 	@Override
 	public Collection<ChargeSession> getIncompleteChargeSessions() {
-		return getJdbcTemplate().query(getSqlResource(SqlResource.FindByIncomplete.getResource()),
+		return jdbcTemplate().query(getSqlResource(SqlResource.FindByIncomplete.getResource()),
 				getRowMapper());
 	}
 
 	@Override
-	public int deletePostedChargeSessions(Instant expirationDate) {
-		return getJdbcTemplate().update(getSqlResource(SqlResource.DeleteByPosted.getResource()),
+	public int deletePostedChargeSessions(@Nullable Instant expirationDate) {
+		return nonnull(jdbcTemplate().update(getSqlResource(SqlResource.DeleteByPosted.getResource()),
 				new PreparedStatementSetter() {
 
 					@Override
 					public void setValues(PreparedStatement ps) throws SQLException {
-						setInstantParameter(ps, 1,
+						setUtcTimestampStatementValue(ps, 1,
 								expirationDate != null ? expirationDate : Instant.now());
 					}
 
-				});
+				}), "Count");
 	}
 
 	@Override
@@ -214,15 +216,15 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 		if ( readings == null ) {
 			return;
 		}
-		getJdbcTemplate().execute(getSqlResource(SqlResource.InsertReading.getResource()),
-				new PreparedStatementCallback<Object>() {
+		jdbcTemplate().execute(getSqlResource(SqlResource.InsertReading.getResource()),
+				new PreparedStatementCallback<Void>() {
 
 					@Override
-					public Object doInPreparedStatement(PreparedStatement ps)
+					public Void doInPreparedStatement(PreparedStatement ps)
 							throws SQLException, DataAccessException {
 						for ( SampledValue v : readings ) {
-							setUuidParameters(ps, 1, v.getSessionId());
-							setInstantParameter(ps, 3, v.getTimestamp());
+							JdbcUtils.setUuidParameters(ps, 1, nonnull(v.getSessionId(), "Session ID"));
+							setUtcTimestampStatementValue(ps, 3, v.getTimestamp());
 							ps.setInt(4, v.getLocation() != null ? v.getLocation().getCode()
 									: Location.Outlet.getCode());
 							ps.setInt(5, v.getUnit() != null ? v.getUnit().getCode()
@@ -249,8 +251,8 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 		public SampledValue mapRow(ResultSet rs, int rowNum) throws SQLException {
 			// @formatter:off
 			SampledValue.Builder result = SampledValue.builder()
-					.withSessionId(getUuidColumns(rs, 1))
-					.withTimestamp(getInstantColumn(rs, 3))
+					.withSessionId(JdbcUtils.getUuidColumns(rs, 1))
+					.withTimestamp(getUtcTimestampColumnValue(rs, 3))
 					.withLocation(Location.forCode(rs.getInt(4)))
 					.withUnit(UnitOfMeasure.forCode(rs.getInt(5)))
 					.withContext(ReadingContext.forCode(rs.getInt(6)))
@@ -268,7 +270,7 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 
 	@Override
 	public List<SampledValue> findReadingsForSession(UUID sessionId) {
-		return getJdbcTemplate().query(getSqlResource(SqlResource.FindReadingBySession.getResource()),
+		return jdbcTemplate().query(getSqlResource(SqlResource.FindReadingBySession.getResource()),
 				READING_ROW_MAPPER, sessionId.getMostSignificantBits(),
 				sessionId.getLeastSignificantBits());
 	}
@@ -277,16 +279,16 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 	protected void setUpdateStatementValues(ChargeSession obj, PreparedStatement ps)
 			throws SQLException {
 		setUpdateStatementValues(obj, ps, 0);
-		setUuidParameters(ps, 5, obj.getId());
+		JdbcUtils.setUuidParameters(ps, 5, obj.id());
 	}
 
 	protected void setUpdateStatementValues(ChargeSession obj, PreparedStatement ps, int offset)
 			throws SQLException {
-		setInstantParameter(ps, 1 + offset, obj.getEnded());
+		setUtcTimestampStatementValue(ps, 1 + offset, obj.getEnded());
 		ps.setInt(2 + offset, obj.getEndReason() != null ? obj.getEndReason().getCode()
 				: ChargeSessionEndReason.Unknown.getCode());
 		ps.setString(3 + offset, obj.getEndAuthId());
-		setInstantParameter(ps, 4 + offset, obj.getPosted());
+		setUtcTimestampStatementValue(ps, 4 + offset, obj.getPosted());
 	}
 
 	/**
@@ -296,15 +298,15 @@ public class JdbcChargeSessionDao extends BaseJdbcGenericDao<ChargeSession, UUID
 
 		@Override
 		public ChargeSession mapRow(ResultSet rs, int rowNum) throws SQLException {
-			UUID id = getUuidColumns(rs, 1);
-			Instant created = getInstantColumn(rs, 3);
+			UUID id = JdbcUtils.getUuidColumns(rs, 1);
+			Instant created = getUtcTimestampColumnValue(rs, 3);
 
 			ChargeSession obj = new ChargeSession(id, created, rs.getString(4), rs.getLong(5),
-					rs.getInt(6), rs.getInt(7));
-			obj.setEnded(getInstantColumn(rs, 8));
-			obj.setEndReason(ChargeSessionEndReason.forCode(rs.getInt(9)));
-			obj.setEndAuthId(rs.getString(10));
-			obj.setPosted(getInstantColumn(rs, 11));
+					rs.getInt(6), rs.getInt(7), rs.getString(8));
+			obj.setEnded(getUtcTimestampColumnValue(rs, 9));
+			obj.setEndReason(ChargeSessionEndReason.forCode(rs.getInt(10)));
+			obj.setEndAuthId(rs.getString(11));
+			obj.setPosted(getUtcTimestampColumnValue(rs, 12));
 
 			return obj;
 		}

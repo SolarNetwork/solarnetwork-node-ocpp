@@ -1,32 +1,35 @@
 /* ==================================================================
  * JdbcChargePointDao.java - 7/02/2020 9:53:08 am
- * 
+ *
  * Copyright 2020 SolarNetwork.net Dev Team
- * 
- * This program is free software; you can redistribute it and/or 
- * modify it under the terms of the GNU General Public License as 
- * published by the Free Software Foundation; either version 2 of 
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
  * the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License 
- * along with this program; if not, write to the Free Software 
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
  * 02111-1307 USA
  * ==================================================================
  */
 
 package net.solarnetwork.node.ocpp.dao.jdbc;
 
+import static net.solarnetwork.node.dao.jdbc.JdbcUtils.getUtcTimestampColumnValue;
+import static net.solarnetwork.node.dao.jdbc.JdbcUtils.setUtcTimestampStatementValue;
 import static net.solarnetwork.node.ocpp.dao.jdbc.Constants.TABLE_NAME_TEMPALTE;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
+import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.RowMapper;
 import net.solarnetwork.node.dao.jdbc.BaseJdbcGenericDao;
 import net.solarnetwork.ocpp.dao.ChargePointDao;
@@ -37,9 +40,9 @@ import net.solarnetwork.ocpp.domain.RegistrationStatus;
 
 /**
  * JDBC based implementation of {@link ChargePointDao}.
- * 
+ *
  * @author matt
- * @version 1.0
+ * @version 1.1
  */
 public class JdbcChargePointDao extends BaseJdbcGenericDao<ChargePoint, Long> implements ChargePointDao {
 
@@ -59,7 +62,7 @@ public class JdbcChargePointDao extends BaseJdbcGenericDao<ChargePoint, Long> im
 
 		/**
 		 * Get the SQL resource name.
-		 * 
+		 *
 		 * @return the resource
 		 */
 		public String getResource() {
@@ -83,14 +86,15 @@ public class JdbcChargePointDao extends BaseJdbcGenericDao<ChargePoint, Long> im
 	}
 
 	@Override
-	public ChargePoint getForIdentity(ChargePointIdentity identity) {
+	public @Nullable ChargePoint getForIdentity(ChargePointIdentity identity) {
 		return findFirst(getSqlResource(SqlResource.GetByIdentifier.getResource()),
 				identity.getIdentifier());
 	}
 
 	@Override
 	protected void setStoreStatementValues(ChargePoint obj, PreparedStatement ps) throws SQLException {
-		setInstantParameter(ps, 1, obj.getCreated() != null ? obj.getCreated() : Instant.now());
+		setUtcTimestampStatementValue(ps, 1,
+				obj.getCreated() != null ? obj.getCreated() : Instant.now());
 		setUpdateStatementValues(obj, ps, 1);
 	}
 
@@ -128,7 +132,7 @@ public class JdbcChargePointDao extends BaseJdbcGenericDao<ChargePoint, Long> im
 		@Override
 		public ChargePoint mapRow(ResultSet rs, int rowNum) throws SQLException {
 			Long id = rs.getLong(1);
-			Instant created = getInstantColumn(rs, 2);
+			Instant created = getUtcTimestampColumnValue(rs, 2);
 
 			ChargePointInfo info = new ChargePointInfo(rs.getString(5));
 			info.setChargePointVendor(rs.getString(6));

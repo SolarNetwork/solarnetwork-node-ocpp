@@ -7,8 +7,9 @@ CREATE TABLE solarnode.ocpp_charge_sess (
 	created				TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	auth_id				VARCHAR(20) NOT NULL,
 	cp_id				BIGINT NOT NULL,
+	evse_id				INTEGER NOT NULL,
 	conn_id				INTEGER NOT NULL,
-	tx_id				INTEGER NOT NULL,
+	tx_id				CHARACTER VARYING(36) NOT NULL,
 	ended				TIMESTAMP,
 	end_reason			SMALLINT NOT NULL DEFAULT 0,
 	end_auth_id			VARCHAR(20),
@@ -38,4 +39,4 @@ CREATE INDEX ocpp_charge_sess_reading_sess_id_idx
 ON solarnode.ocpp_charge_sess_reading (sess_id_hi, sess_id_lo);
 
 INSERT INTO solarnode.sn_settings (skey, svalue) 
-VALUES ('solarnode.ocpp_charge_sess.version', '1');
+VALUES ('solarnode.ocpp_charge_sess.version', '2');

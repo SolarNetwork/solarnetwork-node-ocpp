@@ -1,28 +1,32 @@
 /* ==================================================================
  * JdbcChargingProfileDao.java - 18/02/2020 4:48:46 pm
- * 
+ *
  * Copyright 2020 SolarNetwork.net Dev Team
- * 
- * This program is free software; you can redistribute it and/or 
- * modify it under the terms of the GNU General Public License as 
- * published by the Free Software Foundation; either version 2 of 
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
  * the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License 
- * along with this program; if not, write to the Free Software 
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
  * 02111-1307 USA
  * ==================================================================
  */
 
 package net.solarnetwork.node.ocpp.dao.jdbc;
 
+import static net.solarnetwork.node.dao.jdbc.JdbcUtils.getUtcTimestampColumnValue;
+import static net.solarnetwork.node.dao.jdbc.JdbcUtils.setUtcTimestampStatementValue;
 import static net.solarnetwork.node.ocpp.dao.jdbc.Constants.TABLE_NAME_TEMPALTE;
+import static net.solarnetwork.util.ObjectUtils.nonnull;
+import static net.solarnetwork.util.ObjectUtils.requireNonNullArgument;
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -37,6 +41,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.PreparedStatementSetter;
@@ -44,6 +49,7 @@ import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowMapper;
 import net.solarnetwork.domain.SortDescriptor;
 import net.solarnetwork.node.dao.jdbc.BaseJdbcGenericDao;
+import net.solarnetwork.node.dao.jdbc.JdbcUtils;
 import net.solarnetwork.ocpp.dao.ChargingProfileDao;
 import net.solarnetwork.ocpp.domain.ChargingProfile;
 import net.solarnetwork.ocpp.domain.ChargingProfileInfo;
@@ -56,9 +62,9 @@ import net.solarnetwork.ocpp.domain.UnitOfMeasure;
 
 /**
  * JDBC implementation of {@link ChargingProfileDao}.
- * 
+ *
  * @author matt
- * @version 2.0
+ * @version 2.1
  */
 public class JdbcChargingProfileDao extends BaseJdbcGenericDao<ChargingProfile, UUID>
 		implements ChargingProfileDao {
@@ -85,7 +91,7 @@ public class JdbcChargingProfileDao extends BaseJdbcGenericDao<ChargingProfile, 
 
 		/**
 		 * Get the SQL resource name.
-		 * 
+		 *
 		 * @return the resource
 		 */
 		public String getResource() {
@@ -99,13 +105,15 @@ public class JdbcChargingProfileDao extends BaseJdbcGenericDao<ChargingProfile, 
 	/** The charge point table version. */
 	public static final int VERSION = 1;
 
-	private final ResultSetExtractor<List<ChargingProfile>> PROFILE_EXTRACTOR = new ChargingProfileResultSetExtractor();
+	private final ResultSetExtractor<List<ChargingProfile>> PROFILE_EXTRACTOR = new ChargingProfileResultSetExtractor(
+			ChargingProfileRowMapper.INSTANCE);
 
 	/**
 	 * Constructor.
 	 */
 	public JdbcChargingProfileDao() {
-		super(ChargingProfile.class, UUID.class, null, TABLE_NAME_TEMPALTE, TABLE_NAME, VERSION);
+		super(ChargingProfile.class, UUID.class, ChargingProfileRowMapper.INSTANCE, TABLE_NAME_TEMPALTE,
+				TABLE_NAME, VERSION);
 	}
 
 	@Override
@@ -122,13 +130,13 @@ public class JdbcChargingProfileDao extends BaseJdbcGenericDao<ChargingProfile, 
 		if ( periods == null || periods.isEmpty() ) {
 			return;
 		}
-		getJdbcTemplate().batchUpdate(getSqlResource(SqlResource.InsertPeriod.getResource()),
+		jdbcTemplate().batchUpdate(getSqlResource(SqlResource.InsertPeriod.getResource()),
 				new BatchPreparedStatementSetter() {
 
 					@Override
 					public void setValues(PreparedStatement ps, int i) throws SQLException {
 						ChargingSchedulePeriodInfo period = periods.get(i);
-						setUuidParameters(ps, 1, obj.getId());
+						JdbcUtils.setUuidParameters(ps, 1, obj.id());
 						ps.setInt(3, i);
 						setUpdateStatementValues(period, ps, 3);
 					}
@@ -165,24 +173,24 @@ public class JdbcChargingProfileDao extends BaseJdbcGenericDao<ChargingProfile, 
 						: Collections.emptyList());
 		for ( ListIterator<ChargingSchedulePeriodInfo> itr = periods.listIterator(); itr.hasNext(); ) {
 			ChargingSchedulePeriodInfo period = itr.next();
-			int count = getJdbcTemplate().update(getSqlResource(SqlResource.UpdatePeriod.getResource()),
+			int count = jdbcTemplate().update(getSqlResource(SqlResource.UpdatePeriod.getResource()),
 					new PreparedStatementSetter() {
 
 						@Override
 						public void setValues(PreparedStatement ps) throws SQLException {
 							setUpdateStatementValues(period, ps, 0);
-							setUuidParameters(ps, 4, obj.getId());
+							JdbcUtils.setUuidParameters(ps, 4, obj.id());
 							ps.setInt(6, itr.previousIndex());
 						}
 
 					});
 			if ( count < 1 ) {
-				getJdbcTemplate().update(getSqlResource(SqlResource.InsertPeriod.getResource()),
+				jdbcTemplate().update(getSqlResource(SqlResource.InsertPeriod.getResource()),
 						new PreparedStatementSetter() {
 
 							@Override
 							public void setValues(PreparedStatement ps) throws SQLException {
-								setUuidParameters(ps, 1, obj.getId());
+								JdbcUtils.setUuidParameters(ps, 1, obj.id());
 								ps.setInt(3, itr.previousIndex());
 								setUpdateStatementValues(period, ps, 3);
 							}
@@ -190,16 +198,16 @@ public class JdbcChargingProfileDao extends BaseJdbcGenericDao<ChargingProfile, 
 						});
 			}
 		}
-		getJdbcTemplate().update(getSqlResource(SqlResource.DeletePeriodsOver.getResource()),
-				obj.getId().getMostSignificantBits(), obj.getId().getLeastSignificantBits(),
-				periods.size());
+		jdbcTemplate().update(getSqlResource(SqlResource.DeletePeriodsOver.getResource()),
+				obj.id().getMostSignificantBits(), obj.id().getLeastSignificantBits(), periods.size());
 	}
 
 	@Override
 	protected void setStoreStatementValues(ChargingProfile obj, PreparedStatement ps)
 			throws SQLException {
-		setUuidParameters(ps, 1, obj.getId());
-		setInstantParameter(ps, 3, obj.getCreated() != null ? obj.getCreated() : Instant.now());
+		JdbcUtils.setUuidParameters(ps, 1, obj.id());
+		setUtcTimestampStatementValue(ps, 3,
+				obj.getCreated() != null ? obj.getCreated() : Instant.now());
 		setUpdateStatementValues(obj, ps, 3);
 	}
 
@@ -207,7 +215,7 @@ public class JdbcChargingProfileDao extends BaseJdbcGenericDao<ChargingProfile, 
 	protected void setUpdateStatementValues(ChargingProfile obj, PreparedStatement ps)
 			throws SQLException {
 		setUpdateStatementValues(obj, ps, 0);
-		setUuidParameters(ps, 10, obj.getId());
+		JdbcUtils.setUuidParameters(ps, 10, obj.id());
 	}
 
 	protected void setUpdateStatementValues(ChargingProfile obj, PreparedStatement ps, int offset)
@@ -219,26 +227,28 @@ public class JdbcChargingProfileDao extends BaseJdbcGenericDao<ChargingProfile, 
 				: ChargingProfileKind.Unknown.getCode());
 		ps.setInt(3 + offset, info.getRecurrency() != null ? info.getRecurrency().getCode()
 				: ChargingScheduleRecurrency.Unknown.getCode());
-		setInstantParameter(ps, 4 + offset, info.getValidFrom());
-		setInstantParameter(ps, 5 + offset, info.getValidTo());
+		setUtcTimestampStatementValue(ps, 4 + offset, info.getValidFrom());
+		setUtcTimestampStatementValue(ps, 5 + offset, info.getValidTo());
 
 		ChargingScheduleInfo sched = info.getSchedule();
 		ps.setObject(6 + offset, sched.getDuration() != null ? sched.getDuration().getSeconds() : null);
-		setInstantParameter(ps, 7 + offset, sched.getStart());
+		setUtcTimestampStatementValue(ps, 7 + offset, sched.getStart());
 		ps.setInt(8 + offset, sched.getRateUnit() != null ? sched.getRateUnit().getCode()
 				: UnitOfMeasure.Unknown.getCode());
 		ps.setBigDecimal(9 + offset, sched.getMinRate());
 	}
 
 	@Override
-	protected ChargingProfile findFirst(String sql, Object... parameters) {
-		List<ChargingProfile> results = getJdbcTemplate().query(sql, PROFILE_EXTRACTOR, parameters);
+	protected @Nullable ChargingProfile findFirst(String sql, Object... parameters) {
+		List<ChargingProfile> results = jdbcTemplate().query(sql, PROFILE_EXTRACTOR, parameters);
 		return (results != null && !results.isEmpty() ? results.get(0) : null);
 	}
 
 	@Override
-	public Collection<ChargingProfile> getAll(List<SortDescriptor> sorts) {
-		return getJdbcTemplate().query(querySql(SQL_FIND_ALL, sorts), PROFILE_EXTRACTOR);
+	public Collection<ChargingProfile> getAll(@Nullable List<SortDescriptor> sorts) {
+		List<ChargingProfile> result = jdbcTemplate().query(querySql(SQL_FIND_ALL, sorts),
+				PROFILE_EXTRACTOR);
+		return (result != null ? result : List.of());
 	}
 
 	/**
@@ -254,8 +264,9 @@ public class JdbcChargingProfileDao extends BaseJdbcGenericDao<ChargingProfile, 
 		}
 
 		@Override
-		public ChargingSchedulePeriodInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
-			UUID profileId = getUuidColumns(rs, 1 + offset);
+		public @Nullable ChargingSchedulePeriodInfo mapRow(ResultSet rs, int rowNum)
+				throws SQLException {
+			UUID profileId = JdbcUtils.getUuidColumns(rs, 1 + offset);
 			if ( profileId == null ) {
 				return null;
 			}
@@ -276,23 +287,26 @@ public class JdbcChargingProfileDao extends BaseJdbcGenericDao<ChargingProfile, 
 	 */
 	public static final class ChargingProfileRowMapper implements RowMapper<ChargingProfile> {
 
+		/** A standard instance. */
+		public static final RowMapper<ChargingProfile> INSTANCE = new ChargingProfileRowMapper();
+
 		@Override
 		public ChargingProfile mapRow(ResultSet rs, int rowNum) throws SQLException {
-			UUID id = getUuidColumns(rs, 1);
-			Instant created = getInstantColumn(rs, 3);
+			UUID id = JdbcUtils.getUuidColumns(rs, 1);
+			Instant created = getUtcTimestampColumnValue(rs, 3);
 
 			ChargingScheduleInfo schedInfo = new ChargingScheduleInfo(
 					UnitOfMeasure.forCode(rs.getInt(11)));
 			schedInfo.setDurationSeconds(rs.getInt(9));
-			schedInfo.setStart(getInstantColumn(rs, 10));
+			schedInfo.setStart(getUtcTimestampColumnValue(rs, 10));
 			schedInfo.setMinRate(rs.getBigDecimal(12));
 
 			ChargingProfileInfo info = new ChargingProfileInfo(
 					ChargingProfilePurpose.forCode(rs.getInt(4)),
 					ChargingProfileKind.forCode(rs.getInt(5)), schedInfo);
 			info.setRecurrency(ChargingScheduleRecurrency.forCode(rs.getInt(6)));
-			info.setValidFrom(getInstantColumn(rs, 7));
-			info.setValidTo(getInstantColumn(rs, 8));
+			info.setValidFrom(getUtcTimestampColumnValue(rs, 7));
+			info.setValidTo(getUtcTimestampColumnValue(rs, 8));
 
 			return new ChargingProfile(id, created, info);
 		}
@@ -308,9 +322,15 @@ public class JdbcChargingProfileDao extends BaseJdbcGenericDao<ChargingProfile, 
 		private final RowMapper<ChargingProfile> mainRowMapper;
 		private final RowMapper<ChargingSchedulePeriodInfo> periodRowMapper;
 
-		public ChargingProfileResultSetExtractor() {
+		/**
+		 * Constructor.
+		 *
+		 * @param mainRowMapper
+		 *        the main row mapper
+		 */
+		public ChargingProfileResultSetExtractor(RowMapper<ChargingProfile> mainRowMapper) {
 			super();
-			mainRowMapper = new ChargingProfileRowMapper();
+			this.mainRowMapper = requireNonNullArgument(mainRowMapper, "mainRowMapper");
 			periodRowMapper = new PeriodRowMapper(12);
 		}
 
@@ -321,8 +341,9 @@ public class JdbcChargingProfileDao extends BaseJdbcGenericDao<ChargingProfile, 
 			int rowNum = 0;
 			while ( rs.next() ) {
 				rowNum++;
-				ChargingProfile rowMainEntity = mainRowMapper.mapRow(rs, rowNum);
-				ChargingProfile entity = map.get(rowMainEntity.getId());
+				ChargingProfile rowMainEntity = nonnull(mainRowMapper.mapRow(rs, rowNum),
+						"ChargingProfile");
+				ChargingProfile entity = map.get(rowMainEntity.id());
 				if ( entity == null ) {
 					// new main entity row
 					map.put(rowMainEntity.getId(), rowMainEntity);
