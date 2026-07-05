@@ -45,7 +45,7 @@
 
 	<reference id="chargeSessionManager" interface="net.solarnetwork.ocpp.service.cs.ChargeSessionManager" filter="(function=node)" availability="optional" />
 	
-	<reference id="cpActionPayloadDecoder" interface="ocpp.json.ActionPayloadDecoder" filter="(&amp;(function=node)(role=cp))"/>
+	<reference id="cpActionPayloadDecoder" interface="net.solarnetwork.ocpp.json.ActionPayloadDecoder" filter="(&amp;(function=node)(role=cp))"/>
 	
 	<!-- Use Java @Transactional annotations to declare transactions. -->
 	<tx:annotation-driven transaction-manager="transactionManager"/>
@@ -58,7 +58,7 @@
 			<entry key="function" value="node"/>
 			<entry key="role" value="cs"/>
 		</service-properties>
-		<bean class="net.solarnetwork.ocpp.v16.cs.AuthorizeProcessor">
+		<bean class="net.solarnetwork.ocpp.v16.jakarta.cs.AuthorizeProcessor">
 			<argument ref="controller"/>
 		</bean>
 	</service>
@@ -69,7 +69,7 @@
 			<entry key="function" value="node"/>
 			<entry key="role" value="cs"/>
 		</service-properties>
-		<bean class="net.solarnetwork.ocpp.v16.cs.BootNotificationProcessor">
+		<bean class="net.solarnetwork.ocpp.v16.jakarta.cs.BootNotificationProcessor">
 			<argument ref="controller"/>
 			<property name="heartbeatIntervalSeconds" value="${heartbeatIntervalSeconds}"/>
 		</bean>
@@ -81,7 +81,7 @@
 			<entry key="function" value="node"/>
 			<entry key="role" value="cs"/>
 		</service-properties>
-		<bean class="net.solarnetwork.ocpp.v16.cs.DataTransferProcessor"/>
+		<bean class="net.solarnetwork.ocpp.v16.jakarta.cs.DataTransferProcessor"/>
 	</service>
 	
 	<service interface="net.solarnetwork.ocpp.service.ActionMessageProcessor">
@@ -90,7 +90,7 @@
 			<entry key="function" value="node"/>
 			<entry key="role" value="cs"/>
 		</service-properties>
-		<bean class="net.solarnetwork.ocpp.v16.cs.DiagnosticsStatusNotificationProcessor"/>
+		<bean class="net.solarnetwork.ocpp.v16.jakarta.cs.DiagnosticsStatusNotificationProcessor"/>
 	</service>
 	
 	<service interface="net.solarnetwork.ocpp.service.ActionMessageProcessor">
@@ -99,7 +99,7 @@
 			<entry key="function" value="node"/>
 			<entry key="role" value="cs"/>
 		</service-properties>
-		<bean class="net.solarnetwork.ocpp.v16.cs.FirmwareStatusNotificationProcessor"/>
+		<bean class="net.solarnetwork.ocpp.v16.jakarta.cs.FirmwareStatusNotificationProcessor"/>
 	</service>
 	
 	<service interface="net.solarnetwork.ocpp.service.ActionMessageProcessor">
@@ -108,7 +108,7 @@
 			<entry key="function" value="node"/>
 			<entry key="role" value="cs"/>
 		</service-properties>
-		<bean class="net.solarnetwork.ocpp.v16.cs.HeartbeatProcessor"/>
+		<bean class="net.solarnetwork.ocpp.v16.jakarta.cs.HeartbeatProcessor"/>
 	</service>
 	
 	<service interface="net.solarnetwork.ocpp.service.ActionMessageProcessor">
@@ -117,7 +117,7 @@
 			<entry key="function" value="node"/>
 			<entry key="role" value="cs"/>
 		</service-properties>
-		<bean class="net.solarnetwork.ocpp.v16.cs.MeterValuesProcessor">
+		<bean class="net.solarnetwork.ocpp.v16.jakarta.cs.MeterValuesProcessor">
 			<argument ref="chargeSessionManager"/>
 		</bean>
 	</service>	
@@ -128,7 +128,7 @@
 			<entry key="function" value="node"/>
 			<entry key="role" value="cs"/>
 		</service-properties>
-		<bean class="net.solarnetwork.ocpp.v16.cs.StartTransactionProcessor">
+		<bean class="net.solarnetwork.ocpp.v16.jakarta.cs.StartTransactionProcessor">
 			<argument ref="chargeSessionManager"/>
 		</bean>
 	</service>
@@ -139,7 +139,7 @@
 			<entry key="function" value="node"/>
 			<entry key="role" value="cs"/>
 		</service-properties>
-		<bean class="net.solarnetwork.ocpp.v16.cs.StatusNotificationProcessor">
+		<bean class="net.solarnetwork.ocpp.v16.jakarta.cs.StatusNotificationProcessor">
 			<argument ref="controller"/>
 		</bean>
 	</service>
@@ -150,7 +150,7 @@
 			<entry key="function" value="node"/>
 			<entry key="role" value="cs"/>
 		</service-properties>
-		<bean class="net.solarnetwork.ocpp.v16.cs.StopTransactionProcessor">
+		<bean class="net.solarnetwork.ocpp.v16.jakarta.cs.StopTransactionProcessor">
 			<argument ref="chargeSessionManager"/>
 		</bean>
 	</service>

@@ -32,7 +32,7 @@
 			<entry key="role" value="ocpp"/>
 		</service-properties>
 		<bean class="net.solarnetwork.codec.jackson.SimpleObjectMapperService">
-			<property name="objectMapper" ref="ocppObjectMapper"/>
+			<argument ref="ocppObjectMapper"/>
 		</bean>
 	</service>
 	
