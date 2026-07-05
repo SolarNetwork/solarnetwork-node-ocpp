@@ -4,5 +4,5 @@ INSERT INTO solarnode.ocpp_charge_sess
 	,ended,end_reason,end_auth_id,posted)
 VALUES 
 	(?,?,?,?,?,?,?
-	,COALESCE(?, CAST(NEXT VALUE FOR solarnode.ocpp_charge_tx_seq AS CHARACTER VARYING))
+	,COALESCE(?, CAST(nextval('solarnode.ocpp_charge_tx_seq') AS CHARACTER VARYING))
 	,?,?,?,?)

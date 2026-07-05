@@ -1,0 +1,1 @@
+SELECT nextval('solarnode.ocpp_charge_tx_seq');
