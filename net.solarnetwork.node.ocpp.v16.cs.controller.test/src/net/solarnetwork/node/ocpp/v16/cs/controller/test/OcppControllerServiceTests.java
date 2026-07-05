@@ -22,23 +22,20 @@
 
 package net.solarnetwork.node.ocpp.v16.cs.controller.test;
 
+import static org.assertj.core.api.BDDAssertions.from;
+import static org.assertj.core.api.BDDAssertions.then;
 import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.expect;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import org.easymock.Capture;
 import org.easymock.CaptureType;
 import org.easymock.EasyMock;
-import org.easymock.IAnswer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,23 +43,16 @@ import net.solarnetwork.node.ocpp.v16.cs.controller.OcppControllerService;
 import net.solarnetwork.ocpp.dao.AuthorizationDao;
 import net.solarnetwork.ocpp.dao.ChargePointConnectorDao;
 import net.solarnetwork.ocpp.dao.ChargePointDao;
-import net.solarnetwork.ocpp.domain.ActionMessage;
 import net.solarnetwork.ocpp.domain.Authorization;
 import net.solarnetwork.ocpp.domain.AuthorizationInfo;
 import net.solarnetwork.ocpp.domain.AuthorizationStatus;
 import net.solarnetwork.ocpp.domain.ChargePoint;
-import net.solarnetwork.ocpp.domain.ChargePointConnector;
-import net.solarnetwork.ocpp.domain.ChargePointConnectorKey;
 import net.solarnetwork.ocpp.domain.ChargePointIdentity;
 import net.solarnetwork.ocpp.domain.ChargePointInfo;
-import net.solarnetwork.ocpp.service.ActionMessageResultHandler;
 import net.solarnetwork.ocpp.service.ChargePointBroker;
 import net.solarnetwork.ocpp.service.ChargePointRouter;
-import net.solarnetwork.ocpp.v16.jakarta.ConfigurationKey;
 import net.solarnetwork.test.CallingThreadExecutorService;
-import ocpp.v16.jakarta.cp.GetConfigurationRequest;
-import ocpp.v16.jakarta.cp.GetConfigurationResponse;
-import ocpp.v16.jakarta.cp.KeyValue;
+import net.solarnetwork.test.CommonTestUtils;
 
 /**
  * Test cases for the {@link OcppControllerService} class.
@@ -200,21 +190,9 @@ public class OcppControllerServiceTests {
 		assertThat("Auth parent", result.getParentId(), nullValue());
 	}
 
-	private static KeyValue conf(String key, String value) {
-		return conf(key, value, false);
-	}
-
-	private static KeyValue conf(String key, String value, boolean readonly) {
-		KeyValue kv = new KeyValue();
-		kv.setKey(key);
-		kv.setValue(value);
-		kv.setReadonly(readonly);
-		return kv;
-	}
-
 	@Test
 	public void register_new() {
-		// given
+		// GIVEN
 		String identifier = UUID.randomUUID().toString();
 		ChargePointIdentity identity = createClientId(identifier);
 
@@ -223,45 +201,13 @@ public class OcppControllerServiceTests {
 
 		// save new charge point
 		Capture<ChargePoint> chargePointCaptor = Capture.newInstance(CaptureType.ALL);
-		long chargePointId = UUID.randomUUID().getMostSignificantBits();
-		expect(chargePointDao.save(capture(chargePointCaptor))).andReturn(chargePointId).times(2);
+		final Long chargePointId = CommonTestUtils.randomLong();
+		expect(chargePointDao.save(capture(chargePointCaptor))).andReturn(chargePointId);
 
-		// find broker for charge point, to send GetConfiguration message to
-		expect(chargePointRouter.brokerForChargePoint(identity)).andReturn(chargePointBroker);
+		final ChargePoint daoChargePoint = new ChargePoint(chargePointId);
+		expect(chargePointDao.get(chargePointId)).andReturn(daoChargePoint);
 
-		// send GetConfiguration message to broker
-		Capture<ActionMessage<Object>> actionCaptor = Capture.newInstance();
-		Capture<ActionMessageResultHandler<Object, Object>> resultHandlerCaptor = Capture.newInstance();
-		expect(chargePointBroker.sendMessageToChargePoint(capture(actionCaptor),
-				capture(resultHandlerCaptor))).andReturn(true);
-
-		// after response to get configuration, get ChargePoint again
-		expect(chargePointDao.get(chargePointId)).andAnswer(new IAnswer<ChargePoint>() {
-
-			@Override
-			public ChargePoint answer() throws Throwable {
-				ChargePoint cp = chargePointCaptor.getValues().get(0);
-				ChargePoint copy = new ChargePoint(chargePointId, cp.getCreated(), cp.getInfo());
-				copy.setEnabled(cp.isEnabled());
-				copy.setRegistrationStatus(cp.getRegistrationStatus());
-				copy.setConnectorCount(cp.getConnectorCount());
-				return copy;
-			}
-		}).times(2);
-
-		// look for existing charge point connectors
-		expect(chargePointConnectorDao.findByChargePointId(chargePointId))
-				.andReturn(Collections.emptyList());
-
-		// insert new connector
-		int connectorCount = 2;
-		Capture<ChargePointConnector> connectorCaptor = Capture.newInstance(CaptureType.ALL);
-		expect(chargePointConnectorDao.save(capture(connectorCaptor)))
-				.andReturn(new ChargePointConnectorKey(chargePointId, 1));
-		expect(chargePointConnectorDao.save(capture(connectorCaptor)))
-				.andReturn(new ChargePointConnectorKey(chargePointId, 2));
-
-		// when
+		// WHEN
 		replayAll();
 		ChargePointInfo info = new ChargePointInfo();
 		info.setId(identifier);
@@ -269,119 +215,19 @@ public class OcppControllerServiceTests {
 		info.setChargePointModel("One");
 		ChargePoint result = service.registerChargePoint(identity, info);
 
-		// then invoke result handler
-		ActionMessage<Object> message = actionCaptor.getValue();
-		assertThat("Message sent to charge point is GetConfiguration", message.getMessage(),
-				instanceOf(GetConfigurationRequest.class));
-		ActionMessageResultHandler<Object, Object> resultHandler = resultHandlerCaptor.getValue();
-		GetConfigurationResponse getConfRes = new GetConfigurationResponse();
-		getConfRes.getConfigurationKey().add(
-				conf(ConfigurationKey.NumberOfConnectors.getName(), String.valueOf(connectorCount)));
-		boolean handlerResult = resultHandler.handleActionMessageResult(message, getConfRes, null);
-		assertThat("Result handled", handlerResult, equalTo(true));
+		// THEN
+		// @formatter:off
+		then(result)
+			.as("DAO result returned")
+			.isSameAs(daoChargePoint)
+			;
 
-		// then
-		assertThat("Result returned", result, notNullValue());
-
-		ChargePoint inserted = chargePointCaptor.getValues().get(0);
-		assertThat("Inserted charge point identifier preserved", inserted.getInfo().getId(),
-				equalTo(identifier));
-		assertThat("Inserted charge point connectors start at 0", inserted.getConnectorCount(),
-				equalTo(0));
-
-		ChargePoint updated = chargePointCaptor.getValues().get(1);
-		assertThat("Updated charge point ID preserved", updated.getId(), equalTo(chargePointId));
-		assertThat("Updated charge point identifier preserved", updated.getInfo().getId(),
-				equalTo(identifier));
-		assertThat("Updated charge point connectors updated based on GetConfiguration response",
-				updated.getConnectorCount(), equalTo(connectorCount));
-
-		for ( int i = 0; i < connectorCount; i++ ) {
-			ChargePointConnector conn = connectorCaptor.getValues().get(i);
-			assertThat("Connector ID charge point ID " + i, conn.getId().getChargePointId(),
-					equalTo(chargePointId));
-			assertThat("Connector ID index " + i, conn.getId().getConnectorId(), equalTo(i + 1));
-			assertThat("Connector info ID matches index " + i, conn.getInfo().getConnectorId(),
-					equalTo(i + 1));
-			assertThat("Connector info timestamp not null " + i, conn.getInfo().getTimestamp(),
-					notNullValue());
-		}
-	}
-
-	@Test
-	public void register_decreaseConnectors() {
-		// given
-		String identifier = UUID.randomUUID().toString();
-		ChargePointIdentity identity = createClientId(identifier);
-
-		// look for existing charge point: not found
-		ChargePointInfo cpInfo = new ChargePointInfo(identifier);
-		cpInfo.setChargePointVendor("ACME");
-		cpInfo.setChargePointModel("One");
-		ChargePoint cp = new ChargePoint(UUID.randomUUID().getMostSignificantBits(), Instant.now(),
-				cpInfo);
-		cp.setConnectorCount(2);
-		expect(chargePointDao.getForIdentity(identity)).andReturn(cp);
-
-		// find broker for charge point, to send GetConfiguration message to
-		expect(chargePointRouter.brokerForChargePoint(identity)).andReturn(chargePointBroker);
-
-		// send GetConfiguration message to broker
-		Capture<ActionMessage<Object>> actionCaptor = Capture.newInstance();
-		Capture<ActionMessageResultHandler<Object, Object>> resultHandlerCaptor = Capture.newInstance();
-		expect(chargePointBroker.sendMessageToChargePoint(capture(actionCaptor),
-				capture(resultHandlerCaptor))).andReturn(true);
-
-		// after response to get configuration, get ChargePoint again
-		expect(chargePointDao.get(cp.getId())).andAnswer(new IAnswer<ChargePoint>() {
-
-			@Override
-			public ChargePoint answer() throws Throwable {
-				return new ChargePoint(cp);
-			}
-		});
-
-		// update connector count to 1
-		Capture<ChargePoint> chargePointCaptor = Capture.newInstance();
-		expect(chargePointDao.save(capture(chargePointCaptor))).andReturn(cp.getId());
-
-		// look for existing charge point connectors
-		List<ChargePointConnector> connectors = Arrays.asList(
-				new ChargePointConnector(new ChargePointConnectorKey(cp.getId(), 1), Instant.now()),
-				new ChargePointConnector(new ChargePointConnectorKey(cp.getId(), 2), Instant.now()));
-		expect(chargePointConnectorDao.findByChargePointId(cp.getId())).andReturn(connectors);
-
-		// remove extra connector
-		int connectorCount = 1;
-		Capture<ChargePointConnector> connectorCaptor = Capture.newInstance();
-		chargePointConnectorDao.delete(capture(connectorCaptor));
-
-		// when
-		replayAll();
-		ChargePointInfo info = new ChargePointInfo();
-		info.setId(identifier);
-		info.setChargePointVendor("ACME");
-		info.setChargePointModel("One");
-		ChargePoint result = service.registerChargePoint(identity, info);
-
-		// then invoke result handler
-		ActionMessage<Object> message = actionCaptor.getValue();
-		assertThat("Message sent to charge point is GetConfiguration", message.getMessage(),
-				instanceOf(GetConfigurationRequest.class));
-		ActionMessageResultHandler<Object, Object> resultHandler = resultHandlerCaptor.getValue();
-		GetConfigurationResponse getConfRes = new GetConfigurationResponse();
-		getConfRes.getConfigurationKey().add(
-				conf(ConfigurationKey.NumberOfConnectors.getName(), String.valueOf(connectorCount)));
-		boolean handlerResult = resultHandler.handleActionMessageResult(message, getConfRes, null);
-		assertThat("Result handled", handlerResult, equalTo(true));
-
-		// then
-		assertThat("Result returned", result, notNullValue());
-
-		assertThat("Connector count updated", chargePointCaptor.getValue().getConnectorCount(),
-				equalTo(connectorCount));
-
-		ChargePointConnector conn = connectorCaptor.getValue();
-		assertThat("Deleted extra connector", conn, equalTo(connectors.get(1)));
+		then(chargePointCaptor.getValue())
+			.as("Inserted charge point identifier preserved")
+			.returns(identifier, from(cp -> cp.getInfo().getId()))
+			.as("Inserted charge point connectors start at 0")
+			.returns(0, from(ChargePoint::getConnectorCount))
+			;
+		// @formatter:on
 	}
 }

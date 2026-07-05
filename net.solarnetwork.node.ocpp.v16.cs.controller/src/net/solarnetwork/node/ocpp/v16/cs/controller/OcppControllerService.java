@@ -30,25 +30,19 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
-import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionCallback;
-import org.springframework.transaction.support.TransactionCallbackWithoutResult;
 import org.springframework.transaction.support.TransactionTemplate;
 import net.solarnetwork.codec.jackson.JsonUtils;
 import net.solarnetwork.domain.InstructionStatus.InstructionState;
@@ -67,7 +61,6 @@ import net.solarnetwork.ocpp.domain.AuthorizationStatus;
 import net.solarnetwork.ocpp.domain.BasicActionMessage;
 import net.solarnetwork.ocpp.domain.ChargePoint;
 import net.solarnetwork.ocpp.domain.ChargePointConnector;
-import net.solarnetwork.ocpp.domain.ChargePointConnectorKey;
 import net.solarnetwork.ocpp.domain.ChargePointIdentity;
 import net.solarnetwork.ocpp.domain.ChargePointInfo;
 import net.solarnetwork.ocpp.domain.ErrorCodeException;
@@ -82,7 +75,6 @@ import net.solarnetwork.ocpp.service.cs.ChargePointManager;
 import net.solarnetwork.ocpp.util.OcppInstructionUtils;
 import net.solarnetwork.ocpp.v16.jakarta.ActionErrorCode;
 import net.solarnetwork.ocpp.v16.jakarta.ChargePointAction;
-import net.solarnetwork.ocpp.v16.jakarta.ConfigurationKey;
 import net.solarnetwork.ocpp.v16.jakarta.json.BaseActionPayloadDecoder;
 import net.solarnetwork.security.AuthorizationException;
 import net.solarnetwork.security.AuthorizationException.Reason;
@@ -90,9 +82,6 @@ import net.solarnetwork.settings.SettingSpecifier;
 import net.solarnetwork.settings.SettingSpecifierProvider;
 import net.solarnetwork.settings.support.BasicGroupSettingSpecifier;
 import net.solarnetwork.settings.support.BasicTitleSettingSpecifier;
-import ocpp.v16.jakarta.cp.GetConfigurationRequest;
-import ocpp.v16.jakarta.cp.GetConfigurationResponse;
-import ocpp.v16.jakarta.cp.KeyValue;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -165,9 +154,6 @@ public class OcppControllerService extends BaseIdentifiable implements ChargePoi
 			cp = updateChargePointInfo(cp, info);
 		}
 
-		sendToChargePoint(identity, ChargePointAction.GetConfiguration, new GetConfigurationRequest(),
-				processConfiguration(cp));
-
 		return cp;
 	}
 
@@ -214,71 +200,6 @@ public class OcppControllerService extends BaseIdentifiable implements ChargePoi
 		}
 	}
 
-	private ActionMessageResultHandler<GetConfigurationRequest, GetConfigurationResponse> processConfiguration(
-			ChargePoint chargePoint) {
-		return (msg, confs, err) -> {
-			if ( confs != null && confs.getConfigurationKey() != null
-					&& !confs.getConfigurationKey().isEmpty() ) {
-				tryWithTransaction(new TransactionCallbackWithoutResult() {
-
-					@Override
-					protected void doInTransactionWithoutResult(TransactionStatus status) {
-						ChargePoint cp = nonnull(chargePointDao.get(chargePoint.id()), "ChargePoint");
-						ChargePoint orig = new ChargePoint(cp);
-						KeyValue numConnsKey = confs.getConfigurationKey().stream()
-								.filter(k -> ConfigurationKey.NumberOfConnectors.getName()
-										.equalsIgnoreCase(k.getKey()) && k.getValue() != null)
-								.findAny().orElse(null);
-						if ( numConnsKey != null ) {
-							try {
-								cp.setConnectorCount(Integer.parseInt(numConnsKey.getValue()));
-							} catch ( NumberFormatException e ) {
-								log.error("{} key invalid integer value: [{}]",
-										ConfigurationKey.NumberOfConnectors, numConnsKey.getValue());
-							}
-						}
-						if ( !cp.isSameAs(orig) ) {
-							chargePointDao.save(cp);
-							log.info("Saved configuration changes to Charge Point {}", cp.id());
-						}
-
-						// add missing ChargePointConnector entities; remove excess
-						Collection<ChargePointConnector> connectors = chargePointConnectorDao
-								.findByChargePointId(cp.id());
-						Map<Integer, ChargePointConnector> existing = connectors.stream()
-								.collect(Collectors.toMap(cpc -> cpc.id().getConnectorId(), cpc -> cpc));
-						for ( int i = 1; i <= cp.getConnectorCount(); i++ ) {
-							if ( !existing.containsKey(i) ) {
-								ChargePointConnector conn = new ChargePointConnector(
-										new ChargePointConnectorKey(cp.id(), i), Instant.now());
-								conn.setInfo(StatusNotification.builder().withConnectorId(i)
-										.withTimestamp(conn.getCreated()).build());
-								log.info("Creating ChargePointConnector {} for Charge Point {}", i,
-										cp.getId());
-								chargePointConnectorDao.save(conn);
-							}
-						}
-						for ( Iterator<Entry<Integer, ChargePointConnector>> itr = existing.entrySet()
-								.iterator(); itr.hasNext(); ) {
-							Entry<Integer, ChargePointConnector> e = itr.next();
-							int connId = e.getKey().intValue();
-							if ( connId < 1 || connId > cp.getConnectorCount() ) {
-								log.info("Deleting excess ChargePointConnector {} from Charge Point {}",
-										connId, cp.getId());
-								chargePointConnectorDao.delete(e.getValue());
-								itr.remove();
-							}
-						}
-					}
-				});
-			} else if ( err != null ) {
-				log.warn("Error requesting configuration from charge point {}: {}",
-						chargePoint.getInfo().getId(), err.getMessage());
-			}
-			return true;
-		};
-	}
-
 	@Override
 	public AuthorizationInfo authorize(final @Nullable ChargePointIdentity clientId,
 			final String idTag) {
@@ -300,15 +221,6 @@ public class OcppControllerService extends BaseIdentifiable implements ChargePoi
 			result.withStatus(AuthorizationStatus.Invalid);
 		}
 		return result.build();
-	}
-
-	private <T> @Nullable T tryWithTransaction(TransactionCallback<T> tx) {
-		final TransactionTemplate tt = getTransactionTemplate();
-		if ( tt != null ) {
-			return tt.execute(tx);
-		} else {
-			return tx.doInTransaction(null);
-		}
 	}
 
 	private <T, R> void sendToChargePoint(ChargePointIdentity identity, Action action, T payload,
